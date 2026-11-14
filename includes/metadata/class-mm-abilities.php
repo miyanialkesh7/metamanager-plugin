@@ -44,7 +44,7 @@ class MM_Abilities {
 
 	public function register_hooks(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
-			return; // Abilities API not available (pre-6.9).
+			return;
 		}
 
 		// Two-phase API: categories register on their own action, and an
@@ -82,11 +82,11 @@ class MM_Abilities {
 		// content/* and comments/* abilities moved to GCM Coworker (gcm repo).
 		// General WordPress operations belong in the mu-plugin that's on
 		// every site, not in an optional plugin. MetaManager owns only
-		// metamanager/* and reports/* abilities.
+		// metamanager/* and metamanager/get-daemon-status.
 	}
 
 	// -------------------------------------------------------------------------
-	// reports/* — read-only status reports (AI phase A1).
+	// MetaManager daemon status — reads metamanager-status.json only.
 	//
 	// Registered here because MetaManager is the plugin every site carries
 	// and hosts the chat surface. Each report reads exactly the file its
@@ -101,16 +101,13 @@ class MM_Abilities {
 	 * Report file locations, overridable for tests (mirrors the
 	 * GCM_STATUS_JSON seam the GCM dashboard uses).
 	 *
-	 * @param string $which gcm_status|security_scan|daemon|mail.
+	 * @param string $which Only 'daemon' (MetaManager's own status file).
 	 * @return string
 	 */
 	public static function report_path( string $which ): string {
 		$job_root = defined( 'MM_JOB_ROOT' ) ? MM_JOB_ROOT : WP_CONTENT_DIR . '/metamanager-jobs';
 		$paths    = array(
-			'gcm_status'    => '/etc/gcm/status.json',
-			'security_scan' => '/etc/gcm/security_scan.json',
-			'daemon'        => $job_root . '/metamanager-status.json',
-			'mail'          => WP_CONTENT_DIR . '/mxroute-status.json',
+			'daemon' => $job_root . '/metamanager-status.json',
 		);
 		if ( ! isset( $paths[ $which ] ) ) {
 			return '';
@@ -122,7 +119,7 @@ class MM_Abilities {
 	 * Read and decode a report. No fallbacks: an unreadable or invalid
 	 * report is an error, never empty data.
 	 *
-	 * @param string $which gcm_status|security_scan|daemon|mail.
+	 * @param string $which Only 'daemon' (MetaManager's own status file).
 	 * @return array|WP_Error
 	 */
 	public static function read_report( string $which ) {
@@ -213,81 +210,23 @@ class MM_Abilities {
 	}
 
 	private function register_report_abilities(): void {
-		$read_only_input = array(
-			'type'       => 'object',
-			'properties' => new stdClass(),
-		);
-
-		wp_register_ability( 'reports/get-status', array(
-			'label'         => __( 'Get Server Status', 'metamanager' ),
-			'description'   => 'Read the GCM server status report: services, versions, busy gates, backup state, security posture, source availability — the same report the WordPress dashboard reads.',
-			'category'      => 'site',
-			'input_schema'  => $read_only_input,
-			'output_schema' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'gcm_version'       => array( 'type' => 'string' ),
-					'gcm_branch'        => array( 'type' => [ 'string', 'null' ] ),
-					'wp_version'        => array( 'type' => [ 'string', 'null' ] ),
-					'ts'                => array( 'type' => 'integer' ),
-					'busy'              => array( 'type' => 'object', 'description' => 'Gate busy flags: backup, maint, update, scan, restore.' ),
-					'backup'            => array( 'type' => 'object', 'description' => 'date, size, archive_valid, sql_ok, meta.' ),
-					'os_update'         => array( 'type' => [ 'object', 'null' ] ),
-					'wordpress_updates' => array( 'type' => 'object' ),
-					'ssl'               => array( 'type' => 'object' ),
-					'site_integrity'    => array( 'type' => 'object' ),
-					'sources'           => array( 'type' => 'object', 'description' => 'apt + WordPress feed availability.' ),
-					'domain'            => array( 'type' => 'object' ),
-				),
-			),
-			'execute_callback'    => array( $this, 'ability_get_status' ),
-			'permission_callback' => array( $this, 'can_use' ),
-			'meta'                => array( 'mcp.public' => true, 'tier' => 'read' ),
-		) );
-
-		wp_register_ability( 'reports/get-os-update', array(
-			'label'         => __( 'Get OS Update Report', 'metamanager' ),
-			'description'   => 'Read the OS update block of the server status report (last run, result, packages upgraded, reboot required).',
-			'category'      => 'site',
-			'input_schema'  => $read_only_input,
-			'output_schema' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'ts'                => array( 'type' => [ 'integer', 'null' ] ),
-					'result'            => array( 'type' => [ 'string', 'null' ] ),
-					'packages_upgraded' => array( 'type' => [ 'integer', 'null' ] ),
-					'reboot_required'   => array( 'type' => [ 'boolean', 'null' ] ),
-				),
-			),
-			'execute_callback'    => array( $this, 'ability_get_os_update' ),
-			'permission_callback' => array( $this, 'can_use' ),
-			'meta'                => array( 'mcp.public' => true, 'tier' => 'read' ),
-		) );
-
-		wp_register_ability( 'reports/get-security-scan', array(
-			'label'         => __( 'Get Security Scan Report', 'metamanager' ),
-			'description'   => 'Read the last webroot security scan report (timestamp, clean/ok, findings).',
-			'category'      => 'site',
-			'input_schema'  => $read_only_input,
-			'output_schema' => array( 'type' => 'object' ),
-			'execute_callback'    => array( $this, 'ability_get_security_scan' ),
-			'permission_callback' => array( $this, 'can_use' ),
-			'meta'                => array( 'mcp.public' => true, 'tier' => 'read' ),
-		) );
-
-		wp_register_ability( 'reports/get-daemon-status', array(
+		// MetaManager manages metadata (post meta, term meta, schema).
+		// GCM server status lives in the GCM Coworker (gcm/*).
+		// MXRoute mail status lives in mxroute/queue-status.
+		// Only MetaManager's own daemon status is reported here.
+		wp_register_ability( 'metamanager/get-daemon-status', array(
 			'label'         => __( 'Get Daemon Status', 'metamanager' ),
-			'description'   => 'Read the MetaManager daemon status report: daemon running state and PIDs, queue depths, tool availability, WP-Cron history.',
+			'description'   => 'Read the MetaManager daemon status: daemon running state and PIDs, queue depths, tool availability, WP-Cron history.',
 			'category'      => 'site',
-			'input_schema'  => $read_only_input,
+			'input_schema'  => array( 'type' => 'object', 'properties' => new stdClass() ),
 			'output_schema' => array(
 				'type'       => 'object',
 				'properties' => array(
 					'ts'             => array( 'type' => 'string' ),
 					'plugin_version' => array( 'type' => 'string' ),
 					'daemon_version' => array( 'type' => [ 'string', 'null' ] ),
-					'daemons'        => array( 'type' => 'object', 'description' => 'compress/meta: running + pid.' ),
-					'queues'         => array( 'type' => 'object', 'description' => 'compress, meta, completed, failed.' ),
+					'daemons'        => array( 'type' => 'object' ),
+					'queues'         => array( 'type' => 'object' ),
 					'tools'          => array( 'type' => 'object' ),
 					'cron'           => array( 'type' => 'object' ),
 				),
@@ -296,59 +235,6 @@ class MM_Abilities {
 			'permission_callback' => array( $this, 'can_use' ),
 			'meta'                => array( 'mcp.public' => true, 'tier' => 'read' ),
 		) );
-
-		wp_register_ability( 'reports/get-mail-status', array(
-			'label'         => __( 'Get Mail Status', 'metamanager' ),
-			'description'   => 'Read the MXRoute Mailer status report: queue counts (pending/sent/failed), cron health, and WP-Cron history.',
-			'category'      => 'site',
-			'input_schema'  => $read_only_input,
-			'output_schema' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'pending'    => array( 'type' => 'integer' ),
-					'sent'       => array( 'type' => 'integer' ),
-					'failed'     => array( 'type' => 'integer' ),
-					'cron'       => array( 'type' => 'object', 'description' => 'last_run, next_scheduled, interval.' ),
-					'history'    => array( 'type' => 'object' ),
-					'version'    => array( 'type' => 'string' ),
-					'updated_at' => array( 'type' => 'string' ),
-				),
-			),
-			'execute_callback'    => array( $this, 'ability_get_mail_status' ),
-			'permission_callback' => array( $this, 'can_use' ),
-			'meta'                => array( 'mcp.public' => true, 'tier' => 'read' ),
-		) );
-	}
-
-	/**
-	 * @return array|WP_Error
-	 */
-	public function ability_get_status( array $input = array() ) {
-		return self::read_report( 'gcm_status' );
-	}
-
-	/**
-	 * @return array|WP_Error
-	 */
-	public function ability_get_os_update( array $input = array() ) {
-		$data = self::read_report( 'gcm_status' );
-		if ( is_wp_error( $data ) ) {
-			return $data;
-		}
-		if ( ! array_key_exists( 'os_update', $data ) ) {
-			return new WP_Error(
-				'report_missing_field',
-				'The status report has no os_update block.'
-			);
-		}
-		return array( 'os_update' => $data['os_update'] );
-	}
-
-	/**
-	 * @return array|WP_Error
-	 */
-	public function ability_get_security_scan( array $input = array() ) {
-		return self::read_report( 'security_scan' );
 	}
 
 	/**
@@ -356,13 +242,6 @@ class MM_Abilities {
 	 */
 	public function ability_get_daemon_status( array $input = array() ) {
 		return self::read_report( 'daemon' );
-	}
-
-	/**
-	 * @return array|WP_Error
-	 */
-	public function ability_get_mail_status( array $input = array() ) {
-		return self::read_report( 'mail' );
 	}
 
 	// -------------------------------------------------------------------------
