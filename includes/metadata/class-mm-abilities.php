@@ -79,8 +79,10 @@ class MM_Abilities {
 		$this->register_get_navigation();
 		$this->register_get_term_meta();
 		$this->register_report_abilities();
-		$this->register_content_abilities();
-		$this->register_comment_abilities();
+		// content/* and comments/* abilities moved to GCM Coworker (gcm repo).
+		// General WordPress operations belong in the mu-plugin that's on
+		// every site, not in an optional plugin. MetaManager owns only
+		// metamanager/* and reports/* abilities.
 	}
 
 	// -------------------------------------------------------------------------

@@ -26,13 +26,26 @@ class Test_MM_Content_Abilities_Unit extends WP_UnitTestCase {
 		return $user_id;
 	}
 
+	/**
+	 * Run MetaManager ability registration inside the required action.
+	 * register_hooks() already hooks to wp_abilities_api_init — just fire it.
+	 */
+	private function register_via_action(): void {
+		do_action( 'wp_abilities_api_init' );
+	}
+
 	// ------------------------------------------------------------------
-	// Registration contract
+	// Registration contract — content/* and comments/* moved to GCM
+	// Coworker (gcm repo). MetaManager only owns metamanager/* and
+	// reports/* abilities. General WordPress operations live in the
+	// mu-plugin that's on every site.
 	// ------------------------------------------------------------------
 
-	public function test_content_and_comment_abilities_register_with_callbacks(): void {
+	public function test_content_and_comment_abilities_are_not_registered_by_metamanager(): void {
 		$this->admin_user();
-		$names = array(
+		// Don't trigger registration — just verify MetaManager no longer
+		// registers these (they moved to the GCM Coworker mu-plugin).
+		$moved = array(
 			'content/list-posts', 'content/get-post', 'content/create-draft',
 			'content/update-post', 'content/schedule-publish', 'content/publish',
 			'content/unpublish', 'content/trash', 'content/restore',
@@ -40,15 +53,29 @@ class Test_MM_Content_Abilities_Unit extends WP_UnitTestCase {
 			'content/set-featured-image', 'content/list-terms', 'content/assign-term',
 			'comments/list', 'comments/moderate',
 		);
-		foreach ( $names as $name ) {
-			$ability = wp_get_ability( $name );
-			$this->assertNotNull( $ability, "$name must be registered" );
-			$this->assertSame( $name, $ability->get_name() );
+		foreach ( $moved as $name ) {
+			$this->assertFalse( wp_has_ability( $name ), "$name should NOT be registered by MetaManager (moved to Coworker)" );
 		}
-		// trash is the destructive tier — the chat keys typed confirmation
-		// on this flag.
-		$trash = wp_get_ability( 'content/trash' );
-		$this->assertTrue( (bool) $trash->get_meta_item( 'destructive' ) );
+	}
+
+	public function test_metamanager_and_reports_abilities_still_register(): void {
+		$this->admin_user();
+		// These are registered by register_hooks() → wp_abilities_api_init
+		// during WP init. The test framework should have already fired it.
+		// If not, fire it (suppressing "already registered" if needed).
+		$this->setExpectedIncorrectUsage( 'WP_Abilities_Registry::register' );
+		$this->register_via_action();
+		$own = array(
+			'metamanager/get-post-meta', 'metamanager/update-post-meta',
+			'metamanager/get-schema', 'metamanager/get-business-profile',
+			'metamanager/get-navigation', 'metamanager/get-term-meta',
+			'reports/get-status', 'reports/get-os-update',
+			'reports/get-security-scan', 'reports/get-daemon-status',
+			'reports/get-mail-status',
+		);
+		foreach ( $own as $name ) {
+			$this->assertNotNull( wp_get_ability( $name ), "$name must be registered by MetaManager" );
+		}
 	}
 
 	// ------------------------------------------------------------------
