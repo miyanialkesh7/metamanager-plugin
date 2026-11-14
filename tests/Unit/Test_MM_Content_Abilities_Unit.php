@@ -3,7 +3,7 @@
  * Unit tests for ability separation of concerns.
  *
  * content/* and comments/* abilities moved to GCM Coworker (gcm repo).
- * MetaManager owns only metamanager/* and reports/* abilities.
+ * MetaManager owns only metamanager/* abilities (including daemon status).
  * General WordPress operations belong in the mu-plugin on every site.
  *
  * @package Metamanager\Tests\Unit
@@ -23,15 +23,6 @@ class Test_MM_Content_Abilities_Unit extends WP_UnitTestCase {
 		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $user_id );
 		return $user_id;
-	}
-
-	/**
-	 * Run MetaManager ability registration inside the required action.
-	 * register_hooks() already hooks to wp_abilities_api_init — just fire it.
-	 */
-	private function register_via_action(): void {
-		$this->setExpectedIncorrectUsage( 'WP_Abilities_Registry::register' );
-		do_action( 'wp_abilities_api_init' );
 	}
 
 	// ------------------------------------------------------------------
@@ -55,14 +46,14 @@ class Test_MM_Content_Abilities_Unit extends WP_UnitTestCase {
 
 	public function test_metamanager_and_reports_abilities_still_register(): void {
 		$this->admin_user();
-		$this->register_via_action();
+		// Abilities are registered by register_hooks() during WP init
+		// (metamanager.php:125). Do NOT re-fire wp_abilities_api_init —
+		// that would attempt duplicate registration and emit _doing_it_wrong.
 		$own = array(
 			'metamanager/get-post-meta', 'metamanager/update-post-meta',
 			'metamanager/get-schema', 'metamanager/get-business-profile',
 			'metamanager/get-navigation', 'metamanager/get-term-meta',
-			'reports/get-status', 'reports/get-os-update',
-			'reports/get-security-scan', 'reports/get-daemon-status',
-			'reports/get-mail-status',
+			'metamanager/get-daemon-status',
 		);
 		foreach ( $own as $name ) {
 			$this->assertNotNull( wp_get_ability( $name ), "$name must be registered by MetaManager" );
