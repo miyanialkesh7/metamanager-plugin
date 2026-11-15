@@ -326,13 +326,19 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		$og_image = $this->get_og_image( $data );
 		if ( $og_image ) {
 			$node['primaryImageOfPage'] = [ '@id' => $url . '#primaryimage' ];
-			$this->add_node( $data, [
-				'@type'  => 'ImageObject',
-				'@id'    => $url . '#primaryimage',
-				'url'    => $og_image['url'],
-				'width'  => $og_image['width'],
-				'height' => $og_image['height'],
-			] );
+			$image_node = array(
+				'@type' => 'ImageObject',
+				'@id'   => $url . '#primaryimage',
+				'url'   => $og_image['url'],
+			);
+			// Only emit width/height as QuantitativeValue when valid positive integers.
+			if ( ! empty( $og_image['width'] ) && is_numeric( $og_image['width'] ) && (int) $og_image['width'] > 0 ) {
+				$image_node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $og_image['width'], 'unitCode' => 'PIX' );
+			}
+			if ( ! empty( $og_image['height'] ) && is_numeric( $og_image['height'] ) && (int) $og_image['height'] > 0 ) {
+				$image_node['height'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $og_image['height'], 'unitCode' => 'PIX' );
+			}
+			$this->add_node( $data, $image_node );
 		}
 
 		$this->add_node( $data, $node );
@@ -521,12 +527,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 
-		// Service: add areaServed from business profile (not per-service).
+		// Service: add areaServed and provider from business profile.
 		if ( 'Service' === $type ) {
 			$service_areas = $settings->get_business( 'service_areas', [] );
 			if ( ! empty( $service_areas ) && is_array( $service_areas ) ) {
 				$node['areaServed'] = count( $service_areas ) === 1 ? $service_areas[0] : array_values( $service_areas );
 			}
+			$node['provider'] = [ '@id' => $this->site_id( 'organization' ) ];
 		}
 
 		// TouristTrip: merge vessel and destination relationships.
@@ -907,11 +914,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			'contentUrl' => $schema_url,
 		];
 
-		if ( $item['width'] ) {
-			$node['width'] = $item['width'];
+		if ( $item['width'] && is_numeric( $item['width'] ) && (int) $item['width'] > 0 ) {
+			$node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $item['width'], 'unitCode' => 'PIX' );
 		}
-		if ( $item['height'] ) {
-			$node['height'] = $item['height'];
+		if ( $item['height'] && is_numeric( $item['height'] ) && (int) $item['height'] > 0 ) {
+			$node['height'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $item['height'], 'unitCode' => 'PIX' );
 		}
 
 		// Enrich from attachment metadata.
