@@ -40,7 +40,7 @@ $layout = function_exists( 'siteorigin_setting' ) ? ( siteorigin_setting( 'blog_
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h2>
 						<div class="mm-service-card__excerpt"><?php the_excerpt(); ?></div>
-						<a class="mm-service-card__link" href="<?php the_permalink(); ?>">Learn more &rarr;</a>
+						<a class="mm-service-card__link" href="<?php the_permalink(); ?>">Learn more</a>
 					</div>
 				</article>
 			<?php endwhile; ?>
