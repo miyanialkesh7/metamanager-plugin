@@ -68,8 +68,10 @@ class MM_Mod_Hygiene extends MM_Mod_Base {
 
 		// Remove hentry microformat class from post_class() — schema.org
 		// validators flag it as an unrecognized type (hentry is hAtom,
-		// not schema.org). MetaManager manages schema output.
-		add_filter( 'post_class', [ $this, 'remove_hentry_class' ] );
+		// not schema.org). Default: on (suppressed).
+		if ( $h->get( 'hygiene.remove_hentry', true ) ) {
+			add_filter( 'post_class', [ $this, 'remove_hentry_class' ] );
+		}
 	}
 
 	/**
