@@ -105,15 +105,7 @@ $layout = function_exists( 'siteorigin_setting' ) ? ( siteorigin_setting( 'blog_
 	margin: 0 0 12px;
 	line-height: 1.6;
 }
-.mm-service-card__link {
-	font-weight: 600;
-	text-decoration: none;
-	display: inline-block;
-	margin-top: 4px;
-}
-.mm-service-card__link:hover {
-	opacity: 0.7;
-}
+article.mm-service-card .mm-service-card__link{display:inline-block;padding:10px 16px;background:#7a0000;color:#ffffff !important;border-radius:4px;font-size:14px;font-weight:600;text-decoration:none;margin-top:8px}.mm-service-card__link:hover{opacity:.85}
 @media (max-width: 768px) {
 	.mm-service-card__image {
 		flex: 0 0 24%;
