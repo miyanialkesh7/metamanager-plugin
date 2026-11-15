@@ -101,6 +101,9 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		if ( $context->is_post_type_archive() ) {
 			$pt  = $context->get_post_type();
 			$tpl = $settings->get( "titles.post_types.{$pt}.archive_title", '%%post_type_label%% %%sep%% %%sitetitle%%' );
+			// Resolve %%post_type_label%% to the plural label for archives.
+			$pt_obj = get_post_type_object( $pt );
+			$tpl = str_replace( '%%post_type_label%%', $pt_obj ? $pt_obj->labels->name : $pt, $tpl );
 			return $settings->resolve( $tpl );
 		}
 
