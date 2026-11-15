@@ -404,6 +404,7 @@ class MM_Status {
 				'ffmpeg'    => $system['ffmpeg'],
 			),
 			'cron'            => MM_Cron_Tracker::get_all(),
+			'links'           => self::link_stats(),
 		);
 
 		$json = wp_json_encode( $data, JSON_PRETTY_PRINT );
@@ -417,5 +418,28 @@ class MM_Status {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_function
 		@rename( $tmp, $status_file );
 		@chmod( $status_file, 0644 );
+	}
+
+	/**
+	 * Get link-checker (Linkbot) stats from the links table.
+	 *
+	 * @return array{total: int, broken: int, ignored: int, last_checked: string|null}
+	 */
+	public static function link_stats(): array {
+		global $wpdb;
+		$table = MM_Mod_Links::table_name();
+		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
+			return array( 'total' => 0, 'broken' => 0, 'ignored' => 0, 'last_checked' => null );
+		}
+		$total    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_ignored = 0" );
+		$broken   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_broken = 1 AND is_ignored = 0" );
+		$ignored  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_ignored = 1" );
+		$last_chk = (string) $wpdb->get_var( "SELECT MAX(last_checked) FROM {$table}" );
+		return array(
+			'total'        => $total,
+			'broken'       => $broken,
+			'ignored'      => $ignored,
+			'last_checked' => '' !== $last_chk ? $last_chk : null,
+		);
 	}
 }
