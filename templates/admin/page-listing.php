@@ -1,0 +1,141 @@
+<?php
+/**
+ * Admin page — Listing Cards Style.
+ *
+ * Sitewide style for the "Learn more" buttons on archive/parent listing
+ * pages (Services, Events, Trips, etc.).
+ *
+ * @var MM_Site_Settings $settings
+ */
+defined( 'ABSPATH' ) || exit;
+
+$s   = $settings->get( 'listing' );
+$opt = 'listing';
+?>
+
+<div class="mm-meta-panel" id="page-listing">
+
+	<h2><?php esc_html_e( 'Listing Cards', 'metamanager' ); ?></h2>
+	<p class="description">
+		<?php esc_html_e( 'Controls the appearance of the "Learn more" link buttons on listing pages (Services, Events, Trips, Courses, etc.). These are the archive/parent pages that list all items of a schema type.', 'metamanager' ); ?>
+	</p>
+
+	<?php /* ------------------------------------------------------------------ */ ?>
+	<?php /* Section: Button Text */ ?>
+	<?php /* ------------------------------------------------------------------ */ ?>
+
+	<h3><?php esc_html_e( 'Button Text', 'metamanager' ); ?></h3>
+
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label for="listing-btn_text"><?php esc_html_e( 'Link Text', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_text"
+					name="<?php echo esc_attr( $opt ); ?>[btn_text]"
+					value="<?php echo esc_attr( $s['btn_text'] ); ?>"
+					class="regular-text">
+				<p class="description"><?php esc_html_e( 'The text displayed on the link/button under each item on listing pages.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+	</table>
+
+	<?php /* ------------------------------------------------------------------ */ ?>
+	<?php /* Section: Button Appearance */ ?>
+	<?php /* ------------------------------------------------------------------ */ ?>
+
+	<h3><?php esc_html_e( 'Button Appearance', 'metamanager' ); ?></h3>
+
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label for="listing-btn_bg"><?php esc_html_e( 'Background Color', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_bg"
+					name="<?php echo esc_attr( $opt ); ?>[btn_bg]"
+					value="<?php echo esc_attr( $s['btn_bg'] ); ?>">
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_text_color"><?php esc_html_e( 'Text Color', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_text_color"
+					name="<?php echo esc_attr( $opt ); ?>[btn_text_color]"
+					value="<?php echo esc_attr( $s['btn_text_color'] ); ?>">
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_radius"><?php esc_html_e( 'Border Radius', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_radius"
+					name="<?php echo esc_attr( $opt ); ?>[btn_radius]"
+					value="<?php echo esc_attr( $s['btn_radius'] ); ?>"
+					class="small-text">
+				<p class="description"><?php esc_html_e( 'e.g. 0px for square, 4px for subtle, 99px for pill shape.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_padding"><?php esc_html_e( 'Padding', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_padding"
+					name="<?php echo esc_attr( $opt ); ?>[btn_padding]"
+					value="<?php echo esc_attr( $s['btn_padding'] ); ?>"
+					class="small-text">
+				<p class="description"><?php esc_html_e( 'CSS shorthand: top/right/bottom/left or vertical/horizontal.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_font_size"><?php esc_html_e( 'Font Size', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_font_size"
+					name="<?php echo esc_attr( $opt ); ?>[btn_font_size]"
+					value="<?php echo esc_attr( $s['btn_font_size'] ); ?>"
+					class="small-text">
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_font_weight"><?php esc_html_e( 'Font Weight', 'metamanager' ); ?></label></th>
+			<td>
+				<select id="listing-btn_font_weight"
+					name="<?php echo esc_attr( $opt ); ?>[btn_font_weight]">
+					<?php foreach ( array( '400' => 'Normal', '500' => 'Medium', '600' => 'Semibold', '700' => 'Bold' ) as $val => $label ) : ?>
+						<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $s['btn_font_weight'], $val ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</td>
+		</tr>
+	</table>
+
+	<h3><?php esc_html_e( 'Preview', 'metamanager' ); ?></h3>
+	<div style="background:#f0f0f1;padding:20px;border-radius:4px;">
+		<a id="listing-preview-btn" style="
+			display: inline-block;
+			padding: <?php echo esc_attr( $s['btn_padding'] ); ?>;
+			background: <?php echo esc_attr( $s['btn_bg'] ); ?>;
+			color: <?php echo esc_attr( $s['btn_text_color'] ); ?>;
+			border-radius: <?php echo esc_attr( $s['btn_radius'] ); ?>;
+			font-size: <?php echo esc_attr( $s['btn_font_size'] ); ?>;
+			font-weight: <?php echo esc_attr( $s['btn_font_weight'] ); ?>;
+			text-decoration: none;
+		"><?php echo esc_html( $s['btn_text'] ); ?></a>
+	</div>
+	<script>
+	(function() {
+		function upd() {
+			var b = document.getElementById('listing-preview-btn');
+			if (!b) return;
+			var f = function(id) { return document.getElementById('listing-' + id); };
+			b.textContent = f('btn_text') ? f('btn_text').value : 'Learn more';
+			b.style.padding = f('btn_padding') ? f('btn_padding').value : '';
+			b.style.background = f('btn_bg') ? f('btn_bg').value : '';
+			b.style.color = f('btn_text_color') ? f('btn_text_color').value : '';
+			b.style.borderRadius = f('btn_radius') ? f('btn_radius').value : '';
+			b.style.fontSize = f('btn_font_size') ? f('btn_font_size').value : '';
+			b.style.fontWeight = f('btn_font_weight') ? f('btn_font_weight').value : '';
+		}
+		document.querySelectorAll('#page-listing input, #page-listing select').forEach(function(el) {
+			el.addEventListener('input', upd);
+			el.addEventListener('change', upd);
+		});
+	})();
+	</script>
+
+</div>

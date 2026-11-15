@@ -499,6 +499,17 @@ class MM_Site_Settings {
 				'mcp_server'       => true,
 			],
 
+			'listing' => [
+				'btn_text'      => 'Learn more',
+				'btn_bg'        => '#0073aa',
+				'btn_text_color'=> '#ffffff',
+				'btn_radius'    => '4px',
+				'btn_padding'   => '10px 16px',
+				'btn_font_size' => '14px',
+				'btn_font_weight' => '600',
+				'btn_display'   => 'inline-block',
+			],
+
 		];
 	}
 
