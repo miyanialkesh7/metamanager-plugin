@@ -65,10 +65,17 @@ class MM_Page_Generator {
 		// Temporarily remove this hook to prevent infinite loop on wp_update_post.
 		remove_action( 'save_post', [ 'MM_Schema_Post_Types', 'save_meta' ], 10 );
 
+		// Preserve page template — wp_update_post resets _wp_page_template to 'default'.
+		$saved_template = get_page_template_slug( $page_id );
+
 		wp_update_post( [
 			'ID'           => $page_id,
 			'post_content' => $html,
 		] );
+
+		if ( $saved_template ) {
+			update_post_meta( $page_id, '_wp_page_template', $saved_template );
+		}
 
 		add_action( 'save_post', [ 'MM_Schema_Post_Types', 'save_meta' ], 10, 2 );
 
