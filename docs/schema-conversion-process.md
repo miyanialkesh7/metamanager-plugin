@@ -118,10 +118,39 @@ For any service business with service pages:
 4. Assign `mm-service` template to each service page
 5. Verify with curl
 
+## Validation results (2026-11-15)
+
+All 4 service pages validated clean:
+
+| Tool | Result |
+|---|---|
+| Schema.org Markup Validator | 5 objects, 0 errors, 0 warnings |
+| Schemagen.io (Schema.org + Google Rich Results) | isValid: true, 0 issues, 0 Google warnings |
+
+### Issues found and fixed during validation
+
+1. **ImageObject width/height format** - plain numbers rejected as "Invalid input". Fixed: wrap in QuantitativeValue (type: QuantitativeValue, value: N, unitCode: PIX).
+2. **Service missing provider** - Google requires provider linking to the business for Service rich results. Fixed: provider references #organization on all Service nodes.
+3. **Hand-written schema in HTML widgets** - 14 blocks of hand-written JSON-LD in SiteOrigin widgets duplicated MetaManager output. Removed after confirming MetaManager generates all fields (description was the gap - added to MM_Mod_Local).
+4. **Sitemap honeypot exclusion** - wp-statistics-honey-pot-page-for-tracking was in the sitemap. Set mm_schema_fields.noindex = true to exclude it.
+5. **Business type correction** - RoofingContractor was wrong (Gutter Tymer is not a roofer). Changed to HomeAndConstructionBusiness (correct LocalBusiness subtype for a gutter company).
+
+### Key validation learnings
+
+- **Schema.org Markup Validator** - POST validator.schema.org/validate?url=...&output=json. Strips )]}' prefix from response (tail -c +5). Authoritative for schema.org spec compliance.
+- **Schemagen.io** - POST schemagen.io/api/validate with jsonString. Adds Google Rich Result eligibility checks. Stricter than schema.org on some types (ImageObject dimensions must be QuantitativeValue, not plain numbers).
+- **Google Rich Results Test** has no public API - web UI only.
+- **Service nodes** need provider linking to the business organization for Google rich results.
+- **Hand-written schema in widgets** conflicts with MetaManager-generated schema - always remove one.
+
 ## What's next for Gutter Tymer
 
-- [ ] Review business profile details (phone, address, hours, payment methods)
-- [ ] Configure MetaManager settings (sitemap, robots, link checking)
+- [x] Review business profile details (phone, address, hours, price range, geo)
+- [x] Schema types assigned (mm-service template on 4 service pages)
+- [x] Hand-written schema removed (14 blocks)
+- [x] Schema validated (schema.org + Google Rich Results)
+- [x] Sitemap honeypot exclusion
+- [x] Business type corrected (HomeAndConstructionBusiness)
+- [ ] Configure MetaManager link checking schedule
 - [ ] Run one-time image compression pass
-- [ ] Set up link checking schedule
-- [ ] Verify all pages have appropriate schema types
+- [ ] Verify remaining pages have appropriate schema types (AboutPage, ContactPage)
