@@ -91,6 +91,7 @@ require_once MM_META_DIR . 'includes/metadata/class-mm-schema-types.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-schema-post-types.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-page-generator.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-biz-card-css.php';
+require_once MM_META_DIR . 'includes/metadata/class-mm-listing-card-css.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-metadata-cli.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-customizer.php';
 require_once MM_META_DIR . 'includes/metadata/class-mm-abilities.php';
