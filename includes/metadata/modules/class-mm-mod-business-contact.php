@@ -810,6 +810,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			</div>
 			<?php endif; ?>
 
+			<div class="gcm-about-page__cta">
+				<a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="gcm-about-page__cta-btn">
+					<?php esc_html_e( 'Contact Us', 'metamanager' ); ?>
+				</a>
+			</div>
+
 			<?php if ( ! empty( $accounts ) ) : ?>
 			<div class="gcm-about-page__social">
 				<h3>Connect With Us</h3>

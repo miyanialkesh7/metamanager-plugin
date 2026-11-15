@@ -269,6 +269,27 @@
 	text-decoration: underline;
 }
 
+.gcm-about-page__cta {
+	margin: 24px 0;
+}
+
+.gcm-about-page__cta-btn {
+	display: inline-block;
+	padding: 12px 28px;
+	background: #2271b1;
+	color: #ffffff !important;
+	border-radius: 4px;
+	font-size: 15px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.gcm-about-page__cta-btn:hover {
+	opacity: .88;
+	text-decoration: none;
+	color: #ffffff !important;
+}
+
 /* =========================================================================
    Calendar
    ========================================================================= */
