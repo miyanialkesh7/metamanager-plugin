@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 class MM_Mod_Author extends MM_Mod_Base {
 
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
-		if ( ! $settings->get( 'authors.enabled', true ) ) {
+		if ( ! $settings->get( 'authors.enabled', true ) || ! $settings->get( 'authors.person_schema', true ) ) {
 			return;
 		}
 

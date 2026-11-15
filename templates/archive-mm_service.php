@@ -75,7 +75,7 @@ $layout = function_exists( 'siteorigin_setting' ) ? ( siteorigin_setting( 'blog_
 .mm-service-card {
 	display: flex;
 	flex-direction: row;
-	align-items: flex-start;
+	align-items: center;
 	gap: 0;
 }
 .mm-service-card__image {
@@ -128,6 +128,7 @@ $layout = function_exists( 'siteorigin_setting' ) ? ( siteorigin_setting( 'blog_
 @media (max-width: 600px) {
 	.mm-service-card {
 		flex-direction: column;
+		align-items: flex-start;
 	}
 	.mm-service-card__image {
 		flex: 0 0 100%;

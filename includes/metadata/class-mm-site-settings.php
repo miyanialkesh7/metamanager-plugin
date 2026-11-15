@@ -482,6 +482,7 @@ class MM_Site_Settings {
 				'remove_pingback_header' => true,
 				'remove_x_powered_by'   => true,
 				'remove_wp_dns_prefetch' => true,
+				'remove_hentry'          => true,
 			],
 
 			'feed' => [
