@@ -66,6 +66,11 @@ class MM_Mod_Local extends MM_Mod_Base {
 			}
 		}
 
+		// Description.
+		if ( ! empty( $biz['description'] ) ) {
+			$node['description'] = sanitize_text_field( $biz['description'] );
+		}
+
 		// Contact.
 		if ( ! empty( $biz['phone'] ) ) {
 			$node['telephone'] = sanitize_text_field( $biz['phone'] );
