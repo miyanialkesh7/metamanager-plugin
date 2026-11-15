@@ -37,6 +37,7 @@ class MM_Schema_Post_Types {
 		'mm-calendar'   => 'Calendar',
 		'mm-area-guide' => 'TouristDestination',
 		'mm-venue'      => 'Place',
+		'mm-service'    => 'Service',
 	];
 
 	/**
