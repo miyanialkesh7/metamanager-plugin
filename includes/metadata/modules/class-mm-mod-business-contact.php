@@ -558,9 +558,13 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<div class="gcm-contact-page__name" itemprop="name"><?php echo esc_html( $name ); ?></div>
 
 			<?php if ( $has_address ) : ?>
+			<?php $is_service_area = ( ( $biz['location_type'] ?? 'brick_and_mortar' ) === 'service_area' ); ?>
 			<address class="gcm-contact-page__address"
 			         itemprop="address"
 			         itemscope itemtype="https://schema.org/PostalAddress">
+				<?php if ( $is_service_area ) : ?>
+					<span class="gcm-contact-page__mailing-label"><?php esc_html_e( 'Mailing Address', 'metamanager' ); ?></span><br>
+				<?php endif; ?>
 				<?php if ( ! empty( $addr['street'] ) ) : ?>
 					<span itemprop="streetAddress"><?php echo esc_html( $addr['street'] ); ?></span><br>
 				<?php endif; ?>
@@ -576,7 +580,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 					<br><span itemprop="addressCountry"><?php echo esc_html( $addr['country'] ); ?></span>
 				<?php endif; ?>
 
-				<?php if ( $lat && $lng ) : ?>
+				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
 				<br>
 				<a href="geo:<?php echo esc_attr( $lat ); ?>,<?php echo esc_attr( $lng ); ?>?z=16"
 				   class="gcm-contact-page__map-link"
@@ -586,6 +590,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 					<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
 					<?php esc_html_e( 'Open in Maps', 'metamanager' ); ?>
 				</a>
+				<?php endif; ?>
+				<?php if ( $is_service_area ) : ?>
+					<br><span class="gcm-contact-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
 				<?php endif; ?>
 			</address>
 			<?php endif; ?>
@@ -738,7 +745,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			</div>
 			<?php endif; ?>
 
+			<?php $is_service_area = ( ( $biz['location_type'] ?? 'brick_and_mortar' ) === 'service_area' ); ?>
 			<address class="gcm-about-page__address">
+				<?php if ( $is_service_area ) : ?>
+					<span class="gcm-about-page__mailing-label"><?php esc_html_e( 'Mailing Address', 'metamanager' ); ?></span><br>
+				<?php endif; ?>
 				<?php if ( ! empty( $addr['street'] ) ) : ?>
 					<span><?php echo esc_html( $addr['street'] ); ?></span><br>
 				<?php endif; ?>
@@ -753,12 +764,15 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php if ( ! empty( $addr['country'] ) ) : ?>
 					<br><span><?php echo esc_html( $addr['country'] ); ?></span>
 				<?php endif; ?>
-				<?php if ( $lat && $lng ) : ?>
+				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
 				<br>
 				<a href="geo:<?php echo esc_attr( $lat ); ?>,<?php echo esc_attr( $lng ); ?>?z=16"
 				   class="gcm-about-page__map-link">
 					<?php esc_html_e( 'Open in Maps', 'metamanager' ); ?>
 				</a>
+				<?php endif; ?>
+				<?php if ( $is_service_area ) : ?>
+					<br><span class="gcm-about-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
 				<?php endif; ?>
 			</address>
 

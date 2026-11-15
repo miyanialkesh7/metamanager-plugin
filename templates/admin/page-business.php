@@ -166,6 +166,20 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 				<p class="description">Optional. Used in <code>GeoCoordinates</code> schema node.</p>
 			</td>
 		</tr>
+		<tr>
+			<th><label>Business Location Type</label></th>
+			<td>
+				<label style="display:block;margin-bottom:6px;">
+					<input type="radio" name="<?php echo esc_attr($opt); ?>[location_type]" value="brick_and_mortar" <?php checked( ($b['location_type']??'brick_and_mortar') === 'brick_and_mortar' ); ?>>
+					<strong>Brick &amp; Mortar</strong> — customers visit this address
+				</label>
+				<label style="display:block;">
+					<input type="radio" name="<?php echo esc_attr($opt); ?>[location_type]" value="service_area" <?php checked( ($b['location_type']??'') === 'service_area' ); ?>>
+					<strong>Service Area</strong> — we come to you (mailing address only)
+				</label>
+				<p class="description">Controls how the address is presented. Service area businesses show the address as mailing-only with no map link. Brick &amp; mortar locations show the full address with map and directions.</p>
+			</td>
+		</tr>
 	</table>
 
 	<h2>Opening Hours</h2>
