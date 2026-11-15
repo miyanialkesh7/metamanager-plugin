@@ -431,10 +431,10 @@ class MM_Status {
 		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
 			return array( 'total' => 0, 'broken' => 0, 'ignored' => 0, 'last_checked' => null );
 		}
-		$total    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_ignored = 0" );
-		$broken   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_broken = 1 AND is_ignored = 0" );
-		$ignored  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE is_ignored = 1" );
-		$last_chk = (string) $wpdb->get_var( "SELECT MAX(last_checked) FROM {$table}" );
+		$total    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_ignored = 0', $table ) );
+		$broken   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_broken = 1 AND is_ignored = 0', $table ) );
+		$ignored  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_ignored = 1', $table ) );
+		$last_chk = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(last_checked) FROM %i', $table ) );
 		return array(
 			'total'        => $total,
 			'broken'       => $broken,
