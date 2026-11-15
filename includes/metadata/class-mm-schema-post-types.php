@@ -150,7 +150,7 @@ class MM_Schema_Post_Types {
 				],
 				'public'       => true,
 				'has_archive'  => true,
-				'rewrite'      => [ 'slug' => strtolower( str_replace( 'mm_', '', $slug ) ) ],
+				'rewrite'      => [ 'slug' => sanitize_title( strtolower( $short_label ) ) ],
 				'supports'     => $supports,
 				'menu_icon'    => 'dashicons-' . $icon,
 				'show_in_rest' => true,
