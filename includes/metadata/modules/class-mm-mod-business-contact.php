@@ -595,7 +595,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php foreach ( $hours as $group ) :
 					if ( empty( $group['days'] ) ) continue;
 					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ! empty( $group['closed'] ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
+					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
 					?>
 					<div class="gcm-contact-page__hours-row">
 						<span class="gcm-contact-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
@@ -785,7 +785,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php foreach ( $hours as $group ) :
 					if ( empty( $group['days'] ) ) continue;
 					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ! empty( $group['closed'] ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
+					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
 					?>
 					<div class="gcm-about-page__hours-row">
 						<span class="gcm-about-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
