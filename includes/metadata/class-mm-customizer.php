@@ -40,7 +40,7 @@ class MM_Customizer {
 		// Per-CPT layout settings.
 		$types = MM_Schema_Post_Types::TYPES;
 		foreach ( $types as $slug => $config ) {
-			$label = $config[1] ?? $slug;
+			$label = $config[1];
 
 			$wp_customize->add_setting( "mm_meta_settings[schema][archive_layouts][{$slug}]", [
 				'default'           => 'menu',
@@ -52,7 +52,7 @@ class MM_Customizer {
 			$wp_customize->add_control( "mm_archive_layout_{$slug}", [
 				'label'       => sprintf( __( '%s Archive Layout', 'metamanager' ), $label ),
 				'section'     => 'mm_schema',
-				'settings'    => "mm_meta_settings[schema][archive_layouts][{$slug}]",
+				'setting'     => "mm_meta_settings[schema][archive_layouts][{$slug}]",
 				'type'        => 'select',
 				'choices'     => self::LAYOUTS,
 				'description' => sprintf( __( 'Choose how %s archive pages display their listings.', 'metamanager' ), strtolower( $label ) ),
