@@ -200,6 +200,42 @@ function mm_activate_single_site(): void {
 		}
 	}
 
+	// Auto-create schema template pages (About, Contact, Calendar) so
+	// auto-generated content is live out of the box. Content is built
+	// from the business profile and event posts and stays current.
+	$auto_pages = [
+		'mm-about'    => [ 'title' => 'About Us',  'slug' => 'about' ],
+		'mm-contact'  => [ 'title' => 'Contact',   'slug' => 'contact' ],
+		'mm-calendar' => [ 'title' => 'Calendar',  'slug' => 'calendar' ],
+	];
+	foreach ( $auto_pages as $template => $cfg ) {
+		// Skip if a page with this template already exists.
+		$existing = get_posts( [
+			'post_type'   => 'page',
+			'meta_key'    => '_wp_page_template',
+			'meta_value'  => $template,
+			'numberposts' => 1,
+			'post_status' => 'publish',
+		] );
+		if ( ! empty( $existing ) ) {
+			continue;
+		}
+		$page_id = wp_insert_post( [
+			'post_type'    => 'page',
+			'post_title'   => $cfg['title'],
+			'post_name'    => $cfg['slug'],
+			'post_content' => '',
+			'post_status'  => 'publish',
+		] );
+		if ( $page_id && ! is_wp_error( $page_id ) ) {
+			update_post_meta( $page_id, '_wp_page_template', $template );
+		}
+	}
+
+	// Generate initial content for auto-pages.
+	MM_Page_Generator::regenerate_about_and_contact();
+	MM_Page_Generator::regenerate_calendar();
+
 	flush_rewrite_rules();
 }
 

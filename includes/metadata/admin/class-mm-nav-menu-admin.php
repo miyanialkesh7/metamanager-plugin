@@ -11,6 +11,7 @@ class MM_Nav_Menu_Admin {
 
 	public function register_hooks(): void {
 		add_action( 'admin_head-nav-menus.php', [ $this, 'add_meta_box' ] );
+		add_action( 'admin_head-nav-menus.php', [ $this, 'add_cpt_archives_box' ] );
 		add_action( 'wp_update_nav_menu_item', [ $this, 'save_checkbox' ], 10, 3 );
 	}
 
@@ -26,6 +27,89 @@ class MM_Nav_Menu_Admin {
 			'side',
 			'high'
 		);
+	}
+
+	/**
+	 * Add a CPT Archives meta box so schema CPTs appear as top-level menu items.
+	 *
+	 * WordPress menu editor shows individual CPT posts but not the archive
+	 * listing page. This box adds archive links (e.g. "Services" → /services/)
+	 * as addable top-level items.
+	 */
+	public function add_cpt_archives_box(): void {
+		add_meta_box(
+			'mm-nav-menu-cpt-archives',
+			'Metamanager — CPT Archives',
+			[ $this, 'render_cpt_archives_box' ],
+			'nav_menu',
+			'side',
+			'default'
+		);
+	}
+
+	/**
+	 * Render the CPT Archives meta box with addable archive links.
+	 */
+	public function render_cpt_archives_box(): void {
+		if ( ! class_exists( 'MM_Schema_Post_Types' ) ) {
+			return;
+		}
+		$types = MM_Schema_Post_Types::TYPES;
+		if ( empty( $types ) ) {
+			return;
+		}
+		?>
+		<div class="posttypediv mm-cpt-archives" id="mm-cpt-archives">
+			<div class="tabs-panel tabs-panel-active">
+				<ul class="categorychecklist form-no-clear">
+					<?php foreach ( $types as $slug => $config ) :
+						$label = $config[1] ?? $slug;
+						$archive_url = get_post_type_archive_link( $slug );
+						if ( ! $archive_url ) {
+							continue;
+						}
+						$archive_url = esc_url( $archive_url );
+					?>
+					<li>
+						<label class="menu-item-title">
+							<input type="checkbox"
+								class="menu-item-checkbox mm-cpt-archive-check"
+								data-title="<?php echo esc_attr( $label ); ?>"
+								data-url="<?php echo esc_attr( $archive_url ); ?>"
+								value="<?php echo esc_attr( $slug ); ?>">
+							<?php echo esc_html( $label ); ?>
+							<span class="description" style="color:#999;font-size:11px;margin-left:6px;"><?php echo esc_html( str_replace( home_url(), '', $archive_url ) ); ?></span>
+						</label>
+					</li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+			<p class="button-controls">
+				<button type="button" class="button" id="mm-add-cpt-archives-to-menu">Add to Menu</button>
+			</p>
+		</div>
+		<script>
+		jQuery(function($) {
+			$('#mm-add-cpt-archives-to-menu').on('click', function() {
+				$('#mm-cpt-archives .mm-cpt-archive-check:checked').each(function() {
+					var title = $(this).data('title');
+					var url = $(this).data('url');
+					// Use WordPress's built-in menu item add mechanism
+					var $form = $('#menu-to-edit');
+					if (!$form.length) return;
+					// Add as custom link menu item via the hidden form fields
+					var $customLinks = $('#add-custom-links');
+					if ($customLinks.length) {
+						$('#custom-menu-item-name').val(title);
+						$('#custom-menu-item-url').val(url);
+						$('#submit-custom-links').trigger('click');
+					}
+					$(this).prop('checked', false);
+				});
+			});
+		});
+		</script>
+		<?php
 	}
 
 	/**
