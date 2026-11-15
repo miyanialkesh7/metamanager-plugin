@@ -12,6 +12,14 @@ defined( 'ABSPATH' ) || exit;
 class MM_Listing_Card_CSS {
 
 	/**
+	 * Get the configured button text.
+	 */
+	public static function get_button_text(): string {
+		$s = MM_Site_Settings::get_instance();
+		return self::sanitize( (string) $s->get( 'listing.btn_text', 'Learn more' ) );
+	}
+
+	/**
 	 * Generate CSS for the listing card link/button.
 	 *
 	 * @param array $s Style settings from MM_Site_Settings::get('listing').

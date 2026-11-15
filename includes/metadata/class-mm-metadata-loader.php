@@ -52,6 +52,7 @@ class MM_Metadata_Loader {
 		// --- Admin ---------------------------------------------------------------
 		if ( is_admin() ) {
 			( new MM_Metadata_Admin( $this->settings ) )->register_hooks();
+			MM_Customizer::register();
 			( new MM_Post_Meta_Panel( $this->settings ) )->register_hooks();
 			( new MM_Term_Meta_Panel( $this->settings ) )->register_hooks();
 			( new MM_User_Meta_Panel( $this->settings ) )->register_hooks();
