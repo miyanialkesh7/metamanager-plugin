@@ -79,14 +79,15 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['email'] = sanitize_email( $biz['email'] );
 		}
 
-		// Address.
+		// Address & geo — always in schema (mailing address is valid structured data).
 		$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
 		if ( $addr ) {
 			$node['address'] = $addr;
 		}
 
 		// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
-		if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) ) {
+		// Suppressed for service_area businesses (home address — don't publish exact coordinates).
+		if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) && ( ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'service_area' ) ) {
 			$node['location'] = [
 				'@type' => 'Place',
 				'geo'   => [

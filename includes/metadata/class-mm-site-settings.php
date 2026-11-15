@@ -539,6 +539,7 @@ class MM_Site_Settings {
 			],
 			'lat'                  => '',
 			'lng'                  => '',
+			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
 			'price_range'          => '',
 			'payment_accepted'     => [],
 			'hours'                => [],
