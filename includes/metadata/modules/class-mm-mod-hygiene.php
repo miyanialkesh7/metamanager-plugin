@@ -65,6 +65,25 @@ class MM_Mod_Hygiene extends MM_Mod_Base {
 		if ( $h->get( 'hygiene.remove_wp_dns_prefetch', true ) ) {
 			add_filter( 'wp_resource_hints', [ $this, 'remove_dns_prefetch_only' ], 10, 2 );
 		}
+
+		// Remove hentry microformat class from post_class() — schema.org
+		// validators flag it as an unrecognized type (hentry is hAtom,
+		// not schema.org). MetaManager manages schema output.
+		add_filter( 'post_class', [ $this, 'remove_hentry_class' ] );
+	}
+
+	/**
+	 * Remove the hentry microformat class from post CSS classes.
+	 *
+	 * WordPress adds `hentry` via post_class() for hAtom compatibility,
+	 * but schema.org validators parse it as an unrecognized type.
+	 *
+	 * @param array $classes Post CSS classes.
+	 * @return array Filtered classes.
+	 */
+	public function remove_hentry_class( array $classes ): array {
+		$classes = array_diff( $classes, array( 'hentry' ) );
+		return $classes;
 	}
 
 	public function remove_pingback_header( array $headers ): array {
