@@ -42,7 +42,7 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		$atts = shortcode_atts( [
 			'post_types' => implode( ',', array_merge(
 				[ 'page', 'post' ],
-				array_keys( MM_Schema_Post_Types::TYPES ?? [] )
+				array_keys( MM_Schema_Post_Types::TYPES )
 			) ),
 			'taxonomies' => 'category,post_tag',
 			'depth'      => (int) ( $cfg['depth'] ?? 3 ),

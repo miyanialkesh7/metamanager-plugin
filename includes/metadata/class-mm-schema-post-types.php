@@ -71,6 +71,7 @@ class MM_Schema_Post_Types {
 			return;
 		}
 		$query->set( 'orderby', array( 'menu_order' => 'ASC', 'title' => 'ASC' ) );
+		return;
 	}
 
 	/**
