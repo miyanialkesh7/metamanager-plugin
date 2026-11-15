@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.243
+ * Version:      2.3.250
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.243' );
+define( 'MM_VERSION',     '2.3.250' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -199,6 +199,42 @@ function mm_activate_single_site(): void {
 			delete_option( $old_key );
 		}
 	}
+
+	// Auto-create schema template pages (About, Contact, Calendar) so
+	// auto-generated content is live out of the box. Content is built
+	// from the business profile and event posts and stays current.
+	$auto_pages = [
+		'mm-about'    => [ 'title' => 'About Us',  'slug' => 'about' ],
+		'mm-contact'  => [ 'title' => 'Contact',   'slug' => 'contact' ],
+		'mm-calendar' => [ 'title' => 'Calendar',  'slug' => 'calendar' ],
+	];
+	foreach ( $auto_pages as $template => $cfg ) {
+		// Skip if a page with this template already exists.
+		$existing = get_posts( [
+			'post_type'   => 'page',
+			'meta_key'    => '_wp_page_template',
+			'meta_value'  => $template,
+			'numberposts' => 1,
+			'post_status' => 'publish',
+		] );
+		if ( ! empty( $existing ) ) {
+			continue;
+		}
+		$page_id = wp_insert_post( [
+			'post_type'    => 'page',
+			'post_title'   => $cfg['title'],
+			'post_name'    => $cfg['slug'],
+			'post_content' => '',
+			'post_status'  => 'publish',
+		] );
+		if ( is_int( $page_id ) && $page_id > 0 ) {
+			update_post_meta( $page_id, '_wp_page_template', $template );
+		}
+	}
+
+	// Generate initial content for auto-pages.
+	MM_Page_Generator::regenerate_about_and_contact();
+	MM_Page_Generator::regenerate_calendar();
 
 	flush_rewrite_rules();
 }

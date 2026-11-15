@@ -71,6 +71,27 @@ class MM_Page_Generator {
 		] );
 
 		add_action( 'save_post', [ 'MM_Schema_Post_Types', 'save_meta' ], 10, 2 );
+
+		// Apply noindex if the templates setting says so.
+		$settings = MM_Site_Settings::get_instance();
+		$noindex_map = [
+			'mm-about'    => 'templates.noindex_about',
+			'mm-contact'  => 'templates.noindex_contact',
+			'mm-calendar' => 'templates.noindex_calendar',
+		];
+		if ( isset( $noindex_map[ $template ] ) ) {
+			$noindex = (bool) $settings->get( $noindex_map[ $template ], false );
+			$fields = get_post_meta( $page_id, 'mm_schema_fields', true );
+			if ( ! is_array( $fields ) ) {
+				$fields = [];
+			}
+			if ( $noindex ) {
+				$fields['noindex'] = true;
+			} else {
+				unset( $fields['noindex'] );
+			}
+			update_post_meta( $page_id, 'mm_schema_fields', $fields );
+		}
 	}
 
 	// -------------------------------------------------------------------------

@@ -510,6 +510,12 @@ class MM_Site_Settings {
 				'btn_display'   => 'inline-block',
 			],
 
+			'templates' => [
+				'noindex_about'    => false,
+				'noindex_contact'  => false,
+				'noindex_calendar' => false,
+			],
+
 		];
 	}
 

@@ -40,8 +40,11 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		$flat_limit = max( 1, min( 5000, (int) ( $cfg['flat_limit'] ?? 500 ) ) );
 
 		$atts = shortcode_atts( [
-			'post_types' => implode( ',', (array) ( $cfg['post_types'] ?? [ 'page', 'post' ] ) ),
-			'taxonomies' => implode( ',', (array) ( $cfg['taxonomies'] ?? [] ) ),
+			'post_types' => implode( ',', array_merge(
+				[ 'page', 'post' ],
+				array_keys( MM_Schema_Post_Types::TYPES )
+			) ),
+			'taxonomies' => 'category,post_tag',
 			'depth'      => (int) ( $cfg['depth'] ?? 3 ),
 			'exclude'    => '',
 			'columns'    => (int) ( $cfg['columns'] ?? 1 ),
@@ -63,11 +66,41 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 
 		$out = '<div class="gcm-html-sitemap gcm-html-sitemap--cols-' . $columns . '">';
 
-		foreach ( $post_types as $pt ) {
+		// Section order: pages → CPTs → posts → categories → tags.
+		// Pages first (site structure), then custom post types, then core
+		// posts, then category taxonomy, then remaining taxonomies (tags).
+		$core_pts = array( 'page' );
+		$cpt_list = array_diff( $post_types, array( 'page', 'post' ) );
+		$post_only = in_array( 'post', $post_types, true ) ? array( 'post' ) : array();
+		$core_tax = array( 'category' );
+		$other_tax = array_diff( $taxonomies, $core_tax );
+
+		// 1. Pages
+		foreach ( $core_pts as $pt ) {
+			if ( in_array( $pt, $post_types, true ) ) {
+				$out .= $this->render_post_type( $pt, $depth, $exclude, $show_date, $order_by, $limit );
+			}
+		}
+
+		// 2. Custom post types (mm_service, mm_event, etc.)
+		foreach ( $cpt_list as $pt ) {
 			$out .= $this->render_post_type( $pt, $depth, $exclude, $show_date, $order_by, $limit );
 		}
 
-		foreach ( $taxonomies as $taxonomy ) {
+		// 3. Posts
+		foreach ( $post_only as $pt ) {
+			$out .= $this->render_post_type( $pt, $depth, $exclude, $show_date, $order_by, $limit );
+		}
+
+		// 4. Categories
+		foreach ( $core_tax as $tax ) {
+			if ( in_array( $tax, $taxonomies, true ) ) {
+				$out .= $this->render_taxonomy( $tax );
+			}
+		}
+
+		// 5. Remaining taxonomies (tags, custom taxonomies)
+		foreach ( $other_tax as $taxonomy ) {
 			$out .= $this->render_taxonomy( $taxonomy );
 		}
 

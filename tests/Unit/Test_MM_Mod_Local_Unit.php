@@ -179,10 +179,11 @@ class Test_MM_Mod_Local_Unit extends WP_UnitTestCase {
 
 		$biz = $this->find_business_node( $data );
 		$this->assertNotNull( $biz );
-		$this->assertArrayHasKey( 'geo', $biz );
-		$this->assertSame( 'GeoCoordinates', $biz['geo']['@type'] );
-		$this->assertSame( 40.7128, $biz['geo']['latitude'] );
-		$this->assertSame( -74.006, $biz['geo']['longitude'] );
+		$this->assertArrayHasKey( 'location', $biz );
+		$this->assertSame( 'Place', $biz['location']['@type'] );
+		$this->assertSame( 'GeoCoordinates', $biz['location']['geo']['@type'] );
+		$this->assertSame( 40.7128, $biz['location']['geo']['latitude'] );
+		$this->assertSame( -74.006, $biz['location']['geo']['longitude'] );
 	}
 
 	// ------------------------------------------------------------------

@@ -13,17 +13,17 @@ defined( 'ABSPATH' ) || exit;
 class MM_Schema_Post_Types {
 
 	/** Map of post type slug => [schema_type_label, short_label, supports, icon]. */
-	private const TYPES = [
-		'mm_event'       => [ 'Event',              'Events',              [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'calendar-alt' ],
-		'mm_service'     => [ 'Service',            'Services',            [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'hammer' ],
-		'mm_how_to'      => [ 'HowTo',              'How-To',              [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'list-view' ],
-		'mm_faq_page'    => [ 'FAQPage',            'FAQ',                 [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'editor' ],
-		'mm_trip'        => [ 'TouristTrip',        'Trips',               [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'location-alt' ],
-		'mm_destination' => [ 'TouristDestination',  'Destinations',       [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'location' ],
-		'mm_vessel'      => [ 'Vehicle',             'Vehicles',           [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'car' ],
-		'mm_course'      => [ 'Course',              'Courses',            [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'welcome-learn-more' ],
-		'mm_business'     => [ 'LocalBusiness',      'Businesses',         [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'store' ],
-		'mm_organization' => [ 'Organization',       'Organizations',      [ 'title', 'editor', 'thumbnail', 'excerpt' ], 'groups' ],
+	public const TYPES = [
+		'mm_event'       => [ 'Event',              'Events',              [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'calendar-alt' ],
+		'mm_service'     => [ 'Service',            'Services',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'hammer' ],
+		'mm_how_to'      => [ 'HowTo',              'How-To',              [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'list-view' ],
+		'mm_faq_page'    => [ 'FAQPage',            'FAQ',                 [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'editor' ],
+		'mm_trip'        => [ 'TouristTrip',        'Trips',               [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'location-alt' ],
+		'mm_destination' => [ 'TouristDestination',  'Destinations',       [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'location' ],
+		'mm_vessel'      => [ 'Vehicle',             'Vehicles',           [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'car' ],
+		'mm_course'      => [ 'Course',              'Courses',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'welcome-learn-more' ],
+		'mm_business'     => [ 'LocalBusiness',      'Businesses',         [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'store' ],
+		'mm_organization' => [ 'Organization',       'Organizations',      [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'groups' ],
 		// AboutPage, ContactPage, Calendar are WordPress Page Templates — not CPTs.
 		// WebPage maps to default `page` type — not a separate CPT.
 		// BlogPosting maps to default `post` type — not a separate CPT.
@@ -32,12 +32,9 @@ class MM_Schema_Post_Types {
 
 	/** Map of page template slug => schema type. */
 	public const TEMPLATES = [
-		'mm-about'      => 'AboutPage',
-		'mm-contact'    => 'ContactPage',
-		'mm-calendar'   => 'Calendar',
-		'mm-area-guide' => 'TouristDestination',
-		'mm-venue'      => 'Place',
-		'mm-service'    => 'Service',
+		'mm-about'    => 'AboutPage',
+		'mm-contact'  => 'ContactPage',
+		'mm-calendar' => 'CollectionPage',
 	];
 
 	/**
@@ -49,8 +46,29 @@ class MM_Schema_Post_Types {
 		add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_boxes' ] );
 		add_action( 'save_post', [ __CLASS__, 'save_meta' ], 10, 2 );
 		add_filter( 'template_include', [ __CLASS__, 'load_page_template' ] );
+		add_action( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
 		add_action( 'wp_ajax_mm_search_vessels', [ __CLASS__, 'ajax_search_vessels' ] );
 		add_action( 'wp_ajax_mm_search_destinations', [ __CLASS__, 'ajax_search_destinations' ] );
+	}
+
+	/**
+	 * Order schema CPT archives by menu_order (like pages), then title.
+	 *
+	 * @param \WP_Query $query The query to modify.
+	 */
+	public static function order_archives_by_menu_order( \WP_Query $query ): void {
+		if ( is_admin() || ! $query->is_main_query() ) {
+			return;
+		}
+		if ( ! $query->is_post_type_archive() && ! $query->is_singular() ) {
+			return;
+		}
+		$pt = $query->get( 'post_type' );
+		if ( ! is_string( $pt ) || ! isset( self::TYPES[ $pt ] ) ) {
+			return;
+		}
+		$query->set( 'orderby', array( 'menu_order' => 'ASC', 'title' => 'ASC' ) );
+		return;
 	}
 
 	/**

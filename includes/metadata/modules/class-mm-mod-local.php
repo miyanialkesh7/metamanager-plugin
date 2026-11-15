@@ -85,18 +85,49 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['address'] = $addr;
 		}
 
-		// Geo coordinates.
+		// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
 		if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) ) {
-			$node['geo'] = [
-				'@type'     => 'GeoCoordinates',
-				'latitude'  => (float) $biz['lat'],
-				'longitude' => (float) $biz['lng'],
+			$node['location'] = [
+				'@type' => 'Place',
+				'geo'   => [
+					'@type'     => 'GeoCoordinates',
+					'latitude'  => (float) $biz['lat'],
+					'longitude' => (float) $biz['lng'],
+				],
 			];
 		}
 
 		// Price range.
 		if ( ! empty( $biz['price_range'] ) ) {
 			$node['priceRange'] = sanitize_text_field( $biz['price_range'] );
+		}
+
+		// Founding date / employees (Organization properties).
+		if ( ! empty( $biz['founding_date'] ) ) {
+			$node['foundingDate'] = sanitize_text_field( $biz['founding_date'] );
+		}
+		if ( ! empty( $biz['number_of_employees'] ) ) {
+			$node['numberOfEmployees'] = sanitize_text_field( $biz['number_of_employees'] );
+		}
+
+		// ContactPoint nodes.
+		$contact_points = [];
+		if ( ! empty( $biz['phone'] ) ) {
+			$contact_points[] = [
+				'@type'       => 'ContactPoint',
+				'telephone'   => sanitize_text_field( $biz['phone'] ),
+				'contactType' => 'customer service',
+			];
+		}
+		if ( ! empty( $biz['email'] ) ) {
+			$contact_points[] = [
+				'@type'       => 'ContactPoint',
+				'email'       => sanitize_email( $biz['email'] ),
+				'contactType' => 'customer service',
+			];
+		}
+		if ( $contact_points ) {
+			$node['contactPoint'] = ( 1 === count( $contact_points ) ) ? $contact_points[0] : $contact_points;
 		}
 
 		// Payment accepted.

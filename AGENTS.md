@@ -107,3 +107,42 @@ The plugin's `MM_Daemon_Updater` reads the VERSION file for dashboard display on
 - CI auto-bumps `MM_VERSION` on every dev push — do not manually edit version numbers
 - **Test channel**: Used for development verification before production deployment
 - **Production channel**: Used by production site, requires explicit workflow_dispatch promotion
+
+## Rate limiting — signed-in users are never restricted (2026-11-14)
+
+The programmable rate-limiting pattern (logged-in users / admin dashboard
+never rate-limited; visitors only) lives in `includes/class-mm-admin.php`
+around lines 267, 1303–1308, and 1443: `is_user_logged_in()` gates the
+REST access restrictions — "logged-in WordPress users are never
+restricted" (see the settings copy at line 267). This is the reference
+implementation.
+
+**It is in the wrong repo.** This is core operations behavior (auth/
+visitor discrimination) and belongs in the mu plugin (gap-creek-media),
+not a MetaManager feature. MetaManager currently holds it because it was
+built here first. Do not extend it here — move/consolidate it into the
+mu plugin. The mu plugin is the operations layer (always on, every site);
+MetaManager is a product that should only register abilities and defer to
+the mu plugin for auth, rate limits, and access control.
+
+## Rate limiting — final design (2026-11-14)
+
+Rate limiting does NOT belong at the WordPress level at all (not
+MetaManager, not the mu plugin). It is part of the **OS security
+footprint** — the GCM ModSecurity custom rules
+(`gcm/modules/configs/gcm-modsecurity.conf`):
+- Rules 1001/1002: 200 req/60s per IP (the actual rate limit).
+- Rule 1003: exempts **signed-in users** via the `wordpress_logged_in`
+  cookie (the session/cookie mechanism).
+- Rule 1006: exempts the **admin dashboard by URL** — `^/(wp-admin/|wp-login\.php)`
+  per the WordPress codex (the easiest mechanism).
+- Rules 1004/1005: Basic auth + monitoring endpoints exempt.
+
+The `is_user_logged_in()` code in `class-mm-admin.php` is **programmatic
+access control** (REST auth gating) — a different creature from rate
+limiting, not the OS-level limiter. The Coworker `rate_check` was
+WordPress-level rate limiting and has been **removed** as split brain —
+the OS layer owns rate limiting.
+
+Consolidation target: rate limiting lives only in
+`gcm/modules/configs/gcm-modsecurity.conf`. Anything else is split brain.

@@ -50,7 +50,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		// Content-type-specific nodes.
 		if ( $context->is_singular() ) {
 			$this->add_content_node( $data, $context, $settings );
-		} elseif ( ( $context->is_tax() || $context->is_category() || $context->is_tag() )
+		} elseif ( ( $context->is_tax() || $context->is_category() || $context->is_tag() || $context->is_post_type_archive() )
 			&& $settings->get( 'schema.archive_itemlist', true ) ) {
 			$this->add_itemlist_node( $data, $context );
 		}
@@ -201,105 +201,25 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$node['mainEntity'] = [ '@id' => $url . '#' . strtolower( $entity_type ) ];
 		}
 
-		// ContactPage: add business info data from settings.
+		// ContactPage: reference the Organization node (business props live there, not on WebPage).
 		if ( 'ContactPage' === $type && $context->is_singular() ) {
-			$biz  = $settings->all_business();
+			$biz = $settings->all_business();
 			if ( ! empty( $biz['name'] ) ) {
 				$node['name'] = sanitize_text_field( $biz['name'] );
 			}
-			if ( ! empty( $biz['phone'] ) ) {
-				$node['telephone'] = sanitize_text_field( $biz['phone'] );
-			}
-			if ( ! empty( $biz['email'] ) ) {
-				$node['email'] = sanitize_email( $biz['email'] );
-			}
-			$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
-			if ( $addr ) {
-				$node['address'] = $addr;
-			}
-			$geo_lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
-			$geo_lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
-			if ( null !== $geo_lat && null !== $geo_lng ) {
-				$node['geo'] = [
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => $geo_lat,
-					'longitude' => $geo_lng,
-				];
-			}
-			// ContactPoint nodes.
-			$contact_points = [];
-			if ( ! empty( $biz['phone'] ) ) {
-				$contact_points[] = [
-					'@type'       => 'ContactPoint',
-					'telephone'   => sanitize_text_field( $biz['phone'] ),
-					'contactType' => 'customer service',
-				];
-			}
-			if ( ! empty( $biz['email'] ) ) {
-				$contact_points[] = [
-					'@type'       => 'ContactPoint',
-					'email'       => sanitize_email( $biz['email'] ),
-					'contactType' => 'customer service',
-				];
-			}
-			if ( $contact_points ) {
-				$node['contactPoint'] = ( 1 === count( $contact_points ) ) ? $contact_points[0] : $contact_points;
-			}
+			$node['about'] = [ '@id' => $this->site_id( 'organization' ) ];
 		}
 
-		// AboutPage: add business info data from settings.
+		// AboutPage: reference the Organization node (business props live there, not on WebPage).
 		if ( 'AboutPage' === $type && $context->is_singular() ) {
-			$biz  = $settings->all_business();
+			$biz = $settings->all_business();
 			if ( ! empty( $biz['name'] ) ) {
 				$node['name'] = sanitize_text_field( $biz['name'] );
 			}
 			if ( ! empty( $biz['description'] ) ) {
 				$node['description'] = sanitize_text_field( $biz['description'] );
 			}
-			if ( ! empty( $biz['founding_date'] ) ) {
-				$node['foundingDate'] = sanitize_text_field( $biz['founding_date'] );
-			}
-			if ( ! empty( $biz['number_of_employees'] ) ) {
-				$node['numberOfEmployees'] = sanitize_text_field( $biz['number_of_employees'] );
-			}
-			$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
-			if ( $addr ) {
-				$node['address'] = $addr;
-			}
-			$geo_lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
-			$geo_lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
-			if ( null !== $geo_lat && null !== $geo_lng ) {
-				$node['geo'] = [
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => $geo_lat,
-					'longitude' => $geo_lng,
-				];
-			}
-			if ( ! empty( $biz['phone'] ) ) {
-				$node['telephone'] = sanitize_text_field( $biz['phone'] );
-			}
-			if ( ! empty( $biz['email'] ) ) {
-				$node['email'] = sanitize_email( $biz['email'] );
-			}
-			// ContactPoint nodes.
-			$contact_points = [];
-			if ( ! empty( $biz['phone'] ) ) {
-				$contact_points[] = [
-					'@type'       => 'ContactPoint',
-					'telephone'   => sanitize_text_field( $biz['phone'] ),
-					'contactType' => 'customer service',
-				];
-			}
-			if ( ! empty( $biz['email'] ) ) {
-				$contact_points[] = [
-					'@type'       => 'ContactPoint',
-					'email'       => sanitize_email( $biz['email'] ),
-					'contactType' => 'customer service',
-				];
-			}
-			if ( $contact_points ) {
-				$node['contactPoint'] = ( 1 === count( $contact_points ) ) ? $contact_points[0] : $contact_points;
-			}
+			$node['about'] = [ '@id' => $this->site_id( 'organization' ) ];
 		}
 
 		// Description from meta.
@@ -401,6 +321,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 					$items[] = $this->crumb( $pos++, $term->name, $term_link );
 				}
 			}
+		} elseif ( $context->is_post_type_archive() ) {
+			$pt   = $context->get_post_type();
+			$name = get_post_type_object( $pt ) ? get_post_type_object( $pt )->labels->name : $pt;
+			$url  = get_post_type_archive_link( $pt ) ?: '';
+			$items[] = $this->crumb( $pos++, $name, $url );
 		} elseif ( $context->is_author() ) {
 			$author  = $context->get_author();
 			$items[] = $this->crumb( $pos++, $author ? $author->display_name : 'Author', $author ? get_author_posts_url( $author->ID ) : '' );
@@ -445,7 +370,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		}
 
 		// WebPage and its subtypes (AboutPage, ContactPage, Calendar) are already on the WebPage node; skip.
-		if ( in_array( $type, [ 'WebPage', 'WebSite', 'AboutPage', 'ContactPage', 'Calendar' ], true ) ) {
+		if ( in_array( $type, [ 'WebPage', 'WebSite', 'AboutPage', 'ContactPage', 'CollectionPage' ], true ) ) {
 			return;
 		}
 
@@ -542,7 +467,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$vessel_id = (int) get_post_meta( $post->ID, '_mm_vessel_id', true );
 			if ( $vessel_id && get_post_status( $vessel_id ) === 'publish' ) {
 				$vessel_url = get_permalink( $vessel_id );
-				$node['vehicle'] = [ '@id' => $vessel_url . '#vehicle' ];
+				// Vessel reference: 'vehicle' is not a valid TouristTrip property; omit.
 			}
 			// Destination reference.
 			$dest_id = (int) get_post_meta( $post->ID, '_mm_destination_id', true );
@@ -565,11 +490,6 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	private function add_itemlist_node( array &$data, MM_Page_Context $context ): void {
-		$term = $context->get_term();
-		if ( ! $term ) {
-			return;
-		}
-
 		global $wp_query;
 		$posts = $wp_query->posts ?? [];
 		if ( empty( $posts ) ) {
@@ -587,11 +507,26 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			];
 		}
 
-		$url = get_term_link( $term );
+		$name = '';
+		$url  = '';
+		if ( $context->is_post_type_archive() ) {
+			$pt   = $context->get_post_type();
+			$name = get_post_type_object( $pt ) ? get_post_type_object( $pt )->labels->name : $pt;
+			$url  = get_post_type_archive_link( $pt ) ?: '';
+		} else {
+			$term = $context->get_term();
+			if ( ! $term ) {
+				return;
+			}
+			$name = $term->name;
+			$url  = get_term_link( $term );
+			$url  = is_string( $url ) ? $url : '';
+		}
+
 		$this->add_node( $data, [
 			'@type'           => 'ItemList',
-			'@id'             => ( is_string( $url ) ? $url : '' ) . '#itemlist',
-			'name'            => $term->name,
+			'@id'             => $url . '#itemlist',
+			'name'            => $name,
 			'itemListElement' => $items,
 		] );
 	}
