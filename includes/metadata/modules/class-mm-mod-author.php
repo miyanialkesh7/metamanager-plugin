@@ -25,8 +25,15 @@ class MM_Mod_Author extends MM_Mod_Base {
 		}
 
 		// Build Person node for singular posts (author of post, not archive visitor).
+		// Skip template pages (About, Contact, Calendar) — business pages, not authored content.
 		if ( $context->is_singular() ) {
 			$post = $context->get_post();
+			if ( $post && 'page' === $post->post_type ) {
+				$template = MM_Schema_Post_Types::get_post_template( $post );
+				if ( $template ) {
+					return;
+				}
+			}
 			if ( $post ) {
 				$author = get_userdata( (int) $post->post_author );
 				if ( $author ) {

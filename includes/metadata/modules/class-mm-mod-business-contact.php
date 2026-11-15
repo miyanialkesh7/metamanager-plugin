@@ -446,9 +446,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<div class="gcm-biz-card__actions">
 
 				<?php if ( $show_phone ) : ?>
+				<meta itemprop="telephone" content="<?php echo esc_attr( $phone ); ?>">
 				<a href="tel:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--call"
-				   itemprop="telephone">
+				   class="gcm-biz-card__btn gcm-biz-card__btn--call">
 					<span class="dashicons dashicons-phone" aria-hidden="true"></span>
 					<span><?php echo esc_html( $phone ); ?></span>
 				</a>
@@ -463,9 +463,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php endif; ?>
 
 				<?php if ( $show_email ) : ?>
+				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
 				<a href="mailto:<?php echo esc_attr( $email ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--email"
-				   itemprop="email">
+				   class="gcm-biz-card__btn gcm-biz-card__btn--email">
 					<span class="dashicons dashicons-email" aria-hidden="true"></span>
 					<span><?php echo esc_html( $email ); ?></span>
 				</a>
@@ -595,7 +595,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php foreach ( $hours as $group ) :
 					if ( empty( $group['days'] ) ) continue;
 					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ! empty( $group['closed'] ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
+					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
 					?>
 					<div class="gcm-contact-page__hours-row">
 						<span class="gcm-contact-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
@@ -608,9 +608,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<div class="gcm-contact-page__actions">
 
 				<?php if ( $show_phone ) : ?>
+				<meta itemprop="telephone" content="<?php echo esc_attr( $phone ); ?>">
 				<a href="tel:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--call"
-				   itemprop="telephone">
+				   class="gcm-contact-page__btn gcm-contact-page__btn--call">
 					<span class="dashicons dashicons-phone" aria-hidden="true"></span>
 					<span><?php echo esc_html( $phone ); ?></span>
 				</a>
@@ -625,9 +625,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php endif; ?>
 
 				<?php if ( $show_email ) : ?>
+				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
 				<a href="mailto:<?php echo esc_attr( $email ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--email"
-				   itemprop="email">
+				   class="gcm-contact-page__btn gcm-contact-page__btn--email">
 					<span class="dashicons dashicons-email" aria-hidden="true"></span>
 					<span><?php echo esc_html( $email ); ?></span>
 				</a>
@@ -771,6 +771,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				</a>
 				<?php endif; ?>
 				<?php if ( $email ) : ?>
+				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
 				<a href="mailto:<?php echo esc_attr( $email ); ?>" class="gcm-about-page__link">
 					<span class="dashicons dashicons-email" aria-hidden="true"></span>
 					<span><?php echo esc_html( $email ); ?></span>
@@ -785,7 +786,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php foreach ( $hours as $group ) :
 					if ( empty( $group['days'] ) ) continue;
 					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ! empty( $group['closed'] ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
+					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
 					?>
 					<div class="gcm-about-page__hours-row">
 						<span class="gcm-about-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
