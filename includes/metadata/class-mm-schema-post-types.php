@@ -1332,7 +1332,7 @@ class MM_Schema_Post_Types {
 				return $slug;
 			}
 		}
-		return null;
+		return false;
 	}
 
 	/**

@@ -227,7 +227,7 @@ function mm_activate_single_site(): void {
 			'post_content' => '',
 			'post_status'  => 'publish',
 		] );
-		if ( $page_id && ! is_wp_error( $page_id ) ) {
+		if ( is_int( $page_id ) && $page_id > 0 ) {
 			update_post_meta( $page_id, '_wp_page_template', $template );
 		}
 	}
