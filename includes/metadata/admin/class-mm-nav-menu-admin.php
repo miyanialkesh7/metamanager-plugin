@@ -55,15 +55,12 @@ class MM_Nav_Menu_Admin {
 			return;
 		}
 		$types = MM_Schema_Post_Types::TYPES;
-		if ( empty( $types ) ) {
-			return;
-		}
 		?>
 		<div class="posttypediv mm-cpt-archives" id="mm-cpt-archives">
 			<div class="tabs-panel tabs-panel-active">
 				<ul class="categorychecklist form-no-clear">
 					<?php foreach ( $types as $slug => $config ) :
-						$label = $config[1] ?? $slug;
+						$label = $config[1];
 						$archive_url = get_post_type_archive_link( $slug );
 						if ( ! $archive_url ) {
 							continue;

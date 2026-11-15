@@ -46,7 +46,7 @@ class MM_Schema_Post_Types {
 		add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_boxes' ] );
 		add_action( 'save_post', [ __CLASS__, 'save_meta' ], 10, 2 );
 		add_filter( 'template_include', [ __CLASS__, 'load_page_template' ] );
-		add_filter( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
+		add_action( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
 		add_action( 'wp_ajax_mm_search_vessels', [ __CLASS__, 'ajax_search_vessels' ] );
 		add_action( 'wp_ajax_mm_search_destinations', [ __CLASS__, 'ajax_search_destinations' ] );
 	}
@@ -1329,7 +1329,7 @@ class MM_Schema_Post_Types {
 				return $slug;
 			}
 		}
-		return false;
+		return null;
 	}
 
 	/**
