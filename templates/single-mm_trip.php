@@ -22,6 +22,9 @@ while ( have_posts() ) {
 
 		<div class="entry-content">
 			<?php
+			if ( has_excerpt() ) {
+				the_excerpt();
+			}
 			the_content();
 			MM_Schema_Post_Types::render_details_table( get_the_ID() );
 			?>
