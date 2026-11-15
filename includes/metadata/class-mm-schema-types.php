@@ -30,7 +30,7 @@ class MM_Schema_Types {
 			'AboutPage'          => 'AboutPage',
 			'ContactPage'        => 'ContactPage',
 			'ProfilePage'        => 'ProfilePage',
-			'Calendar'           => 'Calendar',
+			'CollectionPage'     => 'CollectionPage',
 			'FAQPage'            => 'FAQPage',
 			// ── Articles ─────────────────────────────────────────────────────
 			'BlogPosting'        => 'BlogPosting',

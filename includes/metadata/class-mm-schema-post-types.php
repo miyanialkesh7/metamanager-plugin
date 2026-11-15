@@ -32,12 +32,9 @@ class MM_Schema_Post_Types {
 
 	/** Map of page template slug => schema type. */
 	public const TEMPLATES = [
-		'mm-about'      => 'AboutPage',
-		'mm-contact'    => 'ContactPage',
-		'mm-calendar'   => 'Calendar',
-		'mm-area-guide' => 'TouristDestination',
-		'mm-venue'      => 'Place',
-		'mm-service'    => 'Service',
+		'mm-about'    => 'AboutPage',
+		'mm-contact'  => 'ContactPage',
+		'mm-calendar' => 'CollectionPage',
 	];
 
 	/**
