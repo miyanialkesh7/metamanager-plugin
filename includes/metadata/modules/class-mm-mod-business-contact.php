@@ -592,13 +592,15 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
 			<div class="gcm-contact-page__hours" itemprop="openingHoursSpecification">
-				<?php foreach ( $hours as $day => $time ) : ?>
-					<?php if ( ! empty( $time ) ) : ?>
+				<?php foreach ( $hours as $group ) :
+					if ( empty( $group['days'] ) ) continue;
+					$days_label = implode( ', ', (array) $group['days'] );
+					$time_label = ( $group['open'] ?? '' ) . ' \u2013 ' . ( $group['close'] ?? '' );
+					?>
 					<div class="gcm-contact-page__hours-row">
-						<span class="gcm-contact-page__hours-day"><?php echo esc_html( ucfirst( $day ) ); ?></span>
-						<span class="gcm-contact-page__hours-time"><?php echo esc_html( $time ); ?></span>
+						<span class="gcm-contact-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
+						<span class="gcm-contact-page__hours-time"><?php echo esc_html( $time_label ); ?></span>
 					</div>
-					<?php endif; ?>
 				<?php endforeach; ?>
 			</div>
 			<?php endif; ?>
@@ -780,13 +782,15 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
 			<div class="gcm-about-page__hours">
 				<h3>Hours</h3>
-				<?php foreach ( $hours as $day => $time ) : ?>
-					<?php if ( ! empty( $time ) ) : ?>
+				<?php foreach ( $hours as $group ) :
+					if ( empty( $group['days'] ) ) continue;
+					$days_label = implode( ', ', (array) $group['days'] );
+					$time_label = ( $group['open'] ?? '' ) . ' \u2013 ' . ( $group['close'] ?? '' );
+					?>
 					<div class="gcm-about-page__hours-row">
-						<span class="gcm-about-page__hours-day"><?php echo esc_html( ucfirst( $day ) ); ?></span>
-						<span class="gcm-about-page__hours-time"><?php echo esc_html( $time ); ?></span>
+						<span class="gcm-about-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
+						<span class="gcm-about-page__hours-time"><?php echo esc_html( $time_label ); ?></span>
 					</div>
-					<?php endif; ?>
 				<?php endforeach; ?>
 			</div>
 			<?php endif; ?>
