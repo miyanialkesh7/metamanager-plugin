@@ -109,6 +109,7 @@ require_once MM_META_DIR . 'includes/metadata/modules/class-mm-mod-business-cont
 require_once MM_META_DIR . 'includes/metadata/modules/class-mm-mod-rss.php';
 require_once MM_META_DIR . 'includes/metadata/modules/class-mm-mod-discovery.php';
 require_once MM_META_DIR . 'includes/metadata/modules/class-mm-mod-media-display.php';
+require_once MM_META_DIR . 'includes/metadata/modules/class-mm-mod-person.php';
 require_once MM_META_DIR . 'includes/metadata/admin/class-mm-metadata-help.php';
 require_once MM_META_DIR . 'includes/metadata/admin/class-mm-metadata-admin.php';
 require_once MM_META_DIR . 'includes/metadata/admin/class-mm-post-meta-panel.php';
