@@ -1,0 +1,96 @@
+/* =========================================================================
+   MetaManager Person Card
+   Image positions: top (stacked), left (side by side), right (side by side)
+   ========================================================================= */
+
+.mm-person {
+	display: flex;
+	gap: 24px;
+	margin: 24px 0;
+}
+
+/* Top: stacked (image above text) */
+.mm-person--top {
+	flex-direction: column;
+	gap: 16px;
+}
+
+/* Left: image left, text right */
+.mm-person--left {
+	flex-direction: row;
+	align-items: flex-start;
+}
+
+/* Right: text left, image right */
+.mm-person--right {
+	flex-direction: row-reverse;
+	align-items: flex-start;
+}
+
+.mm-person__image {
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.mm-person--top .mm-person__image {
+	width: 100%;
+	max-width: 320px;
+}
+
+.mm-person--left .mm-person__image,
+.mm-person--right .mm-person__image {
+	width: 200px;
+}
+
+.mm-person__img {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 8px;
+}
+
+.mm-person__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.mm-person__name {
+	margin: 0 0 4px;
+	font-size: 22px;
+	line-height: 1.3;
+}
+
+.mm-person__title {
+	margin: 0 0 12px;
+	font-size: 15px;
+	opacity: .7;
+	font-style: italic;
+}
+
+.mm-person__bio {
+	margin: 0 0 12px;
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.mm-person__contact {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	font-size: 14px;
+	opacity: .8;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+	.mm-person--left,
+	.mm-person--right {
+		flex-direction: column;
+	}
+
+	.mm-person--left .mm-person__image,
+	.mm-person--right .mm-person__image {
+		width: 100%;
+		max-width: 320px;
+	}
+}

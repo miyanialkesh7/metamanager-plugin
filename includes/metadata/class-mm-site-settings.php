@@ -415,6 +415,18 @@ class MM_Site_Settings {
 			'archive_itemlist'      => true,
 			'archive_media'         => false,
 			'custom_json_ld'        => '',
+			'archive_layouts'       => [
+				'mm_service'     => 'menu',
+				'mm_event'       => 'menu',
+				'mm_trip'        => 'menu',
+				'mm_destination' => 'menu',
+				'mm_vessel'      => 'menu',
+				'mm_course'      => 'menu',
+				'mm_how_to'      => 'menu',
+				'mm_faq_page'    => 'menu',
+				'mm_business'    => 'menu',
+				'mm_organization'=> 'menu',
+			],
 		],
 
 			'media' => [

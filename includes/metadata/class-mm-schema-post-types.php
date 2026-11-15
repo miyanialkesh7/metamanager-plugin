@@ -1190,6 +1190,55 @@ class MM_Schema_Post_Types {
 	}
 
 	// -------------------------------------------------------------------------
+	// Archive rendering
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Render a CPT archive listing with the selected layout.
+	 *
+	 * @param string $slug CPT slug (e.g. 'mm_service').
+	 */
+	public static function render_archive( string $slug ): void {
+		$layout = MM_Customizer::get_layout( $slug );
+		?>
+		<div class="mm-archive mm-archive--<?php echo esc_attr( $layout ); ?>" data-cpt="<?php echo esc_attr( $slug ); ?>">
+		<?php if ( have_posts() ) : ?>
+			<?php while ( have_posts() ) : the_post(); ?>
+				<article id="post-<?php the_ID(); ?>" <?php post_class( 'mm-archive-card mm-archive-card--' . $layout ); ?>>
+					<?php if ( has_post_thumbnail() ) : ?>
+						<a class="mm-archive-card__image" href="<?php the_permalink(); ?>">
+							<?php the_post_thumbnail( 'medium_large', [ 'loading' => 'lazy' ] ); ?>
+						</a>
+					<?php endif; ?>
+					<div class="mm-archive-card__body">
+						<h2 class="mm-archive-card__title">
+							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+						</h2>
+						<?php if ( has_excerpt() ) : ?>
+							<div class="mm-archive-card__details"><?php the_excerpt(); ?></div>
+						<?php endif; ?>
+						<a class="mm-archive-card__link" href="<?php the_permalink(); ?>"><?php echo esc_html( MM_Listing_Card_CSS::get_button_text() ); ?></a>
+					</div>
+				</article>
+			<?php endwhile; ?>
+		<?php else : ?>
+			<p>No items are currently listed.</p>
+		<?php endif; ?>
+		</div>
+		<?php
+		the_posts_pagination();
+	}
+
+	/**
+	 * Get archive CSS for both layouts.
+	 */
+	public static function get_archive_css(): string {
+		return file_exists( MM_META_DIR . 'assets/css/archive-layouts.css' )
+			? (string) file_get_contents( MM_META_DIR . 'assets/css/archive-layouts.css' )
+			: '';
+	}
+
+	// -------------------------------------------------------------------------
 	// Page templates
 	// -------------------------------------------------------------------------
 
