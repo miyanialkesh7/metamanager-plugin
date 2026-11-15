@@ -73,7 +73,7 @@ $layout = function_exists( 'siteorigin_setting' ) ? ( siteorigin_setting( 'blog_
 .mm-service-card {
 	display: flex;
 	flex-direction: row;
-	align-items: flex-start;
+	align-items: center;
 	gap: 0;
 }
 .mm-service-card__image {
