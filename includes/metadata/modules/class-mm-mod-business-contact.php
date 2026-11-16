@@ -628,7 +628,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				$booking_label = sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' );
 				if ( ! empty( $booking_link ) ) :
 				?>
-				<a href="<?php echo esc_url( $booking_link ); ?>" class="gcm-contact-page__btn gcm-contact-page__btn--booking" target="_blank" rel="noopener noreferrer">
+				<a href="<?php echo esc_url( $booking_link ); ?>" class="gcm-contact-page__btn gcm-contact-page__btn--booking"<?php echo ! empty( $biz['booking_link_new_tab'] ) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?>>
 					<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
 					<span><?php echo esc_html( $booking_label ); ?></span>
 				</a>
@@ -1057,7 +1057,21 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	/** Return merged (defaults + saved) sitewide style settings. */
 	public static function get_style_settings(): array {
 		$saved = get_option( self::OPT_STYLE, [] );
-		return array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
+		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
+		// Button styles come from the Button Styles page (listing settings).
+		static $listing_cache = null;
+		if ( null === $listing_cache ) {
+			$listing_cache = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
+		}
+		$listing = $listing_cache;
+		if ( is_array( $listing ) ) {
+			$merged['btn_bg']        = $listing['btn_bg']        ?? $merged['btn_bg'];
+			$merged['btn_text']      = $listing['btn_text_color'] ?? $merged['btn_text'];
+			$merged['btn_radius']    = $listing['btn_radius']    ?? $merged['btn_radius'];
+			$merged['btn_padding']   = $listing['btn_padding']   ?? $merged['btn_padding'];
+			$merged['btn_font_size'] = $listing['btn_font_size']  ?? $merged['btn_font_size'];
+		}
+		return $merged;
 	}
 
 	/** Full set of style defaults. */

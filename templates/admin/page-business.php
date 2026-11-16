@@ -249,6 +249,15 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 				<p class="description">Text displayed on the booking button. Default: Book Now</p>
 			</td>
 		</tr>
+		<tr>
+			<th><label for="gcm_booking_link_new_tab">Open in New Tab</label></th>
+			<td>
+				<label>
+					<input type="checkbox" id="gcm_booking_link_new_tab" name="<?php echo esc_attr($opt); ?>[booking_link_new_tab]" value="1" <?php checked( ! empty( $b['booking_link_new_tab'] ) ); ?>>
+					Open booking link in a new browser tab
+				</label>
+			</td>
+		</tr>
 
 	</table>
 

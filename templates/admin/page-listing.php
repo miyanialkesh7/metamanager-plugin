@@ -95,6 +95,107 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 		</tr>
 	</table>
 
+	<h3><?php esc_html_e( 'Border', 'metamanager' ); ?></h3>
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label for="listing-btn_border_thickness"><?php esc_html_e( 'Border Thickness', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_border_thickness"
+					name="<?php echo esc_attr( $opt ); ?>[btn_border_thickness]"
+					value="<?php echo esc_attr( $s['btn_border_thickness'] ?? '0px' ); ?>"
+					class="small-text" placeholder="0px">
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_border_color"><?php esc_html_e( 'Border Color', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_border_color"
+					name="<?php echo esc_attr( $opt ); ?>[btn_border_color]"
+					value="<?php echo esc_attr( $s['btn_border_color'] ?? '#0073aa' ); ?>">
+			</td>
+		</tr>
+	</table>
+
+	<h3><?php esc_html_e( 'Box Shadow', 'metamanager' ); ?></h3>
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label><?php esc_html_e( 'Enable Box Shadow', 'metamanager' ); ?></label></th>
+			<td>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow]" value="1" <?php checked( ! empty( $s['btn_box_shadow'] ) ); ?>>
+					<?php esc_html_e( 'Add box shadow to buttons', 'metamanager' ); ?>
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_box_shadow_color"><?php esc_html_e( 'Shadow Color (with alpha)', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_box_shadow_color"
+					name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_color]"
+					value="<?php echo esc_attr( $s['btn_box_shadow_color'] ?? 'rgba(0,0,0,0.3)' ); ?>"
+					class="regular-text" placeholder="rgba(0,0,0,0.3)">
+				<p class="description"><?php esc_html_e( 'RGBA color with alpha channel, e.g. rgba(0,0,0,0.3) for 30% opacity.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_box_shadow_x"><?php esc_html_e( 'Horizontal Offset', 'metamanager' ); ?></label></th>
+			<td><input type="text" id="listing-btn_box_shadow_x" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_x]" value="<?php echo esc_attr( $s['btn_box_shadow_x'] ?? '0px' ); ?>" class="small-text"></td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_box_shadow_y"><?php esc_html_e( 'Vertical Offset', 'metamanager' ); ?></label></th>
+			<td><input type="text" id="listing-btn_box_shadow_y" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_y]" value="<?php echo esc_attr( $s['btn_box_shadow_y'] ?? '2px' ); ?>" class="small-text"></td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_box_shadow_blur"><?php esc_html_e( 'Blur', 'metamanager' ); ?></label></th>
+			<td><input type="text" id="listing-btn_box_shadow_blur" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_blur]" value="<?php echo esc_attr( $s['btn_box_shadow_blur'] ?? '4px' ); ?>" class="small-text"></td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_box_shadow_spread"><?php esc_html_e( 'Spread', 'metamanager' ); ?></label></th>
+			<td><input type="text" id="listing-btn_box_shadow_spread" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_spread]" value="<?php echo esc_attr( $s['btn_box_shadow_spread'] ?? '0px' ); ?>" class="small-text"></td>
+		</tr>
+	</table>
+
+	<h3><?php esc_html_e( 'Hover Effect', 'metamanager' ); ?></h3>
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label><?php esc_html_e( 'Enable Hover Effect', 'metamanager' ); ?></label></th>
+			<td>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[btn_hover_enabled]" value="1" <?php checked( ! empty( $s['btn_hover_enabled'] ?? true ) ); ?>>
+					<?php esc_html_e( 'Apply hover effect to buttons', 'metamanager' ); ?>
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_bg"><?php esc_html_e( 'Hover Background', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_hover_bg"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_bg]"
+					value="<?php echo esc_attr( $s['btn_hover_bg'] ?? '' ); ?>">
+				<p class="description"><?php esc_html_e( 'Leave empty to use opacity instead.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_text"><?php esc_html_e( 'Hover Text Color', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_hover_text"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_text]"
+					value="<?php echo esc_attr( $s['btn_hover_text'] ?? '' ); ?>">
+				<p class="description"><?php esc_html_e( 'Leave empty to keep default text color.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_opacity"><?php esc_html_e( 'Hover Opacity', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_hover_opacity"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_opacity]"
+					value="<?php echo esc_attr( $s['btn_hover_opacity'] ?? '0.88' ); ?>"
+					class="small-text" placeholder="0.88">
+				<p class="description"><?php esc_html_e( '0 to 1. Only used when hover background is empty.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+	</table>
+
 	<h3><?php esc_html_e( 'Preview', 'metamanager' ); ?></h3>
 	<div style="background:#f0f0f1;padding:20px;border-radius:4px;">
 		<a id="listing-preview-btn" style="
@@ -105,6 +206,10 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			border-radius: <?php echo esc_attr( $s['btn_radius'] ); ?>;
 			font-size: <?php echo esc_attr( $s['btn_font_size'] ); ?>;
 			font-weight: <?php echo esc_attr( $s['btn_font_weight'] ); ?>;
+			border: <?php echo esc_attr( $s['btn_border_thickness'] ?? '0px' ); ?> solid <?php echo esc_attr( $s['btn_border_color'] ?? '#0073aa' ); ?>;
+			<?php if ( ! empty( $s['btn_box_shadow'] ) ) : ?>
+			box-shadow: <?php echo esc_attr( $s['btn_box_shadow_x'] ?? '0px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_y'] ?? '2px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_blur'] ?? '4px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_spread'] ?? '0px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_color'] ?? 'rgba(0,0,0,0.3)' ); ?>;
+			<?php endif; ?>
 			text-decoration: none;
 		"><?php echo esc_html( $s['btn_text'] ); ?></a>
 	</div>
