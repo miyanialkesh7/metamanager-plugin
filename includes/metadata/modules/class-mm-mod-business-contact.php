@@ -1057,6 +1057,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	/** Return merged (defaults + saved) sitewide style settings. */
 	public static function get_style_settings(): array {
 		$saved = get_option( self::OPT_STYLE, [] );
+		// Button styles come from the Button Styles page (listing settings).
+		$listing = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
 		return array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
 	}
 
@@ -1080,11 +1082,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'card_max_width'    => '420px',
 			'card_shadow'       => '0 2px 8px rgba(0,0,0,0.08)',
 			// Button appearance
-			'btn_bg'        => '#0073aa',
-			'btn_text'      => '#ffffff',
-			'btn_radius'    => '4px',
-			'btn_padding'   => '10px 16px',
-			'btn_font_size' => '14px',
+			'btn_bg'        => $listing['btn_bg'] ?? '#0073aa',
+			'btn_text'      => $listing['btn_text_color'] ?? '#ffffff',
+			'btn_radius'    => $listing['btn_radius'] ?? '4px',
+			'btn_padding'   => $listing['btn_padding'] ?? '10px 16px',
+			'btn_font_size' => $listing['btn_font_size'] ?? '14px',
 			// Typography
 			'name_font_size' => '20px',
 			'body_font_size' => '14px',
