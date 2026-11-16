@@ -599,6 +599,38 @@
 	font-weight: 500;
 }
 
+.gcm-contact-page__downloads {
+	margin-bottom: 20px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.gcm-contact-page__download {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: inherit;
+	opacity: .7;
+	text-decoration: none;
+	font-size: 13px;
+	border-bottom: 1px solid transparent;
+	transition: opacity .15s;
+}
+
+.gcm-contact-page__download:hover {
+	opacity: 1;
+	border-bottom-color: currentColor;
+	text-decoration: none;
+	color: inherit;
+}
+
+.gcm-contact-page__download .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
 .gcm-contact-page__areas,
 .gcm-contact-page__payment {
 	margin-bottom: 16px;
