@@ -10,7 +10,7 @@
 defined( 'ABSPATH' ) || exit;
 
 $s   = $settings->get( 'listing' );
-$opt = 'listing';
+$opt = MM_META_OPT_SETTINGS;
 $biz_style = MM_Mod_Business_Contact::get_style_settings();
 ?>
 
@@ -27,7 +27,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_text"><?php esc_html_e( 'Button Text', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_text"
-					name="<?php echo esc_attr( $opt ); ?>[btn_text]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_text]"
 					value="<?php echo esc_attr( $s['btn_text'] ); ?>"
 					class="regular-text">
 				<p class="description"><?php esc_html_e( 'The text displayed on the link/button under each item on listing pages.', 'metamanager' ); ?></p>
@@ -41,7 +41,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_bg"><?php esc_html_e( 'Background Color', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="color" id="listing-btn_bg"
-					name="<?php echo esc_attr( $opt ); ?>[btn_bg]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_bg]"
 					value="<?php echo esc_attr( $s['btn_bg'] ); ?>">
 			</td>
 		</tr>
@@ -49,7 +49,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_text_color"><?php esc_html_e( 'Text Color', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="color" id="listing-btn_text_color"
-					name="<?php echo esc_attr( $opt ); ?>[btn_text_color]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_text_color]"
 					value="<?php echo esc_attr( $s['btn_text_color'] ); ?>">
 			</td>
 		</tr>
@@ -57,7 +57,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_radius"><?php esc_html_e( 'Border Radius', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_radius"
-					name="<?php echo esc_attr( $opt ); ?>[btn_radius]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_radius]"
 					value="<?php echo esc_attr( $s['btn_radius'] ); ?>"
 					class="small-text">
 				<p class="description"><?php esc_html_e( 'e.g. 0px for square, 4px for subtle, 99px for pill shape.', 'metamanager' ); ?></p>
@@ -67,7 +67,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_padding"><?php esc_html_e( 'Padding', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_padding"
-					name="<?php echo esc_attr( $opt ); ?>[btn_padding]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_padding]"
 					value="<?php echo esc_attr( $s['btn_padding'] ); ?>"
 					class="small-text">
 				<p class="description"><?php esc_html_e( 'CSS shorthand: top/right/bottom/left or vertical/horizontal.', 'metamanager' ); ?></p>
@@ -77,7 +77,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_font_size"><?php esc_html_e( 'Font Size', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_font_size"
-					name="<?php echo esc_attr( $opt ); ?>[btn_font_size]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_font_size]"
 					value="<?php echo esc_attr( $s['btn_font_size'] ); ?>"
 					class="small-text">
 			</td>
@@ -86,7 +86,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_font_weight"><?php esc_html_e( 'Font Weight', 'metamanager' ); ?></label></th>
 			<td>
 				<select id="listing-btn_font_weight"
-					name="<?php echo esc_attr( $opt ); ?>[btn_font_weight]">
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_font_weight]">
 					<?php foreach ( array( '400' => 'Normal', '500' => 'Medium', '600' => 'Semibold', '700' => 'Bold' ) as $val => $label ) : ?>
 						<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $s['btn_font_weight'], $val ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
@@ -101,7 +101,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_border_thickness"><?php esc_html_e( 'Border Thickness', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_border_thickness"
-					name="<?php echo esc_attr( $opt ); ?>[btn_border_thickness]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_border_thickness]"
 					value="<?php echo esc_attr( $s['btn_border_thickness'] ?? '0px' ); ?>"
 					class="small-text" placeholder="0px">
 			</td>
@@ -110,7 +110,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_border_color"><?php esc_html_e( 'Border Color', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="color" id="listing-btn_border_color"
-					name="<?php echo esc_attr( $opt ); ?>[btn_border_color]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_border_color]"
 					value="<?php echo esc_attr( $s['btn_border_color'] ?? '#0073aa' ); ?>">
 			</td>
 		</tr>
@@ -122,7 +122,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label><?php esc_html_e( 'Enable Box Shadow', 'metamanager' ); ?></label></th>
 			<td>
 				<label>
-					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow]" value="1" <?php checked( ! empty( $s['btn_box_shadow'] ) ); ?>>
+					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow]" value="1" <?php checked( ! empty( $s['btn_box_shadow'] ) ); ?>>
 					<?php esc_html_e( 'Add box shadow to buttons', 'metamanager' ); ?>
 				</label>
 			</td>
@@ -131,7 +131,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_box_shadow_color"><?php esc_html_e( 'Shadow Color (with alpha)', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_box_shadow_color"
-					name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_color]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow_color]"
 					value="<?php echo esc_attr( $s['btn_box_shadow_color'] ?? 'rgba(0,0,0,0.3)' ); ?>"
 					class="regular-text" placeholder="rgba(0,0,0,0.3)">
 				<p class="description"><?php esc_html_e( 'RGBA color with alpha channel, e.g. rgba(0,0,0,0.3) for 30% opacity.', 'metamanager' ); ?></p>
@@ -139,19 +139,19 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 		</tr>
 		<tr>
 			<th><label for="listing-btn_box_shadow_x"><?php esc_html_e( 'Horizontal Offset', 'metamanager' ); ?></label></th>
-			<td><input type="text" id="listing-btn_box_shadow_x" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_x]" value="<?php echo esc_attr( $s['btn_box_shadow_x'] ?? '0px' ); ?>" class="small-text"></td>
+			<td><input type="text" id="listing-btn_box_shadow_x" name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow_x]" value="<?php echo esc_attr( $s['btn_box_shadow_x'] ?? '0px' ); ?>" class="small-text"></td>
 		</tr>
 		<tr>
 			<th><label for="listing-btn_box_shadow_y"><?php esc_html_e( 'Vertical Offset', 'metamanager' ); ?></label></th>
-			<td><input type="text" id="listing-btn_box_shadow_y" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_y]" value="<?php echo esc_attr( $s['btn_box_shadow_y'] ?? '2px' ); ?>" class="small-text"></td>
+			<td><input type="text" id="listing-btn_box_shadow_y" name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow_y]" value="<?php echo esc_attr( $s['btn_box_shadow_y'] ?? '2px' ); ?>" class="small-text"></td>
 		</tr>
 		<tr>
 			<th><label for="listing-btn_box_shadow_blur"><?php esc_html_e( 'Blur', 'metamanager' ); ?></label></th>
-			<td><input type="text" id="listing-btn_box_shadow_blur" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_blur]" value="<?php echo esc_attr( $s['btn_box_shadow_blur'] ?? '4px' ); ?>" class="small-text"></td>
+			<td><input type="text" id="listing-btn_box_shadow_blur" name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow_blur]" value="<?php echo esc_attr( $s['btn_box_shadow_blur'] ?? '4px' ); ?>" class="small-text"></td>
 		</tr>
 		<tr>
 			<th><label for="listing-btn_box_shadow_spread"><?php esc_html_e( 'Spread', 'metamanager' ); ?></label></th>
-			<td><input type="text" id="listing-btn_box_shadow_spread" name="<?php echo esc_attr( $opt ); ?>[btn_box_shadow_spread]" value="<?php echo esc_attr( $s['btn_box_shadow_spread'] ?? '0px' ); ?>" class="small-text"></td>
+			<td><input type="text" id="listing-btn_box_shadow_spread" name="<?php echo esc_attr( $opt ); ?>[listing][btn_box_shadow_spread]" value="<?php echo esc_attr( $s['btn_box_shadow_spread'] ?? '0px' ); ?>" class="small-text"></td>
 		</tr>
 	</table>
 
@@ -161,7 +161,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label><?php esc_html_e( 'Enable Hover Effect', 'metamanager' ); ?></label></th>
 			<td>
 				<label>
-					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[btn_hover_enabled]" value="1" <?php checked( ! empty( $s['btn_hover_enabled'] ?? true ) ); ?>>
+					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[listing][btn_hover_enabled]" value="1" <?php checked( ! empty( $s['btn_hover_enabled'] ?? true ) ); ?>>
 					<?php esc_html_e( 'Apply hover effect to buttons', 'metamanager' ); ?>
 				</label>
 			</td>
@@ -170,7 +170,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_hover_bg"><?php esc_html_e( 'Hover Background', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="color" id="listing-btn_hover_bg"
-					name="<?php echo esc_attr( $opt ); ?>[btn_hover_bg]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_hover_bg]"
 					value="<?php echo esc_attr( $s['btn_hover_bg'] ?? '' ); ?>">
 				<p class="description"><?php esc_html_e( 'Leave empty to use opacity instead.', 'metamanager' ); ?></p>
 			</td>
@@ -179,25 +179,17 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<th><label for="listing-btn_hover_text"><?php esc_html_e( 'Hover Text Color', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="color" id="listing-btn_hover_text"
-					name="<?php echo esc_attr( $opt ); ?>[btn_hover_text]"
+					name="<?php echo esc_attr( $opt ); ?>[listing][btn_hover_text]"
 					value="<?php echo esc_attr( $s['btn_hover_text'] ?? '' ); ?>">
 				<p class="description"><?php esc_html_e( 'Leave empty to keep default text color.', 'metamanager' ); ?></p>
 			</td>
 		</tr>
-		<tr>
-			<th><label for="listing-btn_hover_opacity"><?php esc_html_e( 'Hover Opacity', 'metamanager' ); ?></label></th>
-			<td>
-				<input type="text" id="listing-btn_hover_opacity"
-					name="<?php echo esc_attr( $opt ); ?>[btn_hover_opacity]"
-					value="<?php echo esc_attr( $s['btn_hover_opacity'] ?? '0.88' ); ?>"
-					class="small-text" placeholder="0.88">
-				<p class="description"><?php esc_html_e( '0 to 1. Only used when hover background is empty.', 'metamanager' ); ?></p>
-			</td>
-		</tr>
+
 	</table>
 
 	<h3><?php esc_html_e( 'Preview', 'metamanager' ); ?></h3>
 	<div style="background:#f0f0f1;padding:20px;border-radius:4px;">
+		<p style="margin:0 0 8px;font-size:12px;color:#666;">Normal state:</p>
 		<a id="listing-preview-btn" style="
 			display: inline-block;
 			padding: <?php echo esc_attr( $s['btn_padding'] ); ?>;
@@ -212,6 +204,30 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			<?php endif; ?>
 			text-decoration: none;
 		"><?php echo esc_html( $s['btn_text'] ); ?></a>
+		<p style="margin:16px 0 8px;font-size:12px;color:#666;">Hover state:</p>
+		<?php
+		$h_bg = trim( (string) ( $s['btn_hover_bg'] ?? '' ) );
+		$h_text = trim( (string) ( $s['btn_hover_text'] ?? '' ) );
+		$hover_bg_css = $h_bg ? $h_bg : $s['btn_bg'];
+		$hover_text_css = $h_text ? $h_text : $s['btn_text_color'];
+		$hover_opacity = ( ! $h_bg && ! $h_text ) ? '0.88' : '1';
+		?>
+		<a id="listing-preview-btn-hover" style="
+			display: inline-block;
+			padding: <?php echo esc_attr( $s['btn_padding'] ); ?>;
+			background: <?php echo esc_attr( $hover_bg_css ); ?>;
+			color: <?php echo esc_attr( $hover_text_css ); ?>;
+			border-radius: <?php echo esc_attr( $s['btn_radius'] ); ?>;
+			font-size: <?php echo esc_attr( $s['btn_font_size'] ); ?>;
+			font-weight: <?php echo esc_attr( $s['btn_font_weight'] ); ?>;
+			border: <?php echo esc_attr( $s['btn_border_thickness'] ?? '0px' ); ?> solid <?php echo esc_attr( $s['btn_border_color'] ?? '#0073aa' ); ?>;
+			<?php if ( ! empty( $s['btn_box_shadow'] ) ) : ?>
+			box-shadow: <?php echo esc_attr( $s['btn_box_shadow_x'] ?? '0px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_y'] ?? '2px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_blur'] ?? '4px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_spread'] ?? '0px' ); ?> <?php echo esc_attr( $s['btn_box_shadow_color'] ?? 'rgba(0,0,0,0.3)' ); ?>;
+			<?php endif; ?>
+			opacity: <?php echo esc_attr( $hover_opacity ); ?>;
+			text-decoration: none;
+			pointer-events: none;
+		"><?php echo esc_html( $s['btn_text'] ); ?></a>
 	</div>
 	<script>
 	(function() {
@@ -225,7 +241,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 			b.style.color = f('btn_text_color') ? f('btn_text_color').value : '';
 			b.style.borderRadius = f('btn_radius') ? f('btn_radius').value : '';
 			b.style.fontSize = f('btn_font_size') ? f('btn_font_size').value : '';
-			b.style.fontWeight = f('btn_font_weight') ? f('btn_font_weight').value : '';
+			b.style.fontWeight = f('listing][btn_font_weight'] ? f('listing][btn_font_weight'].value : '';
 		}
 		document.querySelectorAll('#page-listing input, #page-listing select').forEach(function(el) {
 			el.addEventListener('input', upd);

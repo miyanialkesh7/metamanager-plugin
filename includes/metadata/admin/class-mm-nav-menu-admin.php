@@ -1,13 +1,13 @@
 <?php
 /**
- * MM_Nav_Menu_Admin — menu editor enhancements:
+ * MM_Nav_Menu_Admin — nav-menus.php enhancements using WordPress codex
+ * add_meta_box() API. No JavaScript injection hacks.
  *
- * LEFT SIDEBAR:  CPT Archives meta box (checkbox list + "Add to Menu" button
- *                that populates the menu editor via wpNavMenu.addCustomLink).
+ * LEFT SIDEBAR ("Add menu items"):
+ *   - Archives meta box: dropdown (Blog, CPT archives, Taxonomies) + checkboxes + Add to Menu
  *
- * RIGHT EDITOR:  "Use for navigation schema" checkbox below the menu items
- *                in the Menu Settings area. Only one menu can be designated.
- *                Nav schema outputs only when that menu is rendered on page load.
+ * LEFT SIDEBAR (below Archives):
+ *   - Navigation Schema meta box: checkbox to designate menu for SiteNavigationElement
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -15,75 +15,138 @@ defined( 'ABSPATH' ) || exit;
 class MM_Nav_Menu_Admin {
 
 	public function register_hooks(): void {
-		add_action( 'admin_head-nav-menus.php', [ $this, 'add_meta_boxes' ], 5 );
-		add_action( 'admin_footer-nav-menus.php', [ $this, 'inject_schema_checkbox' ] );
+		add_action( 'admin_init', [ $this, 'add_meta_boxes' ] );
 		add_action( 'wp_update_nav_menu', [ $this, 'save_schema_checkbox' ], 10, 2 );
 	}
 
-	// -------------------------------------------------------------------------
-	// LEFT SIDEBAR — CPT Archives meta box
-	// -------------------------------------------------------------------------
-
+	/**
+	 * Register meta boxes on the nav-menus screen (WordPress codex: add_meta_box).
+	 */
 	public function add_meta_boxes(): void {
 		add_meta_box(
-			'mm-cpt-archives',
-			'CPT Archives',
-			[ $this, 'render_cpt_archives_box' ],
+			'mm-archives',
+			__( 'Archives', 'metamanager' ),
+			[ $this, 'render_archives_box' ],
 			'nav_menu',
 			'side',
 			'default'
 		);
+		add_meta_box(
+			'mm-schema-nav',
+			__( 'Navigation Schema', 'metamanager' ),
+			[ $this, 'render_schema_box' ],
+			'nav_menu',
+			'side',
+			'low'
+		);
 	}
 
-	public function render_cpt_archives_box(): void {
-		if ( ! class_exists( 'MM_Schema_Post_Types' ) ) {
-			return;
+	// -------------------------------------------------------------------------
+	// Archives meta box — all archive types in a dropdown
+	// -------------------------------------------------------------------------
+
+	public function render_archives_box(): void {
+		// Build archive items grouped by type
+		$groups = [];
+
+		// Blog archive
+		$blog_url = get_post_type_archive_link( 'post' );
+		if ( $blog_url ) {
+			$groups['blog'] = [
+				'label' => __( 'Blog', 'metamanager' ),
+				'items' => [ [ 'title' => __( 'Blog Archive', 'metamanager' ), 'url' => $blog_url ] ],
+			];
 		}
-		$types = MM_Schema_Post_Types::TYPES;
+
+		// CPT archives
+		if ( class_exists( 'MM_Schema_Post_Types' ) ) {
+			$types = MM_Schema_Post_Types::TYPES;
+			$cpt_items = [];
+			foreach ( $types as $slug => $config ) {
+				$label = $config[1];
+				$url   = get_post_type_archive_link( $slug );
+				if ( $url ) {
+					$cpt_items[] = [ 'title' => $label, 'url' => $url ];
+				}
+			}
+			if ( $cpt_items ) {
+				$groups['cpt'] = [
+					'label' => __( 'CPT Archives', 'metamanager' ),
+					'items' => $cpt_items,
+				];
+			}
+		}
+
+		// Taxonomy archives
+		$taxonomies = get_taxonomies( [ 'public' => true ], 'names' );
+		$tax_items = [];
+		foreach ( $taxonomies as $tax ) {
+			$terms = get_terms( [ 'taxonomy' => $tax, 'hide_empty' => false, 'number' => 50 ] );
+			if ( is_wp_error( $terms ) || empty( $terms ) ) {
+				continue;
+			}
+			$tax_obj = get_taxonomy( $tax );
+			foreach ( $terms as $term ) {
+				$url = get_term_link( $term );
+				if ( ! is_wp_error( $url ) ) {
+					$tax_items[] = [ 'title' => $term->name, 'url' => $url, 'group' => $tax_obj->labels->name ?? $tax ];
+				}
+			}
+		}
+		if ( $tax_items ) {
+			$groups['tax'] = [
+				'label' => __( 'Taxonomy Archives', 'metamanager' ),
+				'items' => $tax_items,
+			];
+		}
+
 		?>
-		<div id="mm-cpt-archives-panel" class="posttypediv">
+		<div id="mm-archives-panel" class="posttypediv">
 			<div class="tabs-panel tabs-panel-active">
-				<ul class="categorychecklist form-no-clear">
-					<?php foreach ( $types as $slug => $config ) :
-						$label       = $config[1];
-						$archive_url = get_post_type_archive_link( $slug );
-						if ( ! $archive_url ) {
-							continue;
-						}
-					?>
-					<li>
+				<p>
+					<select id="mm-archives-filter" style="width:100%;margin-bottom:8px;">
+						<option value=""><?php esc_html_e( 'All Archives', 'metamanager' ); ?></option>
+						<?php foreach ( $groups as $key => $group ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $group['label'] ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<ul class="categorychecklist form-no-clear" id="mm-archives-list">
+					<?php foreach ( $groups as $key => $group ) : ?>
+					<?php foreach ( $group['items'] as $item ) : ?>
+					<li data-group="<?php echo esc_attr( $key ); ?>">
 						<label class="menu-item-title">
-							<input type="checkbox" class="mm-cpt-archive-check"
-								data-title="<?php echo esc_attr( $label ); ?>"
-								data-url="<?php echo esc_attr( $archive_url ); ?>"
-								value="<?php echo esc_attr( $slug ); ?>">
-							<?php echo esc_html( $label ); ?>
+							<input type="checkbox" class="mm-archive-check"
+								data-title="<?php echo esc_attr( $item['title'] ); ?>"
+								data-url="<?php echo esc_url( $item['url'] ); ?>">
+							<?php echo esc_html( $item['title'] ); ?>
 						</label>
 					</li>
+					<?php endforeach; ?>
 					<?php endforeach; ?>
 				</ul>
 			</div>
 			<p class="button-controls">
-				<button type="button" class="button" id="mm-add-cpt-archives-to-menu">Add to Menu</button>
+				<button type="button" class="button" id="mm-add-archives-to-menu"><?php esc_html_e( 'Add to Menu', 'metamanager' ); ?></button>
 			</p>
 		</div>
 		<script>
 		jQuery(function($) {
-			$('#mm-add-cpt-archives-to-menu').on('click', function() {
-				$('#mm-cpt-archives-panel .mm-cpt-archive-check:checked').each(function() {
+			// Filter dropdown
+			$('#mm-archives-filter').on('change', function() {
+				var val = $(this).val();
+				$('#mm-archives-list li').each(function() {
+					$(this).toggle(!val || $(this).data('group') === val);
+				});
+			});
+			// Add to Menu
+			$('#mm-add-archives-to-menu').on('click', function() {
+				$('#mm-archives-list .mm-archive-check:checked').each(function() {
 					var title = $(this).data('title');
 					var url   = $(this).data('url');
-					// Use WordPress's built-in custom link add mechanism
-					if (typeof wpNavMenu !== 'undefined' && wpNavMenu.addCustomLink) {
-						$('#custom-menu-item-name').val(title);
-						$('#custom-menu-item-url').val(url);
-						wpNavMenu.addCustomLink();
-					} else {
-						// Fallback: fill the custom link form
-						$('#custom-menu-item-name').val(title);
-						$('#custom-menu-item-url').val(url);
-						$('#submit-custom-links').trigger('click');
-					}
+					$('#custom-menu-item-name').val(title);
+					$('#custom-menu-item-url').val(url);
+					$('#submit-custom-links').click();
 					$(this).prop('checked', false);
 				});
 			});
@@ -93,33 +156,33 @@ class MM_Nav_Menu_Admin {
 	}
 
 	// -------------------------------------------------------------------------
-	// RIGHT EDITOR — schema checkbox below menu items
+	// Navigation Schema meta box
 	// -------------------------------------------------------------------------
 
-	public function inject_schema_checkbox(): void {
-		$current_menu = (int) ( isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! $current_menu ) {
-			return;
-		}
-		$checked = get_term_meta( $current_menu, '_mm_nav_menu_primary', true );
-		$nonce   = wp_create_nonce( 'mm_nav_menu_primary_' . $current_menu );
+	public function render_schema_box(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display
+		$menu_param = isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : '';
+		$current_menu = (int) $menu_param;
+		$checked = $current_menu ? get_term_meta( $current_menu, '_mm_nav_menu_primary', true ) : '';
 		?>
-		<script>
-		jQuery(function($) {
-			var html = '<div class="menu-settings-group description-wide" style="margin:12px 0 0;padding:12px 0;border-top:1px solid #ccd0d4;">'
-				+ '<label style="display:flex;align-items:center;gap:6px;">'
-				+ '<input type="checkbox" name="_mm_nav_menu_primary" value="1" <?php echo $checked === '1' ? 'checked' : ''; ?>>'
-				+ '<strong>Use for navigation schema</strong>'
-				+ '</label>'
-				+ '<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo esc_attr( $nonce ); ?>">'
-				+ '<p class="description" style="margin:4px 0 0 22px;">When checked, this menu is emitted as <code>SiteNavigationElement</code> JSON-LD. Only one menu can be designated. Schema outputs only when this menu is rendered on the page.</p>'
-				+ '</div>';
-			$('.menu-settings').first().append(html);
-		});
-		</script>
+		<div>
+			<label>
+				<input type="checkbox" name="_mm_nav_menu_primary" value="1" <?php checked( $checked, '1' ); ?>>
+				<strong><?php esc_html_e( 'Use for navigation schema', 'metamanager' ); ?></strong>
+			</label>
+			<p class="description" style="margin:6px 0 0;">
+				<?php esc_html_e( 'When checked, this menu is emitted as SiteNavigationElement JSON-LD. Only one menu can be designated. Schema outputs only when this menu is rendered on the page.', 'metamanager' ); ?>
+			</p>
+			<?php if ( $current_menu ) : ?>
+			<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo esc_attr( wp_create_nonce( 'mm_nav_menu_primary_' . $current_menu ) ); ?>">
+			<?php endif; ?>
+		</div>
 		<?php
 	}
 
+	/**
+	 * Save the schema checkbox when a menu is updated.
+	 */
 	public function save_schema_checkbox( $menu_id, $data ): void {
 		if ( ! isset( $_POST['_mm_nav_menu_primary_nonce'] ) ||
 			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_mm_nav_menu_primary_nonce'] ) ), 'mm_nav_menu_primary_' . $menu_id ) ) {
@@ -132,7 +195,6 @@ class MM_Nav_Menu_Admin {
 		$is_primary = isset( $_POST['_mm_nav_menu_primary'] ) && '1' === $_POST['_mm_nav_menu_primary'];
 
 		if ( $is_primary ) {
-			// Uncheck any other menu that was previously primary.
 			$old = get_terms( [
 				'taxonomy'   => 'nav_menu',
 				'meta_query' => [ [ 'key' => '_mm_nav_menu_primary', 'value' => '1' ] ],
