@@ -85,21 +85,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	padding: 8px 14px;
-	background: #0073aa;
-	color: #ffffff !important;
-	border-radius: 4px;
-	font-size: 13px;
-	font-weight: 500;
 	text-decoration: none;
-	transition: opacity .2s;
-}
-
-.mm-person__phone-btn:hover,
-.mm-person__email-btn:hover {
-	opacity: .85;
-	text-decoration: none;
-	color: #ffffff !important;
 }
 
 .mm-person__phone-btn .dashicons,

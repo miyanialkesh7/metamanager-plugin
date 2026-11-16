@@ -558,7 +558,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		if ( ! empty( $map_links['geo'] ) ) {
 			$links[] = [
 				'class' => 'gcm-map-link--geo',
-				'label' => 'Open in Maps',
+				'label' => 'Long + Lat',
 				'url'   => 'geo:' . $lat . ',' . $lng . '?z=17',
 			];
 		}
