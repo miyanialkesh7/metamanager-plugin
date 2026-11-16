@@ -95,25 +95,29 @@
 }
 
 .mm-archive-card__details {
-	padding: 12px 0 0;
+	padding: 10px 0;
+	margin-bottom: 8px;
 }
 
 .mm-archive-card__detail-row {
 	display: flex;
 	justify-content: space-between;
 	gap: 8px;
-	padding: 2px 0;
-	font-size: 13px;
+	padding: 3px 0;
+	font-size: 16px;
 	line-height: 1.5;
+	color: #222;
 }
 
 .mm-archive-card__detail-label {
-	font-weight: 600;
-	opacity: .7;
+	font-weight: 700;
+	color: #222;
 }
 
 .mm-archive-card__detail-value {
 	text-align: right;
+	font-weight: 600;
+	color: #222;
 }
 
 .mm-archive-card--grid .mm-archive-card__body {

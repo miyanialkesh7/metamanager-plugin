@@ -1210,38 +1210,36 @@ class MM_Schema_Post_Types {
 							<?php the_post_thumbnail( 'medium_large', [ 'loading' => 'lazy' ] ); ?>
 						</a>
 					<?php endif; ?>
-					<?php
-					// Schema field details (price, etc.) between image and text.
-					$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
-					if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
-						$detail_items = [];
-						$field_defs = MM_Schema_Types::get_fields_by_type()[ MM_Schema_Post_Types::slug_to_type( $slug ) ] ?? [];
-						// Build label map from field definitions.
-						$label_map = [];
-						foreach ( $field_defs as $fdef ) {
-							$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
-						}
-						// Show all non-empty saved fields (matches field defs or generic keys).
-						foreach ( $saved_fields as $fkey => $fval ) {
-							$fval = trim( (string) $fval );
-							if ( '' === $fval ) continue;
-							$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
-							$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
-						}
-						if ( $detail_items ) : ?>
-					<div class="mm-archive-card__details">
-						<?php foreach ( $detail_items as $d ) : ?>
-						<div class="mm-archive-card__detail-row">
-							<span class="mm-archive-card__detail-label"><?php echo esc_html( $d['label'] ); ?></span>
-							<span class="mm-archive-card__detail-value"><?php echo esc_html( $d['value'] ); ?></span>
-						</div>
-						<?php endforeach; ?>
-					</div>
-						<?php endif; } ?>
 					<div class="mm-archive-card__body">
 						<h2 class="mm-archive-card__title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h2>
+						<?php
+						// Schema field details (price, etc.) after title.
+						$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
+						if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
+							$detail_items = [];
+							$field_defs = MM_Schema_Types::get_fields_by_type()[ MM_Schema_Post_Types::slug_to_type( $slug ) ] ?? [];
+							$label_map = [];
+							foreach ( $field_defs as $fdef ) {
+								$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
+							}
+							foreach ( $saved_fields as $fkey => $fval ) {
+								$fval = trim( (string) $fval );
+								if ( '' === $fval ) continue;
+								$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
+								$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
+							}
+							if ( $detail_items ) : ?>
+						<div class="mm-archive-card__details">
+							<?php foreach ( $detail_items as $d ) : ?>
+							<div class="mm-archive-card__detail-row">
+								<span class="mm-archive-card__detail-label"><?php echo esc_html( $d['label'] ); ?>:</span>
+								<span class="mm-archive-card__detail-value"><?php echo esc_html( $d['value'] ); ?></span>
+							</div>
+							<?php endforeach; ?>
+						</div>
+							<?php endif; } ?>
 						<?php if ( has_excerpt() ) : ?>
 							<div class="mm-archive-card__excerpt"><?php the_excerpt(); ?></div>
 						<?php endif; ?>
