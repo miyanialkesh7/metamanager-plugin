@@ -6,7 +6,6 @@
  * profile stored by this plugin. Provides:
  *   - WordPress Widget  (classic widget areas)
  *   - Gutenberg Block   (metamanager/business-contact)
- *   - Shortcode         [gcm_business_contact]
  *   - Secure server-side download endpoints for vCard (.vcf), JSON, and CSV
  *   - Inline schema.org JSON-LD scoped to each rendered card instance
  *
@@ -28,13 +27,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	public function register_hooks(): void {
 		add_action( 'init',               [ $this, 'add_rewrite_rules' ] );
-		add_action( 'init',               [ $this, 'register_block' ] );
-		add_filter( 'query_vars',         [ $this, 'add_query_var' ] );
+				add_filter( 'query_vars',         [ $this, 'add_query_var' ] );
 		add_action( 'template_redirect',  [ $this, 'maybe_serve_download' ] );
 		add_action( 'widgets_init',       [ $this, 'register_widget' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
-		add_shortcode( 'gcm_business_contact', [ $this, 'render_shortcode' ] );
-	}
+			}
 
 	// -------------------------------------------------------------------------
 	// Download endpoints
@@ -421,42 +418,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	public function register_widget(): void {
-		register_widget( 'MM_Business_Contact_Widget' );
-	}
-
-	// -------------------------------------------------------------------------
-	// Gutenberg block
-	// -------------------------------------------------------------------------
-
-	public function register_block(): void {
-		if ( ! function_exists( 'register_block_type' ) ) {
-			return;
-		}
-
-		wp_register_script(
-			'mm-meta-block-business-contact',
-			MM_META_URL . 'assets/js/block-business-contact.js',
-			[ 'wp-blocks', 'wp-element', 'wp-i18n' ],
-			MM_META_VERSION,
-			true
-		);
-		wp_localize_script( 'mm-meta-block-business-contact', 'gcmBizBlock', [
-			'settingsUrl' => admin_url( 'admin.php?page=mm-meta-contact' ),
-		] );
-
-		register_block_type( 'metamanager/business-contact', [
-			'editor_script'   => 'mm-meta-block-business-contact',
-			'render_callback' => [ $this, 'render_card' ],
-			'attributes'      => [],
-		] );
-	}
-
-	// -------------------------------------------------------------------------
-	// Shortcode
-	// -------------------------------------------------------------------------
-
-	public function render_shortcode( $atts ): string {
-		return $this->render_card( [] );
 	}
 
 	// -------------------------------------------------------------------------
@@ -489,125 +450,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	 * @param array $attributes Block attributes (unused — all settings are sitewide).
 	 * @return string
 	 */
-	public function render_card( array $attributes = [] ): string {
-		$biz   = $this->settings->all_business();
-		$style = self::get_style_settings();
 
-		if ( empty( $biz['name'] ) ) {
-			return '';
-		}
-
-		$name    = $biz['name'];
-		$phone   = $biz['phone'] ?? '';
-		$email   = sanitize_email( $biz['email'] ?? '' );
-		$addr    = $biz['address'] ?? [];
-		$type    = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
-		$schema  = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
-
-		$has_address = ! empty( $addr['street'] );
-		$show_phone  = ! empty( $style['show_phone'] ) && $phone;
-		$show_sms    = ! empty( $biz['show_sms'] ?? $style['show_sms'] )   && $phone;
-		$show_email  = ! empty( $style['show_email'] ) && $email;
-		$show_vcard  = ! empty( $style['show_vcard'] );
-		$show_json   = ! empty( $style['show_json'] );
-		$show_csv    = ! empty( $style['show_csv'] );
-
-		ob_start();
-		?>
-		<div class="gcm-biz-card" itemscope itemtype="https://schema.org/<?php echo esc_attr( $type ); ?>">
-
-			<?php if ( ! empty( $biz['logo_url'] ) ) : ?>
-			<div class="gcm-biz-card__logo">
-				<img src="<?php echo esc_url( $biz['logo_url'] ); ?>"
-				     alt="<?php echo esc_attr( $name ); ?>"
-				     itemprop="logo">
-			</div>
-			<?php endif; ?>
-
-			<div class="gcm-biz-card__name" itemprop="name"><?php echo esc_html( $name ); ?></div>
-
-			<?php if ( $has_address ) : ?>
-			<div class="gcm-biz-card__address"
-			     itemprop="address"
-			     itemscope itemtype="https://schema.org/PostalAddress">
-				<?php if ( ! empty( $addr['street'] ) ) : ?>
-					<span itemprop="streetAddress"><?php echo esc_html( $addr['street'] ); ?></span><br>
-				<?php endif; ?>
-				<?php
-				$city  = $addr['city']  ?? '';
-				$state = $addr['state'] ?? '';
-				$zip   = $addr['zip']   ?? '';
-				if ( $city || $state || $zip ) :
-				?>
-					<span itemprop="addressLocality"><?php echo esc_html( $city ); ?></span><?php echo ( $city && $state ) ? ', ' : ''; ?><span itemprop="addressRegion"><?php echo esc_html( $state ); ?></span><?php echo $zip ? ' ' . esc_html( $zip ) : ''; ?>
-				<?php endif; ?>
-				<?php if ( ! empty( $addr['country'] ) ) : ?>
-					<br><span itemprop="addressCountry"><?php echo esc_html( $addr['country'] ); ?></span>
-				<?php endif; ?>
-			</div>
-			<?php endif; ?>
-
-			<div class="gcm-biz-card__actions">
-
-				<?php if ( $show_phone ) : ?>
-				<meta itemprop="telephone" content="<?php echo esc_attr( $phone ); ?>">
-				<a href="tel:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--call">
-					<span class="dashicons dashicons-phone" aria-hidden="true"></span>
-					<span><?php echo esc_html( $phone ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_sms ) : ?>
-				<a href="sms:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--sms">
-					<span class="dashicons dashicons-smartphone" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Send SMS', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_email ) : ?>
-				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
-				<a href="mailto:<?php echo esc_attr( $email ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--email">
-					<span class="dashicons dashicons-email" aria-hidden="true"></span>
-					<span><?php echo esc_html( $email ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_vcard ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/vcard/' ) ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--vcard"
-				   download>
-					<span class="dashicons dashicons-id-alt" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Save Contact', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_json ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/json/' ) ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--json"
-				   download>
-					<span class="dashicons dashicons-download" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Download JSON', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_csv ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/csv/' ) ); ?>"
-				   class="gcm-biz-card__btn gcm-biz-card__btn--csv"
-				   download>
-					<span class="dashicons dashicons-media-spreadsheet" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Download CSV', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-			</div>
-		</div>
-		<script type="application/ld+json"><?php echo $schema; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>
-		<?php
-		return ob_get_clean();
-	}
 
 	// -------------------------------------------------------------------------
 	// ContactPage rendering — auto-generated from business info
@@ -759,12 +602,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$schema  = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
 
 		$has_address = ! empty( $addr['street'] );
-		$show_phone  = ! empty( $style['show_phone'] ) && $phone;
-		$show_sms    = ! empty( $biz['show_sms'] ?? $style['show_sms'] )   && $phone;
-		$show_email  = ! empty( $style['show_email'] ) && $email;
-		$show_vcard  = ! empty( $style['show_vcard'] );
-		$show_json   = ! empty( $style['show_json'] );
-		$show_csv    = ! empty( $style['show_csv'] );
+		$show_phone  = ! empty( $biz['show_phone'] ?? true ) && $phone;
+		$show_sms    = ! empty( $biz['show_sms'] )   && $phone;
+		$show_email  = ! empty( $biz['show_email'] ?? true ) && $email;
+		$show_vcard  = ! empty( $biz['show_vcard'] ?? true );
+		$show_json   = ! empty( $biz['show_json'] ?? true );
+		$show_csv    = ! empty( $biz['show_csv'] ?? true );
 
 		ob_start();
 		?>
@@ -824,6 +667,19 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				   download>
 					<span class="dashicons dashicons-media-spreadsheet" aria-hidden="true"></span>
 					<span><?php esc_html_e( 'Download CSV', 'metamanager' ); ?></span>
+				</a>
+				<?php endif; ?>
+
+				<?php
+				$booking_link  = $biz['booking_link'] ?? '';
+				$booking_label = sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' );
+				if ( ! empty( $booking_link ) ) :
+				?>
+				<a href="<?php echo esc_url( $booking_link ); ?>"
+				   class="gcm-contact-page__btn gcm-contact-page__btn--booking"
+				   target="_blank" rel="noopener noreferrer">
+					<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
+					<span><?php echo esc_html( $booking_label ); ?></span>
 				</a>
 				<?php endif; ?>
 
@@ -1269,62 +1125,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 }
 
 // =============================================================================
-// Widget — thin wrapper that delegates to the module's render_card().
 // =============================================================================
 
-class MM_Business_Contact_Widget extends WP_Widget {
 
-	public function __construct() {
-		parent::__construct(
-			'mm_meta_business_contact',
-			__( 'GCM Business Contact Card', 'metamanager' ),
-			[ 'description' => __( 'Displays the business contact card. Styling is controlled via SEO → Contact Page.', 'metamanager' ) ]
-		);
-	}
-
-	public function widget( $args, $instance ): void {
-		$settings = MM_Site_Settings::get_instance();
-		$module   = new MM_Mod_Business_Contact( $settings );
-
-		echo $args['before_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-
-		if ( ! empty( $instance['title'] ) ) {
-			echo $args['before_title'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			     . esc_html( apply_filters( 'widget_title', $instance['title'] ) )
-			     . $args['after_title']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		}
-
-		echo $module->render_card( [] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-
-		echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	}
-
-	public function form( $instance ): void {
-		$title = ! empty( $instance['title'] ) ? $instance['title'] : '';
-		?>
-		<p>
-			<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"><?php esc_html_e( 'Title (optional):', 'metamanager' ); ?></label>
-			<input class="widefat"
-			       id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"
-			       name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>"
-			       type="text"
-			       value="<?php echo esc_attr( $title ); ?>">
-		</p>
-		<p class="description">
-			<?php
-			printf(
-				/* translators: %s: link to Contact Page settings page */
-				esc_html__( 'Styling and action visibility are configured on the %s page.', 'metamanager' ),
-				'<a href="' . esc_url( admin_url( 'admin.php?page=mm-meta-contact' ) ) . '">'
-				. esc_html__( 'Contact Page settings', 'metamanager' )
-				. '</a>'
-			);
-			?>
-		</p>
-		<?php
-	}
-
-	public function update( $new_instance, $old_instance ): array {
-		return [ 'title' => sanitize_text_field( $new_instance['title'] ?? '' ) ];
-	}
-}

@@ -206,12 +206,47 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 			</td>
 		</tr>
 		<tr>
-			<th><label for="gcm_show_sms">SMS Link</label></th>
+			<th><label>Contact Page Actions</label></th>
 			<td>
-				<label>
-					<input type="checkbox" id="gcm_show_sms" name="<?php echo esc_attr($opt); ?>[show_sms]" value="1" <?php checked( ! empty( $b['show_sms'] ) ); ?>>
-					Show SMS link on Contact page
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_phone]" value="1" <?php checked( ! empty( $b['show_phone'] ?? true ) ); ?>>
+					Show phone / click-to-call button
 				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_sms]" value="1" <?php checked( ! empty( $b['show_sms'] ) ); ?>>
+					Show SMS / text button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_email]" value="1" <?php checked( ! empty( $b['show_email'] ?? true ) ); ?>>
+					Show email button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_vcard]" value="1" <?php checked( ! empty( $b['show_vcard'] ?? true ) ); ?>>
+					Show vCard (.vcf) download button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_json]" value="1" <?php checked( ! empty( $b['show_json'] ?? true ) ); ?>>
+					Show JSON contact download button
+				</label>
+				<label style="display:block;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_csv]" value="1" <?php checked( ! empty( $b['show_csv'] ?? true ) ); ?>>
+					Show CSV contact download button
+				</label>
+				<p class="description">Choose which action buttons appear on the Contact page template.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="gcm_booking_link">Booking Link</label></th>
+			<td>
+				<input type="url" id="gcm_booking_link" name="<?php echo esc_attr($opt); ?>[booking_link]" value="<?php echo esc_attr( $b['booking_link'] ?? '' ); ?>" class="regular-text" placeholder="https://...">
+				<p class="description">Optional. External booking/scheduling URL (Vagaro, Square, Acuity, etc.). If set, a booking button appears on the Contact page.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="gcm_booking_link_label">Booking Button Label</label></th>
+			<td>
+				<input type="text" id="gcm_booking_link_label" name="<?php echo esc_attr($opt); ?>[booking_link_label]" value="<?php echo esc_attr( $b['booking_link_label'] ?? 'Book Now' ); ?>" class="regular-text">
+				<p class="description">Text displayed on the booking button. Default: Book Now</p>
 			</td>
 		</tr>
 

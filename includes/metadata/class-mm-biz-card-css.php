@@ -34,6 +34,7 @@ class MM_Biz_Card_CSS {
 		$btn_radius        = self::shorthand( $s['btn_radius']     ?? '4px' );
 		$btn_padding       = self::shorthand( $s['btn_padding']    ?? '10px 16px' );
 		$btn_font_size     = self::length( $s['btn_font_size']     ?? '14px' );
+		$btn_font_weight   = (string) ( $s['btn_font_weight'] ?? '500' );
 		$name_font_size    = self::length( $s['name_font_size']    ?? '20px' );
 		$body_font_size    = self::length( $s['body_font_size']    ?? '14px' );
 
@@ -53,15 +54,18 @@ class MM_Biz_Card_CSS {
 
 		$css .= ".gcm-biz-card__actions{display:flex;flex-direction:column;gap:8px;margin-top:16px;}\n";
 
-		$css .= ".gcm-biz-card__btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;";
-		$css .= "background:{$btn_bg};color:{$btn_text};padding:{$btn_padding};";
-		$css .= "border-radius:{$btn_radius};font-size:{$btn_font_size};font-weight:500;";
+		// Apply button styles to ALL button/link classes across the site.
+		$btn_selectors = '.gcm-biz-card__btn,.gcm-contact-page__btn,.gcm-about-page__link,.gcm-about-page__cta-btn,.mm-person__phone-btn,.mm-person__email-btn,.mm-archive-card__link';
+
+		$css .= "{$btn_selectors}{display:inline-flex;align-items:center;gap:8px;text-decoration:none;";
+		$css .= "background:{$btn_bg};color:{$btn_text} !important;padding:{$btn_padding};";
+		$css .= "border-radius:{$btn_radius};font-size:{$btn_font_size};font-weight:{$btn_font_weight};";
 		$css .= "cursor:pointer;border:none;line-height:1.4;}\n";
 
-		$css .= ".gcm-biz-card__btn:hover,.gcm-biz-card__btn:focus{opacity:.88;text-decoration:none;color:{$btn_text};}\n";
-		$css .= ".gcm-biz-card__btn:focus{outline:2px solid {$btn_bg};outline-offset:2px;}\n";
+		$css .= "{$btn_selectors}:hover,{$btn_selectors}:focus{opacity:.88;text-decoration:none;color:{$btn_text} !important;}\n";
+		$css .= "{$btn_selectors}:focus{outline:2px solid {$btn_bg};outline-offset:2px;}\n";
 
-		$css .= ".gcm-biz-card__btn .dashicons{font-size:{$btn_font_size};width:auto;height:auto;flex-shrink:0;vertical-align:middle;}\n";
+		$css .= "{$btn_selectors} .dashicons{font-size:{$btn_font_size};width:auto;height:auto;flex-shrink:0;vertical-align:middle;}\n";
 
 		$css .= "@media(max-width:480px){.gcm-biz-card{max-width:100%!important;}}\n";
 

@@ -692,6 +692,13 @@ class MM_Site_Settings {
 			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
 			'google_maps_api_key'  => '',
 			'show_sms'             => true,
+			'show_phone'           => true,
+			'show_email'           => true,
+			'show_vcard'           => true,
+			'show_json'            => true,
+			'show_csv'             => true,
+			'booking_link'         => '',
+			'booking_link_label'   => 'Book Now',
 			'map_links'            => [
 				'google' => true,
 				'bing'   => true,

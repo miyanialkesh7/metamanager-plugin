@@ -9,8 +9,8 @@ defined( 'ABSPATH' ) || exit;
 
 class MM_Nav_Menu_Admin {
 	public function register_hooks(): void {
-		add_action( 'admin_head-nav-menus.php', [ $this, 'add_meta_box' ] );
-		add_action( 'admin_head-nav-menus.php', [ $this, 'add_cpt_archives_box' ] );
+		add_action( 'admin_head-nav-menus.php', [ $this, 'add_meta_box' ], 5 );
+		add_action( 'admin_head-nav-menus.php', [ $this, 'add_cpt_archives_box' ], 5 );
 		add_action( 'wp_update_nav_menu_item', [ $this, 'save_checkbox' ], 10, 3 );
 	}
 
@@ -113,8 +113,9 @@ class MM_Nav_Menu_Admin {
 	 *
 	 * @param object $menu The nav_menu term object passed by WordPress.
 	 */
-	public function render_meta_box( $menu ): void {
-		$term_id = is_object( $menu ) ? ( $menu->term_id ?? $menu->ID ?? 0 ) : 0;
+	public function render_meta_box( $menu = null ): void {
+		// On nav-menus screen, $menu is null. Get current menu from URL.
+		$term_id = is_object( $menu ) ? ( $menu->term_id ?? $menu->ID ?? 0 ) : (int) ( isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$checked = get_term_meta( $term_id, '_mm_nav_menu_primary', true );
 		wp_nonce_field( 'mm_nav_menu_primary_' . $term_id, '_mm_nav_menu_primary_nonce' );
 		?>
