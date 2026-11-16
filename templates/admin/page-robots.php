@@ -7,8 +7,8 @@
 defined( 'ABSPATH' ) || exit;
 $opt      = MM_META_OPT_SETTINGS;
 $s        = $settings;
-$disallow = $s->get( 'robots.disallow', [ '/wp-admin/', '/wp-login.php' ] );
-$allow    = $s->get( 'robots.allow', [ '/wp-admin/admin-ajax.php' ] );
+$disallow = $s->get( 'robots.disallow', array( '/wp-admin/', '/wp-login.php' ) );
+$allow    = $s->get( 'robots.allow', array( '/wp-admin/admin-ajax.php' ) );
 ?>
 <div class="mm-meta-panel" id="page-robots">
 

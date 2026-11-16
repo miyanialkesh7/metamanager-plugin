@@ -94,7 +94,7 @@ class MM_Page_Context {
 	// -------------------------------------------------------------------------
 
 	private function resolve(): array {
-		$ctx = [
+		$ctx = array(
 			'is_front_page'        => is_front_page(),
 			'is_home'              => is_home(),
 			'is_singular'          => is_singular(),
@@ -111,7 +111,7 @@ class MM_Page_Context {
 			'term'                 => null,
 			'author'               => null,
 			'post_type'            => '',
-		];
+		);
 
 		if ( $ctx['is_singular'] ) {
 			$post             = get_queried_object();

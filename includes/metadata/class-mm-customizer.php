@@ -15,16 +15,16 @@ class MM_Customizer {
 	/**
 	 * Layout options available for CPT archives.
 	 */
-	public const LAYOUTS = [
+	public const LAYOUTS = array(
 		'menu' => 'Menu Layout',
 		'grid' => 'Grid Layout',
-	];
+	);
 
 	/**
 	 * Register hooks.
 	 */
 	public static function register(): void {
-		add_action( 'customize_register', [ __CLASS__, 'customize_register' ] );
+		add_action( 'customize_register', array( __CLASS__, 'customize_register' ) );
 	}
 
 	/**
@@ -34,10 +34,10 @@ class MM_Customizer {
 		// Root-level MM Archives section.
 		$wp_customize->add_section(
 			'mm_archives',
-			[
+			array(
 				'title'    => __( 'MM Archives', 'metamanager' ),
 				'priority' => 35,
-			]
+			)
 		);
 
 		// Per-CPT layout settings.
@@ -47,24 +47,24 @@ class MM_Customizer {
 
 			$wp_customize->add_setting(
 				"mm_meta_settings[schema][archive_layouts][{$slug}]",
-				[
+				array(
 					'default'           => 'menu',
 					'type'              => 'option',
 					'capability'        => 'manage_options',
-					'sanitize_callback' => [ __CLASS__, 'sanitize_layout' ],
-				]
+					'sanitize_callback' => array( __CLASS__, 'sanitize_layout' ),
+				)
 			);
 
 			$wp_customize->add_control(
 				"mm_archives_layout_{$slug}",
-				[
+				array(
 					'label'       => sprintf( __( '%s Archive Layout', 'metamanager' ), $label ),
 					'section'     => 'mm_archives',
 					'setting'     => "mm_meta_settings[schema][archive_layouts][{$slug}]",
 					'type'        => 'select',
 					'choices'     => self::LAYOUTS,
 					'description' => sprintf( __( 'Choose how %s archive pages display their listings.', 'metamanager' ), strtolower( $label ) ),
-				]
+				)
 			);
 		}
 	}

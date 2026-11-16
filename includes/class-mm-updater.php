@@ -61,22 +61,22 @@ class MM_Updater {
 	 */
 	private function hooks(): void {
 		// Inject update data into the WP update transient.
-		add_filter( 'pre_set_site_transient_update_plugins', [ $this, 'inject_update' ] );
+		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'inject_update' ) );
 
 		// Provide plugin info for the "View version x.x.x details" modal.
-		add_filter( 'plugins_api', [ $this, 'plugin_info' ], 20, 3 );
+		add_filter( 'plugins_api', array( $this, 'plugin_info' ), 20, 3 );
 
 		// Rename the extracted zip folder to the correct plugin slug.
-		add_filter( 'upgrader_source_selection', [ $this, 'fix_source_dir' ], 10, 4 );
+		add_filter( 'upgrader_source_selection', array( $this, 'fix_source_dir' ), 10, 4 );
 
 		// Add "Check for Updates" link on the Plugins page.
-		add_filter( 'plugin_action_links_' . $this->plugin_basename, [ $this, 'action_links' ] );
+		add_filter( 'plugin_action_links_' . $this->plugin_basename, array( $this, 'action_links' ) );
 
 		// Handle the manual check-for-updates request.
-		add_action( 'admin_init', [ $this, 'handle_manual_check' ] );
+		add_action( 'admin_init', array( $this, 'handle_manual_check' ) );
 
 		// After any plugin is updated, trigger daemon package upgrade if needed.
-		add_action( 'upgrader_process_complete', [ $this, 'on_plugin_updated' ], 10, 2 );
+		add_action( 'upgrader_process_complete', array( $this, 'on_plugin_updated' ), 10, 2 );
 	}
 
 	// -------------------------------------------------------------------------
@@ -95,10 +95,10 @@ class MM_Updater {
 
 		$response = wp_remote_get(
 			$url,
-			[
+			array(
 				'timeout'    => 10,
 				'user-agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; Metamanager/' . MM_VERSION,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
@@ -113,10 +113,10 @@ class MM_Updater {
 
 		// Ensure requires object exists with php and WordPress keys.
 		if ( empty( $metadata->requires ) || ! is_object( $metadata->requires ) ) {
-			$metadata->requires = (object) [
+			$metadata->requires = (object) array(
 				'php'       => '8.0',
 				'wordpress' => '6.2',
-			];
+			);
 		}
 		if ( empty( $metadata->requires->php ) ) {
 			$metadata->requires->php = '8.0';
@@ -160,24 +160,24 @@ class MM_Updater {
 				$transient = new \stdClass();
 			}
 			if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
-				$transient->response = [];
+				$transient->response = array();
 			}
 
-			$transient->response[ $this->plugin_basename ] = (object) [
+			$transient->response[ $this->plugin_basename ] = (object) array(
 				'id'            => 'metamanager/apt-server',
 				'slug'          => 'metamanager',
 				'plugin'        => $this->plugin_basename,
 				'new_version'   => $remote_version,
 				'url'           => 'https://github.com/richardkentgates/metamanager-plugin',
 				'package'       => $metadata->download_url,
-				'icons'         => [],
-				'banners'       => [],
-				'banners_rtl'   => [],
+				'icons'         => array(),
+				'banners'       => array(),
+				'banners_rtl'   => array(),
 				'tested'        => $metadata->requires->wordpress ?? '6.2',
 				'requires'      => $metadata->requires->wordpress ?? '6.2',
 				'requires_php'  => $metadata->requires->php ?? '8.0',
 				'compatibility' => new \stdClass(),
-			];
+			);
 
 			return $transient;
 		}
@@ -214,7 +214,7 @@ class MM_Updater {
 		$requires_php   = $metadata->requires->php ?? '8.0';
 		$requires_wp    = $metadata->requires->wordpress ?? '6.0';
 
-		return (object) [
+		return (object) array(
 			'name'           => 'Metamanager',
 			'slug'           => 'metamanager',
 			'version'        => $remote_version,
@@ -226,13 +226,13 @@ class MM_Updater {
 			'download_link'  => $metadata->download_url,
 			'trunk'          => $metadata->download_url,
 			'last_updated'   => '',
-			'sections'       => [
+			'sections'       => array(
 				'description' => 'Lossless image compression and standards-compliant EXIF/IPTC/XMP metadata embedding for WordPress, powered by OS-level daemons.',
 				'changelog'   => $this->build_changelog_section(),
-			],
-			'banners'        => [],
-			'icons'          => [],
-		];
+			),
+			'banners'        => array(),
+			'icons'          => array(),
+		);
 	}
 
 	/**
@@ -282,7 +282,7 @@ class MM_Updater {
 	 */
 	public function action_links( array $links ): array {
 		$check_url = wp_nonce_url(
-			add_query_arg( [ 'mm_check_update' => '1' ], admin_url( 'plugins.php' ) ),
+			add_query_arg( array( 'mm_check_update' => '1' ), admin_url( 'plugins.php' ) ),
 			'mm_check_update'
 		);
 
@@ -339,12 +339,12 @@ class MM_Updater {
 
 		wp_safe_redirect(
 			add_query_arg(
-				[
+				array(
 					'mm_notice'       => $notice,
 					'mm_notice_type'  => $type,
 					'mm_check_update' => false,   // drop nonce params on redirect
 					'_wpnonce'        => false,
-				],
+				),
 				admin_url( 'plugins.php' )
 			)
 		);
@@ -365,7 +365,7 @@ class MM_Updater {
 		if ( 'plugin' !== ( $options['type'] ?? '' ) ) {
 			return;
 		}
-		$updated_plugins = $options['plugins'] ?? [];
+		$updated_plugins = $options['plugins'] ?? array();
 		if ( ! in_array( $this->plugin_basename, (array) $updated_plugins, true ) ) {
 			return;
 		}

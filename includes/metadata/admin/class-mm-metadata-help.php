@@ -16,7 +16,7 @@ class MM_Metadata_Help {
 	 * @return string
 	 */
 	public static function overview( string $page ): string {
-		$texts = [
+		$texts = array(
 			'business' => '<p>' . esc_html__( 'The Business page stores your local business profile: name, type, address, phone, logo, geo-coordinates, opening hours, and accepted payment methods. This data feeds the LocalBusiness JSON-LD node that Google uses to build your Knowledge Panel.', 'metamanager' ) . '</p>' .
 				'<p>' . esc_html__( 'Select the most specific Schema.org business subtype that describes your organisation — the grouped dropdown maps to the full LocalBusiness hierarchy. Fill in every field you can; more complete data produces richer results.', 'metamanager' ) . '</p>' .
 				'<p>' . esc_html__( 'The Payment Accepted field maps to the schema:paymentAccepted property. Enter accepted payment methods (e.g. Cash, Credit Card, Visa, PayPal) as individual items.', 'metamanager' ) . '</p>',
@@ -62,7 +62,7 @@ class MM_Metadata_Help {
 				'<p>' . esc_html__( 'Visible Actions determine which buttons appear on every card. Any action whose corresponding data is missing from your Business Profile (e.g. no phone number set) is automatically hidden regardless of this setting.', 'metamanager' ) . '</p>' .
 				'<p>' . esc_html__( 'Card and Button Appearance controls are sitewide — they apply to every widget, block, and shortcode instance at once. Each card also emits an inline schema.org JSON-LD node scoped to that placement.', 'metamanager' ) . '</p>' .
 				'<p>' . esc_html__( 'Download endpoints (vCard, JSON, CSV) are served from /gcm-biz-export/{format}/ and can be linked to directly. If these URLs return 404 after activation, go to Metamanager → Tools and click Flush Rewrite Rules.', 'metamanager' ) . '</p>',
-		];
+		);
 
 		return $texts[ $page ] ?? '';
 	}
@@ -74,10 +74,10 @@ class MM_Metadata_Help {
 	 * @return array Array of tab definition arrays for WP_Screen::add_help_tab().
 	 */
 	public static function extra_tabs( string $page ): array {
-		$tabs = [];
+		$tabs = array();
 
 		if ( 'titles' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_special_pages',
 				'title'   => __( 'Special Pages', 'metamanager' ),
 				'content' =>
@@ -87,9 +87,9 @@ class MM_Metadata_Help {
 					'<li><strong>' . esc_html__( '404 title', 'metamanager' ) . '</strong> — ' . esc_html__( 'Used when WordPress returns a 404 Not Found response. Keep it short and user-friendly.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'Defaults: search results → "Search Results for %%search_query%% %%sep%% %%sitetitle%%"; 404 → "Page Not Found %%sep%% %%sitetitle%%".', 'metamanager' ) . '</p>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_title_tokens',
 				'title'   => __( 'Token Reference', 'metamanager' ),
 				'content' =>
@@ -110,11 +110,11 @@ class MM_Metadata_Help {
 					'<tr><td><code>%%search_query%%</code></td><td>' . esc_html__( 'The search term (search pages only)', 'metamanager' ) . '</td></tr>' .
 					'<tr><td><code>%%category%%</code></td><td>' . esc_html__( 'Primary category of post', 'metamanager' ) . '</td></tr>' .
 					'</tbody></table>',
-			];
+			);
 		}
 
 		if ( 'schema' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_schema_types',
 				'title'   => __( 'Schema Types', 'metamanager' ),
 				'content' =>
@@ -129,9 +129,9 @@ class MM_Metadata_Help {
 					'<li><strong>ImageObject</strong> — ' . esc_html__( 'Emitted automatically when an OG image is present.', 'metamanager' ) . '</li>' .
 					'<li><strong>ItemList</strong> — ' . esc_html__( 'On taxonomy archive pages listing posts.', 'metamanager' ) . '</li>' .
 					'</ul>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_schema_cpts',
 				'title'   => __( 'Custom Post Types', 'metamanager' ),
 				'content' =>
@@ -149,9 +149,9 @@ class MM_Metadata_Help {
 					'<li><strong>mm_organization</strong> — ' . esc_html__( 'Organization schema for nonprofits and public organizations. Fields: organization type (NGO, Government Organization, Educational, Medical), address, telephone, website, area served.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'Page templates (mm-about, mm-contact, mm-calendar) auto-generate content from your business profile and events. Pages regenerate automatically when you save settings.', 'metamanager' ) . '</p>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_schema_woocommerce',
 				'title'   => __( 'WooCommerce', 'metamanager' ),
 				'content' =>
@@ -165,11 +165,11 @@ class MM_Metadata_Help {
 				'<li><strong>Brand</strong> → ' . esc_html__( 'Product.brand', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'No configuration required — works automatically when WooCommerce is active. Events and Services can also link to WooCommerce products for pricing.', 'metamanager' ) . '</p>',
-			];
+			);
 		}
 
 		if ( 'sitemaps' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_sitemap_urls',
 				'title'   => __( 'Sitemap URLs', 'metamanager' ),
 				'content' =>
@@ -180,9 +180,9 @@ class MM_Metadata_Help {
 					'<li><code>/sitemap-tax-{taxonomy}.xml</code> — ' . esc_html__( 'One file per enabled taxonomy (e.g. /sitemap-tax-category.xml).', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'If any sitemap URL returns 404, go to Settings → Tools and click "Flush Rewrite Rules".', 'metamanager' ) . '</p>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_html_sitemap',
 				'title'   => __( 'HTML Sitemap', 'metamanager' ),
 				'content' =>
@@ -199,11 +199,11 @@ class MM_Metadata_Help {
 				'<tr><td><code>show_date</code></td><td><code>show_date="yes"</code></td><td>' . esc_html__( 'Show post dates next to titles (default: no).', 'metamanager' ) . '</td></tr>' .
 				'<tr><td><code>order_by</code></td><td><code>order_by="title"</code></td><td>' . esc_html__( 'Sort order: menu_order (default), title, or date.', 'metamanager' ) . '</td></tr>' .
 				'</tbody></table>',
-			];
+			);
 		}
 
 		if ( 'links' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_links_status',
 				'title'   => __( 'Status Codes', 'metamanager' ),
 				'content' =>
@@ -217,19 +217,19 @@ class MM_Metadata_Help {
 					'<li><strong>410</strong> — ' . esc_html__( 'Gone — page was permanently removed.', 'metamanager' ) . '</li>' .
 					'<li><strong>5xx</strong> — ' . esc_html__( 'Server error on the target site — check again later.', 'metamanager' ) . '</li>' .
 					'</ul>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_links_cli',
 				'title'   => __( 'WP-CLI', 'metamanager' ),
 				'content' =>
 					'<p>' . esc_html__( 'Run a full link scan from the command line (bypasses batch size limits):', 'metamanager' ) . '</p>' .
 					'<pre><code>wp metamanager metadata check-links --all</code></pre>',
-			];
+			);
 		}
 
 		if ( 'tools' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_tools_cli',
 				'title'   => __( 'WP-CLI Commands', 'metamanager' ),
 				'content' =>
@@ -244,9 +244,9 @@ class MM_Metadata_Help {
 					'<tr><td><code>wp metamanager metadata flush-rewrites</code></td><td>' . esc_html__( 'Flush WordPress rewrite rules.', 'metamanager' ) . '</td></tr>' .
 					'<tr><td><code>wp metamanager metadata schema-test &lt;url&gt;</code></td><td>' . esc_html__( 'Fetch a page URL and print its JSON-LD schema.', 'metamanager' ) . '</td></tr>' .
 					'</tbody></table>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_tools_discovery',
 				'title'   => __( 'AI Discovery', 'metamanager' ),
 				'content' =>
@@ -257,9 +257,9 @@ class MM_Metadata_Help {
 					'<li><strong>/.well-known/api-catalog</strong> — ' . esc_html__( 'RFC 9727 linkset catalog (JSON) listing all available REST endpoints for AI agent discoverability.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'These files are cached for 1 day and regenerated automatically when settings are saved. Manual regeneration: Metamanager → Tools → Regenerate Discovery Files.', 'metamanager' ) . '</p>',
-			];
+			);
 
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_tools_citation',
 				'title'   => __( 'Featured Image Citation', 'metamanager' ),
 				'content' =>
@@ -270,11 +270,11 @@ class MM_Metadata_Help {
 					'<li><strong>' . esc_html__( 'Date originally created', 'metamanager' ) . '</strong> — ' . esc_html__( 'From EXIF DateTimeOriginal', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'Configure via Metamanager → Settings → Media → Featured Image Citation.', 'metamanager' ) . '</p>',
-			];
+			);
 		}
 
 		if ( 'hygiene' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_hygiene_head',
 				'title'   => __( 'Head Cleanup Reference', 'metamanager' ),
 				'content' =>
@@ -289,11 +289,11 @@ class MM_Metadata_Help {
 					'<li><strong>' . esc_html__( 'X-Powered-By header', 'metamanager' ) . '</strong> — ' . esc_html__( 'Removes the PHP version disclosure header.', 'metamanager' ) . '</li>' .
 					'<li><strong>' . esc_html__( 'DNS prefetch', 'metamanager' ) . '</strong> — ' . esc_html__( 'Removes wp_resource_hints which adds DNS prefetch links for WordPress.com CDN etc.', 'metamanager' ) . '</li>' .
 					'</ul>',
-			];
+			);
 		}
 
 		if ( 'feed' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_feed_elements',
 				'title'   => __( 'What Gets Removed', 'metamanager' ),
 				'content' =>
@@ -305,11 +305,11 @@ class MM_Metadata_Help {
 					'<li><strong>' . esc_html__( 'Namespace declarations', 'metamanager' ) . '</strong> — <code>xmlns:wfw</code> ' . esc_html__( 'and', 'metamanager' ) . ' <code>xmlns:slash</code> ' . esc_html__( 'on the &lt;rss&gt; element (orphaned once the elements above are removed).', 'metamanager' ) . '</li>' .
 					'<li><strong>' . esc_html__( 'Full content (optional)', 'metamanager' ) . '</strong> — <code>&lt;content:encoded&gt;</code> ' . esc_html__( 'suppressed when "Use Excerpt Only" is on.', 'metamanager' ) . '</li>' .
 					'</ul>',
-			];
+			);
 		}
 
 		if ( 'contact' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_contact_endpoints',
 				'title'   => __( 'Download Endpoints', 'metamanager' ),
 				'content' =>
@@ -320,22 +320,22 @@ class MM_Metadata_Help {
 					'<li><code>/gcm-biz-export/csv/</code> — ' . esc_html__( 'CSV file importable by spreadsheet applications and CRMs.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'If any endpoint returns 404, go to Metamanager → Tools → Flush Rewrite Rules.', 'metamanager' ) . '</p>',
-			];
+			);
 		}
 
 		if ( 'business' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_business_hours',
 				'title'   => __( 'Business Hours', 'metamanager' ),
 				'content' =>
 					'<p>' . esc_html__( 'The business hours table uses drag-to-reorder rows (jQuery UI Sortable). Click and drag the ≡ handle on the left of any row.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'Each row maps to one OpeningHoursSpecification node in JSON-LD. You can assign multiple days to one time slot (e.g. Mon–Fri 9–17) by checking more than one day checkbox per row.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'Check the "Closed" checkbox for days your business is not open. Closed rows are excluded from the schema output.', 'metamanager' ) . '</p>',
-			];
+			);
 		}
 
 		if ( 'social' === $page ) {
-			$tabs[] = [
+			$tabs[] = array(
 				'id'      => 'mm_meta_og_images',
 				'title'   => __( 'OG Image Guidelines', 'metamanager' ),
 				'content' =>
@@ -347,7 +347,7 @@ class MM_Metadata_Help {
 					'<li>' . esc_html__( 'Keep important content away from the edges — some platforms crop to square.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'Per-post OG images are set in the Metamanager metabox on the post editor. The default image here is used only as a fallback when no featured image or per-post image is set.', 'metamanager' ) . '</p>',
-			];
+			);
 		}
 
 		return $tabs;

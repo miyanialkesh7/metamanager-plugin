@@ -18,7 +18,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	 * These render as content nodes with the Thing-level base (name +
 	 * mainEntityOfPage) while the WebPage node carries the page fields.
 	 */
-	private const NON_CREATIVEWORK_TYPES = [
+	private const NON_CREATIVEWORK_TYPES = array(
 		'TouristDestination',
 		'Place',
 		'Event',
@@ -28,7 +28,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		'Product',
 		'LocalBusiness',
 		'Organization',
-	];
+	);
 
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		// Media schema: scan content for actual media on singular pages.
@@ -75,12 +75,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	private function add_website_node( array &$data, MM_Site_Settings $settings ): void {
-		$node = [
+		$node = array(
 			'@type' => 'WebSite',
 			'@id'   => $this->site_id( 'website' ),
 			'url'   => $this->site_url(),
 			'name'  => get_bloginfo( 'name' ),
-		];
+		);
 		if ( get_bloginfo( 'description' ) ) {
 			$node['description'] = get_bloginfo( 'description' );
 		}
@@ -88,14 +88,14 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		// SearchAction (Sitelinks search box) — disabled by default.
 		// Deprecated by Google Nov 2024; still valid schema.org but ignored.
 		if ( $settings->get( 'schema.website_searchaction', false ) ) {
-			$node['potentialAction'] = [
+			$node['potentialAction'] = array(
 				'@type'       => 'SearchAction',
-				'target'      => [
+				'target'      => array(
 					'@type'       => 'EntryPoint',
 					'urlTemplate' => home_url( '/?s={search_term_string}' ),
-				],
+				),
 				'query-input' => 'required name=search_term_string',
-			];
+			);
 		}
 
 		$this->add_node( $data, $node );
@@ -121,30 +121,30 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 		$nav_items = array_map(
 			function ( $item ) {
-				return [
+				return array(
 					'@type'    => 'SiteNavigationElement',
 					'name'     => $item['name'],
 					'url'      => $item['url'],
 					'position' => $item['position'],
-				];
+				);
 			},
 			$menu['items']
 		);
 
 		$this->add_node(
 			$data,
-			[
+			array(
 				'@type'   => 'SiteNavigationElement',
 				'@id'     => $this->site_id( 'navigation' ),
 				'name'    => $menu['name'],
 				'hasPart' => $nav_items,
-			]
+			)
 		);
 
 		// Link WebSite node to navigation.
 		foreach ( $data['schema'] as &$node ) {
 			if ( ( $node['@type'] ?? '' ) === 'WebSite' ) {
-				$node['hasPart'] = [ '@id' => $this->site_id( 'navigation' ) ];
+				$node['hasPart'] = array( '@id' => $this->site_id( 'navigation' ) );
 				break;
 			}
 		}
@@ -166,7 +166,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				if ( MM_Schema_Post_Types::is_schema_cpt( $post->post_type ) ) {
 					$schema_type = MM_Schema_Post_Types::slug_to_type( $post->post_type );
 					// Content types get WebPage as the container; the content node is separate.
-					if ( in_array( $schema_type, [ 'BlogPosting', 'Article', 'HowTo', 'Product', 'Event', 'Service', 'TouristTrip', 'Vehicle', 'Course' ], true ) ) {
+					if ( in_array( $schema_type, array( 'BlogPosting', 'Article', 'HowTo', 'Product', 'Event', 'Service', 'TouristTrip', 'Vehicle', 'Course' ), true ) ) {
 						$type = 'WebPage';
 					} else {
 						$type = $schema_type;
@@ -200,16 +200,16 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$type        = 'WebPage';
 		}
 
-		$node = [
+		$node = array(
 			'@type'    => $type,
 			'@id'      => $url . '#webpage',
 			'url'      => $url,
 			'name'     => $title,
-			'isPartOf' => [ '@id' => $this->site_id( 'website' ) ],
-		];
+			'isPartOf' => array( '@id' => $this->site_id( 'website' ) ),
+		);
 
 		if ( $entity_type ) {
-			$node['mainEntity'] = [ '@id' => $url . '#' . strtolower( $entity_type ) ];
+			$node['mainEntity'] = array( '@id' => $url . '#' . strtolower( $entity_type ) );
 		}
 
 		// ContactPage: reference the Organization node (business props live there, not on WebPage).
@@ -218,7 +218,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			if ( ! empty( $biz['name'] ) ) {
 				$node['name'] = sanitize_text_field( $biz['name'] );
 			}
-			$node['about'] = [ '@id' => $this->site_id( 'organization' ) ];
+			$node['about'] = array( '@id' => $this->site_id( 'organization' ) );
 		}
 
 		// AboutPage: reference the Organization node (business props live there, not on WebPage).
@@ -230,7 +230,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			if ( ! empty( $biz['description'] ) ) {
 				$node['description'] = sanitize_text_field( $biz['description'] );
 			}
-			$node['about'] = [ '@id' => $this->site_id( 'organization' ) ];
+			$node['about'] = array( '@id' => $this->site_id( 'organization' ) );
 		}
 
 		// Description from meta.
@@ -246,18 +246,18 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$post = $context->get_post();
 			if ( $post ) {
 				$events = get_posts(
-					[
+					array(
 						'post_type'      => 'mm_event',
 						'post_status'    => 'publish',
 						'posts_per_page' => 50,
 						'orderby'        => 'date',
 						'order'          => 'DESC',
-					]
+					)
 				);
 				if ( ! empty( $events ) ) {
 					$node['hasPart'] = array_map(
 						function ( $e ) {
-							return [ '@id' => get_permalink( $e->ID ) . '#event' ];
+							return array( '@id' => get_permalink( $e->ID ) . '#event' );
 						},
 						$events
 					);
@@ -267,7 +267,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 		// Breadcrumb reference (added after breadcrumb node is built).
 		if ( $settings->get( 'schema.breadcrumbs', true ) ) {
-			$node['breadcrumb'] = [ '@id' => $url . '#breadcrumb' ];
+			$node['breadcrumb'] = array( '@id' => $url . '#breadcrumb' );
 		}
 
 		// Date signals (singular posts).
@@ -280,7 +280,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		// Primary image reference.
 		$og_image = $this->get_og_image( $data );
 		if ( $og_image ) {
-			$node['primaryImageOfPage'] = [ '@id' => $url . '#primaryimage' ];
+			$node['primaryImageOfPage'] = array( '@id' => $url . '#primaryimage' );
 			$image_node                 = array(
 				'@type' => 'ImageObject',
 				'@id'   => $url . '#primaryimage',
@@ -312,7 +312,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	private function add_breadcrumb_node( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
-		$items = [];
+		$items = array();
 		$pos   = 1;
 
 		// Homepage always first.
@@ -381,11 +381,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		$url = $this->current_url();
 		$this->add_node(
 			$data,
-			[
+			array(
 				'@type'           => 'BreadcrumbList',
 				'@id'             => $url . '#breadcrumb',
 				'itemListElement' => $items,
-			]
+			)
 		);
 	}
 
@@ -416,28 +416,28 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		}
 
 		// WebPage and its subtypes (AboutPage, ContactPage, Calendar) are already on the WebPage node; skip.
-		if ( in_array( $type, [ 'WebPage', 'WebSite', 'AboutPage', 'ContactPage', 'CollectionPage' ], true ) ) {
+		if ( in_array( $type, array( 'WebPage', 'WebSite', 'AboutPage', 'ContactPage', 'CollectionPage' ), true ) ) {
 			return;
 		}
 
 		$url = get_permalink( $post );
 
-		$node = [
+		$node = array(
 			'@type' => $type,
 			'@id'   => $url . '#' . strtolower( $type ),
 			'url'   => $url,
-		];
+		);
 
 		if ( in_array( $type, self::NON_CREATIVEWORK_TYPES, true ) ) {
 			// Place/Intangible, not CreativeWork: name instead of headline,
 			// and no date/isPartOf fields (not in their vocabulary).
 			$node['name']             = get_the_title( $post );
-			$node['mainEntityOfPage'] = [ '@id' => $url . '#webpage' ];
+			$node['mainEntityOfPage'] = array( '@id' => $url . '#webpage' );
 		} else {
 			$node['headline']      = get_the_title( $post );
 			$node['datePublished'] = get_the_date( 'c', $post );
 			$node['dateModified']  = get_the_modified_date( 'c', $post );
-			$node['isPartOf']      = [ '@id' => $url . '#webpage' ];
+			$node['isPartOf']      = array( '@id' => $url . '#webpage' );
 		}
 
 		// Description.
@@ -451,21 +451,21 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		// Image.
 		$og_image = $this->get_og_image( $data );
 		if ( $og_image ) {
-			$node['image'] = [ '@id' => $url . '#primaryimage' ];
+			$node['image'] = array( '@id' => $url . '#primaryimage' );
 		}
 
 		// Author — link to Person node (added by Author module or built inline).
-		if ( in_array( $type, [ 'BlogPosting', 'Article' ], true ) ) {
+		if ( in_array( $type, array( 'BlogPosting', 'Article' ), true ) ) {
 			$author = get_userdata( (int) $post->post_author );
 			if ( $author && $settings->get( 'authors.person_schema', true ) ) {
-				$node['author']    = [ '@id' => get_author_posts_url( $author->ID ) . '#person' ];
-				$node['publisher'] = [ '@id' => $this->site_id( 'organization' ) ];
+				$node['author']    = array( '@id' => get_author_posts_url( $author->ID ) . '#person' );
+				$node['publisher'] = array( '@id' => $this->site_id( 'organization' ) );
 			}
 		}
 
 		// Merge per-post schema field overrides (Event dates, prices, addresses, etc.).
 		// Read from CPT meta first, then legacy _mm_meta schema_fields.
-		$schema_fields = [];
+		$schema_fields = array();
 		if ( MM_Schema_Post_Types::is_schema_cpt( $post->post_type ) ) {
 			$cpt_fields = get_post_meta( $post->ID, 'mm_schema_fields', true );
 			if ( is_array( $cpt_fields ) ) {
@@ -474,7 +474,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		}
 		if ( empty( $schema_fields ) ) {
 			$post_meta     = $settings->get_post_meta( $post->ID );
-			$schema_fields = $post_meta['schema_fields'] ?? [];
+			$schema_fields = $post_meta['schema_fields'] ?? array();
 		}
 		if ( 'Product' === $type && $this->is_woocommerce_active() ) {
 			$wc_data = $this->get_woocommerce_product_data( $post->ID );
@@ -500,11 +500,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 		// Service: add areaServed and provider from business profile.
 		if ( 'Service' === $type ) {
-			$service_areas = $settings->get_business( 'service_areas', [] );
+			$service_areas = $settings->get_business( 'service_areas', array() );
 			if ( ! empty( $service_areas ) && is_array( $service_areas ) ) {
 				$node['areaServed'] = count( $service_areas ) === 1 ? $service_areas[0] : array_values( $service_areas );
 			}
-			$node['provider'] = [ '@id' => $this->site_id( 'organization' ) ];
+			$node['provider'] = array( '@id' => $this->site_id( 'organization' ) );
 		}
 
 		// TouristTrip: merge vessel and destination relationships.
@@ -519,16 +519,16 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$dest_id = (int) get_post_meta( $post->ID, '_mm_destination_id', true );
 			if ( $dest_id && get_post_status( $dest_id ) === 'publish' ) {
 				$dest_url          = get_permalink( $dest_id );
-				$node['itinerary'] = [
+				$node['itinerary'] = array(
 					'@type'           => 'ItemList',
-					'itemListElement' => [
-						[
+					'itemListElement' => array(
+						array(
 							'@type'    => 'ListItem',
 							'position' => 1,
-							'item'     => [ '@id' => $dest_url . '#touristdestination' ],
-						],
-					],
-				];
+							'item'     => array( '@id' => $dest_url . '#touristdestination' ),
+						),
+					),
+				);
 			}
 		}
 
@@ -541,20 +541,20 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	private function add_itemlist_node( array &$data, MM_Page_Context $context ): void {
 		global $wp_query;
-		$posts = $wp_query->posts ?? [];
+		$posts = $wp_query->posts ?? array();
 		if ( empty( $posts ) ) {
 			return;
 		}
 
-		$items = [];
+		$items = array();
 		$pos   = 1;
 		foreach ( $posts as $post ) {
-			$items[] = [
+			$items[] = array(
 				'@type'    => 'ListItem',
 				'position' => $pos++,
 				'url'      => get_permalink( $post ),
 				'name'     => get_the_title( $post ),
-			];
+			);
 		}
 
 		$name = '';
@@ -575,12 +575,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 		$this->add_node(
 			$data,
-			[
+			array(
 				'@type'           => 'ItemList',
 				'@id'             => $url . '#itemlist',
 				'name'            => $name,
 				'itemListElement' => $items,
-			]
+			)
 		);
 	}
 
@@ -589,12 +589,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	private function crumb( int $pos, string $name, string $url ): array {
-		return [
+		return array(
 			'@type'    => 'ListItem',
 			'position' => $pos,
 			'name'     => $name,
 			'item'     => $url,
-		];
+		);
 	}
 
 	private function current_url(): string {
@@ -613,11 +613,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	private function get_og_image( array $data ): ?array {
 		foreach ( $data['meta'] as $mt ) {
 			if ( ( $mt['property'] ?? '' ) === 'og:image' && $mt['content'] ) {
-				$img = [
+				$img = array(
 					'url'    => $mt['content'],
 					'width'  => 0,
 					'height' => 0,
-				];
+				);
 				foreach ( $data['meta'] as $m2 ) {
 					if ( ( $m2['property'] ?? '' ) === 'og:image:width' ) {
 						$img['width'] = (int) $m2['content']; }
@@ -652,34 +652,34 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	 */
 	private function get_woocommerce_product_data( int $post_id ): array {
 		if ( ! $this->is_woocommerce_active() ) {
-			return [];
+			return array();
 		}
 
 		$product = wc_get_product( $post_id );
 		if ( ! $product ) {
-			return [];
+			return array();
 		}
 
-		$out = [];
+		$out = array();
 
 		// Price.
 		$regular = $product->get_regular_price();
 		$sale    = $product->get_sale_price();
 		$price   = ( '' !== $sale && false !== $sale ) ? $sale : $regular;
 		if ( '' !== $price && false !== $price ) {
-			$out['offers'] = [
+			$out['offers'] = array(
 				'@type'         => 'Offer',
 				'price'         => $price,
 				'priceCurrency' => get_woocommerce_currency(),
-			];
+			);
 
 			// Availability.
 			$stock = $product->get_stock_status();
-			$map   = [
+			$map   = array(
 				'instock'     => 'InStock',
 				'outofstock'  => 'OutOfStock',
 				'onbackorder' => 'PreOrder',
-			];
+			);
 			if ( isset( $map[ $stock ] ) ) {
 				$out['offers']['availability'] = 'https://schema.org/' . $map[ $stock ];
 			}
@@ -703,10 +703,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 		if ( $brand ) {
-			$out['brand'] = [
+			$out['brand'] = array(
 				'@type' => 'Brand',
 				'name'  => $brand,
-			];
+			);
 		}
 
 		return $out;
@@ -784,7 +784,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 		// Add featured image schema.
 		$src  = wp_get_attachment_image_src( $thumb_id, 'full' );
-		$item = [
+		$item = array(
 			'type'          => 'image',
 			'url'           => $thumb_url,
 			'attachment_id' => $thumb_id,
@@ -792,7 +792,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			'height'        => $src ? $src[2] : 0,
 			'alt'           => (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ),
 			'caption'       => trim( get_post( $thumb_id )->post_excerpt ),
-		];
+		);
 
 		$this->add_image_schema( $data, $item, $post );
 	}
@@ -807,7 +807,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			return;
 		}
 
-		$added_ids = [];
+		$added_ids = array();
 
 		foreach ( $wp_query->posts as $query_post ) {
 			$post = get_post( $query_post );
@@ -827,7 +827,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 
 			$src  = wp_get_attachment_image_src( $thumb_id, 'full' );
-			$item = [
+			$item = array(
 				'type'          => 'image',
 				'url'           => $thumb_url,
 				'attachment_id' => $thumb_id,
@@ -835,7 +835,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				'height'        => $src ? $src[2] : 0,
 				'alt'           => (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ),
 				'caption'       => trim( get_post( $thumb_id )->post_excerpt ),
-			];
+			);
 
 			$this->add_image_schema( $data, $item, $post );
 			$added_ids[] = $thumb_id;
@@ -855,40 +855,40 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		if ( MM_Metadata::is_video_mime( $mime ) ) {
 			$this->add_video_schema(
 				$data,
-				[
+				array(
 					'type'          => 'video',
 					'url'           => $url,
 					'attachment_id' => $post->ID,
 					'duration'      => (int) get_post_meta( $post->ID, MM_Metadata::META_DURATION, true ),
-				],
+				),
 				$post
 			);
 		} elseif ( MM_Metadata::is_audio_mime( $mime ) ) {
 			$this->add_audio_schema(
 				$data,
-				[
+				array(
 					'type'          => 'audio',
 					'url'           => $url,
 					'attachment_id' => $post->ID,
 					'duration'      => (int) get_post_meta( $post->ID, MM_Metadata::META_DURATION, true ),
-				],
+				),
 				$post
 			);
 		} elseif ( MM_Metadata::is_pdf_mime( $mime ) ) {
 			$this->add_document_schema(
 				$data,
-				[
+				array(
 					'type'          => 'document',
 					'url'           => $url,
 					'attachment_id' => $post->ID,
-				]
+				)
 			);
 		} elseif ( wp_attachment_is_image( $post->ID ) ) {
 			$src = wp_get_attachment_image_src( $post->ID, 'full' );
 			if ( $src ) {
 				$this->add_image_schema(
 					$data,
-					[
+					array(
 						'type'          => 'image',
 						'url'           => $src[0],
 						'attachment_id' => $post->ID,
@@ -896,7 +896,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 						'height'        => $src[2],
 						'alt'           => (string) get_post_meta( $post->ID, '_wp_attachment_image_alt', true ),
 						'caption'       => trim( $post->post_excerpt ),
-					],
+					),
 					$post
 				);
 			}
@@ -919,12 +919,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 
-		$node = [
+		$node = array(
 			'@type'      => 'ImageObject',
 			'@id'        => $item['url'] . '#image',
 			'url'        => $schema_url,
 			'contentUrl' => $schema_url,
-		];
+		);
 
 		if ( $item['width'] && is_numeric( $item['width'] ) && (int) $item['width'] > 0 ) {
 			$node['width'] = array(
@@ -959,10 +959,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			// Attribution.
 			$creator = $meta( MM_Metadata::META_CREATOR );
 			if ( '' !== $creator ) {
-				$node['creator'] = [
+				$node['creator'] = array(
 					'@type' => 'Person',
 					'name'  => $creator,
-				];
+				);
 			}
 			$copyright = $meta( MM_Metadata::META_COPYRIGHT );
 			if ( '' !== $copyright ) {
@@ -970,10 +970,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 			$owner = $meta( MM_Metadata::META_OWNER );
 			if ( '' !== $owner ) {
-				$node['copyrightHolder'] = [
+				$node['copyrightHolder'] = array(
 					'@type' => 'Organization',
 					'name'  => $owner,
-				];
+				);
 			}
 
 			// Classification.
@@ -997,10 +997,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			// Thumbnail (medium size if different from full).
 			$thumb = wp_get_attachment_image_src( $item['attachment_id'], 'medium' );
 			if ( $thumb && $thumb[0] !== $item['url'] ) {
-				$node['thumbnail'] = [
+				$node['thumbnail'] = array(
 					'@type' => 'ImageObject',
 					'url'   => $thumb[0],
-				];
+				);
 			}
 		} else {
 			// Minimal schema from HTML only.
@@ -1026,13 +1026,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 
-		$node = [
+		$node = array(
 			'@type'      => 'VideoObject',
 			'@id'        => $item['url'] . '#video',
 			'url'        => $schema_url,
 			'contentUrl' => $schema_url,
 			'uploadDate' => gmdate( 'Y-m-d', strtotime( $post->post_date_gmt ) ),
-		];
+		);
 
 		if ( $item['attachment_id'] ) {
 			$headline = $meta( MM_Metadata::META_HEADLINE );
@@ -1093,13 +1093,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 
-		$node = [
+		$node = array(
 			'@type'          => 'AudioObject',
 			'@id'            => $item['url'] . '#audio',
 			'url'            => $schema_url,
 			'contentUrl'     => $schema_url,
 			'encodingFormat' => $mime,
-		];
+		);
 
 		if ( $item['attachment_id'] ) {
 			$headline = $meta( MM_Metadata::META_HEADLINE );
@@ -1142,13 +1142,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		}
 
-		$node = [
+		$node = array(
 			'@type'          => 'DigitalDocument',
 			'@id'            => $item['url'] . '#document',
 			'url'            => $schema_url,
 			'contentUrl'     => $schema_url,
 			'encodingFormat' => 'application/pdf',
-		];
+		);
 
 		if ( $item['attachment_id'] ) {
 			$att = get_post( $item['attachment_id'] );
@@ -1182,31 +1182,31 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		$state   = (string) get_post_meta( $attachment_id, MM_Metadata::META_STATE, true );
 		$country = (string) get_post_meta( $attachment_id, MM_Metadata::META_COUNTRY, true );
 
-		$loc_parts = array_filter( [ $city, $state, $country ] );
+		$loc_parts = array_filter( array( $city, $state, $country ) );
 
 		if ( '' !== $lat && '' !== $lon ) {
-			$geo = [
+			$geo = array(
 				'@type'     => 'GeoCoordinates',
 				'latitude'  => (float) $lat,
 				'longitude' => (float) $lon,
-			];
+			);
 			if ( '' !== $alt_m ) {
 				$geo['elevation'] = (float) $alt_m;
 			}
-			$place = [
+			$place = array(
 				'@type' => 'Place',
 				'geo'   => $geo,
-			];
+			);
 			if ( $loc_parts ) {
 				$place['name'] = implode( ', ', $loc_parts );
 			}
 			$node['locationCreated'] = $place;
 			$node['contentLocation'] = $place;
 		} elseif ( $loc_parts ) {
-			$place                   = [
+			$place                   = array(
 				'@type' => 'Place',
 				'name'  => implode( ', ', $loc_parts ),
-			];
+			);
 			$node['locationCreated'] = $place;
 			$node['contentLocation'] = $place;
 		}

@@ -55,7 +55,7 @@ while ( have_posts() ) {
 				<?php
 				if ( is_array( $vessel_saved ) ) {
 					if ( ! empty( $vessel_saved['vessel_length'] ) || ! empty( $vessel_saved['vessel_engine'] ) ) {
-						$specs = array_filter( [ $vessel_saved['vessel_length'] ?? '', $vessel_saved['vessel_engine'] ?? '' ] );
+						$specs = array_filter( array( $vessel_saved['vessel_length'] ?? '', $vessel_saved['vessel_engine'] ?? '' ) );
 						echo '<p>' . esc_html( implode( ', ', $specs ) ) . '</p>';
 					}
 					if ( ! empty( $vessel_saved['vessel_passengers'] ) ) {

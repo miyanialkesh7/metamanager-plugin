@@ -60,24 +60,24 @@ class MM_CLI extends \WP_CLI_Command {
 		if ( 'all' === strtolower( $target ) ) {
 			// Images + video are compressible; audio and PDF have no compression step.
 			$compressible_mimes = array_merge(
-				[ 'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff' ],
+				array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff' ),
 				MM_Metadata::VIDEO_MIME_TYPES
 			);
 			$ids                = get_posts(
-				[
+				array(
 					'post_type'      => 'attachment',
 					'post_mime_type' => $compressible_mimes,
 					'post_status'    => 'inherit',
 					'numberposts'    => -1,
 					'fields'         => 'ids',
-				]
+				)
 			);
 			if ( empty( $ids ) ) {
 				\WP_CLI::success( 'No compressible files found.' );
 				return;
 			}
 		} else {
-			$ids  = [ (int) $target ];
+			$ids  = array( (int) $target );
 			$mime = (string) get_post_mime_type( $ids[0] );
 			if ( ! wp_attachment_is_image( $ids[0] ) && ! MM_Metadata::is_video_mime( $mime ) ) {
 				$reason = MM_Metadata::is_audio_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime )
@@ -110,11 +110,11 @@ class MM_CLI extends \WP_CLI_Command {
 
 			if ( MM_Metadata::is_video_mime( $mime ) ) {
 				// Video: single lossless remux job.
-				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'cli' ] );
+				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'cli' ) );
 			} else {
 				// Image: queue all registered sizes.
-				$meta = wp_get_attachment_metadata( $id ) ?: [];
-				MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', [ 'trigger' => 'cli' ] );
+				$meta = wp_get_attachment_metadata( $id ) ?: array();
+				MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', array( 'trigger' => 'cli' ) );
 			}
 
 			++$count;
@@ -154,26 +154,26 @@ class MM_CLI extends \WP_CLI_Command {
 
 		if ( 'all' === strtolower( $target ) ) {
 			$supported_mimes = array_merge(
-				[ 'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff' ],
+				array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff' ),
 				MM_Metadata::VIDEO_MIME_TYPES,
 				MM_Metadata::AUDIO_MIME_TYPES,
 				MM_Metadata::PDF_MIME_TYPES
 			);
 			$ids             = get_posts(
-				[
+				array(
 					'post_type'      => 'attachment',
 					'post_mime_type' => $supported_mimes,
 					'post_status'    => 'inherit',
 					'numberposts'    => -1,
 					'fields'         => 'ids',
-				]
+				)
 			);
 			if ( empty( $ids ) ) {
 				\WP_CLI::success( 'No supported files found.' );
 				return;
 			}
 		} else {
-			$ids  = [ (int) $target ];
+			$ids  = array( (int) $target );
 			$mime = (string) get_post_mime_type( $ids[0] );
 			if (
 				! wp_attachment_is_image( $ids[0] ) &&
@@ -225,21 +225,21 @@ class MM_CLI extends \WP_CLI_Command {
 
 			\WP_CLI\Utils\format_items(
 				'table',
-				[
-					[
+				array(
+					array(
 						'Type'    => 'Compression',
 						'Pending' => $comp,
-					],
-					[
+					),
+					array(
 						'Type'    => 'Metadata',
 						'Pending' => $meta,
-					],
-					[
+					),
+					array(
 						'Type'    => 'Total',
 						'Pending' => $total,
-					],
-				],
-				[ 'Type', 'Pending' ]
+					),
+				),
+				array( 'Type', 'Pending' )
 			);
 
 			$compress_running = MM_Status::compress_daemon_running();
@@ -271,14 +271,14 @@ class MM_CLI extends \WP_CLI_Command {
 	 */
 	public function scan( array $args ): void {
 		$supported_mimes = array_merge(
-			[ 'image' ],
+			array( 'image' ),
 			MM_Metadata::VIDEO_MIME_TYPES,
 			MM_Metadata::AUDIO_MIME_TYPES,
 			MM_Metadata::PDF_MIME_TYPES
 		);
 
 		$all_ids  = get_posts(
-			[
+			array(
 				'post_type'      => 'attachment',
 				'post_mime_type' => $supported_mimes,
 				'post_status'    => 'inherit',
@@ -286,7 +286,7 @@ class MM_CLI extends \WP_CLI_Command {
 				'fields'         => 'ids',
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
-			]
+			)
 		);
 		$done_ids = MM_DB::get_ids_with_completed_job( 'metadata' );
 		$ids      = array_values( array_diff( array_map( 'intval', $all_ids ), $done_ids ) );
@@ -309,11 +309,11 @@ class MM_CLI extends \WP_CLI_Command {
 
 			// Queue compression separately — does not depend on metadata import.
 			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'scan' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'compression', array( 'trigger' => 'scan' ) );
 			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'scan' ] );
+					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'scan' ) );
 				}
 			}
 
@@ -353,32 +353,32 @@ class MM_CLI extends \WP_CLI_Command {
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
 	 */
-	public function embed( array $args, array $assoc_args = [] ): void {
+	public function embed( array $args, array $assoc_args = array() ): void {
 		$force  = isset( $assoc_args['force'] );
 		$target = $args[0] ?? 'all';
 
 		if ( 'all' === strtolower( $target ) ) {
 			$supported_mimes = array_merge(
-				[ 'image' ],
+				array( 'image' ),
 				MM_Metadata::VIDEO_MIME_TYPES,
 				MM_Metadata::AUDIO_MIME_TYPES,
 				MM_Metadata::PDF_MIME_TYPES
 			);
 			$ids             = get_posts(
-				[
+				array(
 					'post_type'      => 'attachment',
 					'post_mime_type' => $supported_mimes,
 					'post_status'    => 'inherit',
 					'numberposts'    => -1,
 					'fields'         => 'ids',
-				]
+				)
 			);
 			if ( empty( $ids ) ) {
 				\WP_CLI::success( 'No supported files found.' );
 				return;
 			}
 		} else {
-			$ids  = [ (int) $target ];
+			$ids  = array( (int) $target );
 			$mime = (string) get_post_mime_type( $ids[0] );
 			if (
 				! wp_attachment_is_image( $ids[0] ) &&
@@ -389,7 +389,7 @@ class MM_CLI extends \WP_CLI_Command {
 			}
 		}
 
-		$done_ids = $force ? [] : MM_DB::get_ids_with_completed_job( 'metadata' );
+		$done_ids = $force ? array() : MM_DB::get_ids_with_completed_job( 'metadata' );
 
 		$count    = 0;
 		$skipped  = 0;
@@ -406,13 +406,13 @@ class MM_CLI extends \WP_CLI_Command {
 			}
 
 			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'cli' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'metadata', array( 'trigger' => 'cli' ) );
 				++$count;
 			} elseif ( MM_Metadata::is_av_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime ) ) {
 				if ( MM_Metadata::can_write_meta( $mime ) ) {
 					$file = get_attached_file( $id );
 					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'cli' ] );
+						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', array( 'trigger' => 'cli' ) );
 						++$count;
 					} else {
 						++$skipped;
@@ -455,29 +455,29 @@ class MM_CLI extends \WP_CLI_Command {
 
 		\WP_CLI\Utils\format_items(
 			'table',
-			[
-				[
+			array(
+				array(
 					'Metric' => 'Total jobs',
 					'Value'  => number_format( (int) $stats['total_jobs'] ),
-				],
-				[
+				),
+				array(
 					'Metric' => 'Completed',
 					'Value'  => number_format( (int) $stats['completed'] ),
-				],
-				[
+				),
+				array(
 					'Metric' => 'Failed',
 					'Value'  => number_format( (int) $stats['failed'] ),
-				],
-				[
+				),
+				array(
 					'Metric' => 'Unique attachments',
 					'Value'  => number_format( (int) $stats['unique_attachments'] ),
-				],
-				[
+				),
+				array(
 					'Metric' => 'Bytes saved',
 					'Value'  => size_format( $bytes_saved ) . " ({$pct}%)",
-				],
-			],
-			[ 'Metric', 'Value' ]
+				),
+			),
+			array( 'Metric', 'Value' )
 		);
 	}
 }

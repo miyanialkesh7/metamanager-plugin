@@ -21,7 +21,7 @@ class MM_Metadata_History {
 	/**
 	 * The 14 MM-managed metadata fields tracked for versioning.
 	 */
-	private const TRACKED_KEYS = [
+	private const TRACKED_KEYS = array(
 		MM_Metadata::META_CREATOR,
 		MM_Metadata::META_COPYRIGHT,
 		MM_Metadata::META_OWNER,
@@ -36,12 +36,12 @@ class MM_Metadata_History {
 		MM_Metadata::META_GPS_LAT,
 		MM_Metadata::META_GPS_LON,
 		MM_Metadata::META_GPS_ALT,
-	];
+	);
 
 	/**
 	 * User-friendly labels for each tracked field.
 	 */
-	private const FIELD_LABELS = [
+	private const FIELD_LABELS = array(
 		MM_Metadata::META_CREATOR   => 'Creator',
 		MM_Metadata::META_COPYRIGHT => 'Copyright',
 		MM_Metadata::META_OWNER     => 'Owner',
@@ -56,7 +56,7 @@ class MM_Metadata_History {
 		MM_Metadata::META_GPS_LAT   => 'GPS Latitude',
 		MM_Metadata::META_GPS_LON   => 'GPS Longitude',
 		MM_Metadata::META_GPS_ALT   => 'GPS Altitude',
-	];
+	);
 
 	// -----------------------------------------------------------------------
 	// Table management
@@ -175,7 +175,7 @@ class MM_Metadata_History {
 	 * @return array<string, string> Keyed by meta key => value.
 	 */
 	public static function read_current_values( int $post_id ): array {
-		$values = [];
+		$values = array();
 		foreach ( self::TRACKED_KEYS as $key ) {
 			$values[ $key ] = (string) get_post_meta( $post_id, $key, true );
 		}
@@ -197,15 +197,15 @@ class MM_Metadata_History {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->insert(
 			self::table_name(),
-			[
+			array(
 				'attachment_id' => $post_id,
 				'version'       => $next_version,
 				'meta_values'   => wp_json_encode( $values ),
 				'user_id'       => get_current_user_id(),
 				'created_at'    => current_time( 'mysql' ),
 				'change_source' => sanitize_key( $source ),
-			],
-			[ '%d', '%d', '%s', '%d', '%s', '%s' ]
+			),
+			array( '%d', '%d', '%s', '%d', '%s', '%s' )
 		);
 	}
 
@@ -253,13 +253,13 @@ class MM_Metadata_History {
 		if ( ! $row ) {
 			return null;
 		}
-		return [
+		return array(
 			'version'       => (int) $row->version,
 			'meta_values'   => (array) json_decode( $row->meta_values, true ),
 			'created_at'    => (string) $row->created_at,
 			'user_id'       => (int) $row->user_id,
 			'change_source' => (string) $row->change_source,
-		];
+		);
 	}
 
 	/**
@@ -280,17 +280,17 @@ class MM_Metadata_History {
 			)
 		);
 		if ( ! $rows ) {
-			return [];
+			return array();
 		}
 		return array_map(
 			function ( $row ): array {
-				return [
+				return array(
 					'version'       => (int) $row->version,
 					'meta_values'   => (array) json_decode( $row->meta_values, true ),
 					'created_at'    => (string) $row->created_at,
 					'user_id'       => (int) $row->user_id,
 					'change_source' => (string) $row->change_source,
-				];
+				);
 			},
 			$rows
 		);
@@ -318,13 +318,13 @@ class MM_Metadata_History {
 		if ( ! $row ) {
 			return null;
 		}
-		return [
+		return array(
 			'version'       => (int) $row->version,
 			'meta_values'   => (array) json_decode( $row->meta_values, true ),
 			'created_at'    => (string) $row->created_at,
 			'user_id'       => (int) $row->user_id,
 			'change_source' => (string) $row->change_source,
-		];
+		);
 	}
 
 	/**
@@ -336,7 +336,7 @@ class MM_Metadata_History {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->delete( $table, [ 'attachment_id' => $post_id ], [ '%d' ] );
+		$wpdb->delete( $table, array( 'attachment_id' => $post_id ), array( '%d' ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -351,17 +351,17 @@ class MM_Metadata_History {
 	 * @return list<array{field: string, label: string, old: string, new: string}> Changed fields only.
 	 */
 	public static function compute_diff( array $old_values, array $new_values ): array {
-		$diff = [];
+		$diff = array();
 		foreach ( self::TRACKED_KEYS as $key ) {
 			$old = $old_values[ $key ] ?? '';
 			$new = $new_values[ $key ] ?? '';
 			if ( $old !== $new ) {
-				$diff[] = [
+				$diff[] = array(
 					'field' => $key,
 					'label' => self::FIELD_LABELS[ $key ],
 					'old'   => $old,
 					'new'   => $new,
-				];
+				);
 			}
 		}
 		return $diff;
@@ -386,19 +386,19 @@ class MM_Metadata_History {
 	 */
 	public static function register_hooks(): void {
 		// Create/update table on admin_init.
-		add_action( 'admin_init', [ self::class, 'create_or_update_table' ] );
+		add_action( 'admin_init', array( self::class, 'create_or_update_table' ) );
 
 		// Capture snapshot on save (priority 20, after MM_Metadata::on_save_post_attachment at 20).
-		add_action( 'save_post', [ self::class, 'capture_snapshot' ], 25, 2 );
+		add_action( 'save_post', array( self::class, 'capture_snapshot' ), 25, 2 );
 
 		// Clean up on attachment delete.
-		add_action( 'delete_attachment', [ self::class, 'delete_history_for_attachment' ] );
+		add_action( 'delete_attachment', array( self::class, 'delete_history_for_attachment' ) );
 
 		// Admin UI — history pane on attachment edit screen.
-		add_action( 'edit_attachment', [ self::class, 'render_history_pane' ] );
+		add_action( 'edit_attachment', array( self::class, 'render_history_pane' ) );
 
 		// AJAX handler for version diff.
-		add_action( 'wp_ajax_mm_meta_diff', [ self::class, 'ajax_diff' ] );
+		add_action( 'wp_ajax_mm_meta_diff', array( self::class, 'ajax_diff' ) );
 	}
 
 	/**
@@ -488,13 +488,13 @@ class MM_Metadata_History {
 
 		$prev_values = null;
 		foreach ( $history as $entry ) {
-			$source_labels = [
+			$source_labels = array(
 				'edit'   => __( 'Edit screen', 'metamanager' ),
 				'import' => __( 'File import', 'metamanager' ),
 				'bulk'   => __( 'Bulk edit', 'metamanager' ),
 				'cli'    => __( 'WP-CLI', 'metamanager' ),
 				'rest'   => __( 'REST API', 'metamanager' ),
-			];
+			);
 			$source_label  = $source_labels[ $entry['change_source'] ] ?? $entry['change_source'];
 
 			// Compute changed fields vs previous version (or empty for first).
@@ -502,15 +502,15 @@ class MM_Metadata_History {
 				$changed = self::compute_diff( $prev_values, $entry['meta_values'] );
 			} else {
 				// First version — show all non-empty fields as "set".
-				$changed = [];
+				$changed = array();
 				foreach ( $entry['meta_values'] as $k => $v ) {
 					if ( '' !== $v ) {
-						$changed[] = [
+						$changed[] = array(
 							'field' => $k,
 							'label' => self::FIELD_LABELS[ $k ] ?? $k,
 							'old'   => '',
 							'new'   => $v,
-						];
+						);
 					}
 				}
 			}

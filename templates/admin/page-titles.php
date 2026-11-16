@@ -15,15 +15,15 @@ $date_ni   = $s->get( 'titles.date_archive_noindex', true );
 $search_ni = $s->get( 'titles.search_noindex', true );
 $page_app  = $s->get( 'titles.paginate_append', true );
 
-$pt_settings  = $s->get( 'titles.post_types', [] );
-$tax_settings = $s->get( 'titles.taxonomies', [] );
+$pt_settings  = $s->get( 'titles.post_types', array() );
+$tax_settings = $s->get( 'titles.taxonomies', array() );
 
 // All publicly visible post types.
-$post_types = get_post_types( [ 'public' => true ], 'objects' );
+$post_types = get_post_types( array( 'public' => true ), 'objects' );
 unset( $post_types['attachment'] );
 
 // All public taxonomies.
-$taxonomies = get_taxonomies( [ 'public' => true ], 'objects' );
+$taxonomies = get_taxonomies( array( 'public' => true ), 'objects' );
 unset( $taxonomies['post_format'] );
 
 $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_title%% %%term_description%% %%author_name%% %%page%% %%current_year%% %%post_type_label%%';
@@ -36,7 +36,7 @@ $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_t
 			<th><label for="gcm_sep">Title Separator</label></th>
 			<td>
 				<select id="gcm_sep" name="<?php echo esc_attr( $opt ); ?>[titles][separator]">
-					<?php foreach ( [ '|', '–', '—', '·', '•', '›', '»', '/', '~' ] as $sep_opt ) : ?>
+					<?php foreach ( array( '|', '–', '—', '·', '•', '›', '»', '/', '~' ) as $sep_opt ) : ?>
 						<option value="<?php echo esc_attr( $sep_opt ); ?>" <?php selected( $sep, $sep_opt ); ?>><?php echo esc_html( $sep_opt ); ?></option>
 					<?php endforeach; ?>
 				</select>
@@ -90,7 +90,7 @@ $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_t
 	<h2>Post Types</h2>
 	<?php
 	foreach ( $post_types as $pt_slug => $pt_obj ) :
-		$pt_cfg  = $pt_settings[ $pt_slug ] ?? [];
+		$pt_cfg  = $pt_settings[ $pt_slug ] ?? array();
 		$is_hier = $pt_obj->hierarchical;
 		?>
 	<div class="gcm-post-type-block">
@@ -121,11 +121,11 @@ $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_t
 				<td>
 					<select name="<?php echo esc_attr( $opt ); ?>[titles][post_types][<?php echo esc_attr( $pt_slug ); ?>][description_source]">
 						<?php
-						foreach ( [
+						foreach ( array(
 							'excerpt' => 'Excerpt only',
 							'content' => 'Content (trimmed)',
 							'none'    => 'None (manual only)',
-						] as $ds_val => $ds_label ) :
+						) as $ds_val => $ds_label ) :
 							?>
 							<option value="<?php echo esc_attr( $ds_val ); ?>" <?php selected( $pt_cfg['description_source'] ?? 'excerpt', $ds_val ); ?>><?php echo esc_html( $ds_label ); ?></option>
 						<?php endforeach; ?>
@@ -159,7 +159,7 @@ $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_t
 	<h2>Taxonomies</h2>
 	<?php
 	foreach ( $taxonomies as $tax_slug => $tax_obj ) :
-		$tax_cfg = $tax_settings[ $tax_slug ] ?? [];
+		$tax_cfg = $tax_settings[ $tax_slug ] ?? array();
 		?>
 	<div class="gcm-taxonomy-block">
 		<h3 class="gcm-pt-heading"><?php echo esc_html( $tax_obj->labels->name ); ?> (<code><?php echo esc_html( $tax_slug ); ?></code>)</h3>

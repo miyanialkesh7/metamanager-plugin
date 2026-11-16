@@ -170,7 +170,7 @@ class MM_DB {
 		$job_type      = sanitize_key( $job['job_type'] ?? 'unknown' );
 		$size          = sanitize_key( $job['size'] ?? '' );
 
-		$data    = [
+		$data    = array(
 			'attachment_id' => $attachment_id,
 			'image_name'    => sanitize_text_field( $job['image_name'] ?? '' ),
 			'job_type'      => $job_type,
@@ -181,9 +181,9 @@ class MM_DB {
 			'status'        => sanitize_key( $job['status'] ?? 'completed' ),
 			'submitted_at'  => sanitize_text_field( $job['submitted_at'] ?? current_time( 'mysql' ) ),
 			'completed_at'  => sanitize_text_field( $job['completed_at'] ?? current_time( 'mysql' ) ),
-			'details'       => wp_json_encode( $job['details'] ?? [] ),
-		];
-		$formats = [ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ];
+			'details'       => wp_json_encode( $job['details'] ?? array() ),
+		);
+		$formats = array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' );
 
 		if ( null !== $bytes_before ) {
 			$data['bytes_before'] = $bytes_before;
@@ -215,28 +215,28 @@ class MM_DB {
 	 *   total: int
 	 * }
 	 */
-	public static function get_jobs( array $args = [] ): array {
+	public static function get_jobs( array $args = array() ): array {
 		global $wpdb;
 
 		$table = self::table_name();
 
-		$defaults = [
+		$defaults = array(
 			'search'   => '',
 			'status'   => '',
 			'orderby'  => 'id',
 			'order'    => 'DESC',
 			'per_page' => 20,
 			'paged'    => 1,
-		];
+		);
 		$args     = wp_parse_args( $args, $defaults );
 
-		$allowed_orderby = [ 'id', 'image_name', 'job_type', 'status', 'submitted_at', 'completed_at', 'bytes_before', 'bytes_after' ];
+		$allowed_orderby = array( 'id', 'image_name', 'job_type', 'status', 'submitted_at', 'completed_at', 'bytes_before', 'bytes_after' );
 		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'id';
 		$order           = 'ASC' === strtoupper( $args['order'] ) ? 'ASC' : 'DESC';
 		$per_page        = max( 1, (int) $args['per_page'] );
 		$offset          = ( max( 1, (int) $args['paged'] ) - 1 ) * $per_page;
 
-		$conditions = [];
+		$conditions = array();
 		if ( ! empty( $args['search'] ) ) {
 			$like         = '%' . $wpdb->esc_like( $args['search'] ) . '%';
 			$conditions[] = $wpdb->prepare(
@@ -245,7 +245,7 @@ class MM_DB {
 				$like
 			);
 		}
-		$allowed_statuses = [ 'pending', 'completed', 'failed' ];
+		$allowed_statuses = array( 'pending', 'completed', 'failed' );
 		if ( ! empty( $args['status'] ) && in_array( $args['status'], $allowed_statuses, true ) ) {
 			$conditions[] = $wpdb->prepare( 'status = %s', $args['status'] );
 		} elseif ( ! empty( $args['status'] ) && 'not_pending' === $args['status'] ) {
@@ -265,10 +265,10 @@ class MM_DB {
 		);
 		// phpcs:enable
 
-		return [
-			'jobs'  => $jobs ?: [],
+		return array(
+			'jobs'  => $jobs ?: array(),
 			'total' => $total,
-		];
+		);
 	}
 
 	/**
@@ -295,7 +295,7 @@ class MM_DB {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->delete( $table, [ 'attachment_id' => $attachment_id ], [ '%d' ] );
+		$wpdb->delete( $table, array( 'attachment_id' => $attachment_id ), array( '%d' ) );
 	}
 
 	/**
@@ -319,14 +319,14 @@ class MM_DB {
 				COUNT(DISTINCT attachment_id)                     AS unique_attachments
 			FROM {$table}" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
-		return $row ? (array) $row : [
+		return $row ? (array) $row : array(
 			'total_jobs'         => 0,
 			'completed'          => 0,
 			'failed'             => 0,
 			'bytes_saved'        => 0,
 			'bytes_original'     => 0,
 			'unique_attachments' => 0,
-		];
+		);
 	}
 
 	/**
@@ -390,7 +390,7 @@ class MM_DB {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->replace(
 			$table,
-			[
+			array(
 				'attachment_id' => $attachment_id,
 				'image_name'    => sanitize_text_field( $job['image_name'] ?? '' ),
 				'job_type'      => $job_type,
@@ -400,9 +400,9 @@ class MM_DB {
 				'dimensions'    => sanitize_text_field( $job['dimensions'] ?? '' ),
 				'status'        => 'pending',
 				'submitted_at'  => sanitize_text_field( $job['submitted_at'] ?? current_time( 'mysql' ) ),
-				'details'       => wp_json_encode( [] ),
-			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+				'details'       => wp_json_encode( array() ),
+			),
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' )
 		);
 	}
 
@@ -444,7 +444,7 @@ class MM_DB {
 				$attachment_id
 			)
 		);
-		return is_array( $types ) ? $types : [];
+		return is_array( $types ) ? $types : array();
 	}
 
 	/**
@@ -465,9 +465,9 @@ class MM_DB {
 				$job_type
 			)
 		);
-		return $ids ? array_map( 'intval', $ids ) : [];
+		return $ids ? array_map( 'intval', $ids ) : array();
 	}
 }
 
 // Run on every admin_init to self-heal if the table drifts (e.g. after manual DB restore).
-add_action( 'admin_init', [ 'MM_DB', 'create_or_update_table' ] );
+add_action( 'admin_init', array( 'MM_DB', 'create_or_update_table' ) );

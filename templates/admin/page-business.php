@@ -11,51 +11,51 @@ $opt = MM_META_OPT_BUSINESS;
 $business_types = MM_Mod_Local::get_business_types();
 
 // Opening hours skeleton (7 rows if none saved)
-$hours         = $b['hours'] ?? [];
-$hour_defaults = [
-	[
-		'days'   => [ 'Monday' ],
+$hours         = $b['hours'] ?? array();
+$hour_defaults = array(
+	array(
+		'days'   => array( 'Monday' ),
 		'open'   => '09:00',
 		'close'  => '17:00',
 		'closed' => false,
-	],
-	[
-		'days'   => [ 'Tuesday' ],
+	),
+	array(
+		'days'   => array( 'Tuesday' ),
 		'open'   => '09:00',
 		'close'  => '17:00',
 		'closed' => false,
-	],
-	[
-		'days'   => [ 'Wednesday' ],
+	),
+	array(
+		'days'   => array( 'Wednesday' ),
 		'open'   => '09:00',
 		'close'  => '17:00',
 		'closed' => false,
-	],
-	[
-		'days'   => [ 'Thursday' ],
+	),
+	array(
+		'days'   => array( 'Thursday' ),
 		'open'   => '09:00',
 		'close'  => '17:00',
 		'closed' => false,
-	],
-	[
-		'days'   => [ 'Friday' ],
+	),
+	array(
+		'days'   => array( 'Friday' ),
 		'open'   => '09:00',
 		'close'  => '17:00',
 		'closed' => false,
-	],
-	[
-		'days'   => [ 'Saturday' ],
+	),
+	array(
+		'days'   => array( 'Saturday' ),
 		'open'   => '',
 		'close'  => '',
 		'closed' => true,
-	],
-	[
-		'days'   => [ 'Sunday' ],
+	),
+	array(
+		'days'   => array( 'Sunday' ),
 		'open'   => '',
 		'close'  => '',
 		'closed' => true,
-	],
-];
+	),
+);
 if ( empty( $hours ) ) {
 	$hours = $hour_defaults; }
 ?>
@@ -122,7 +122,7 @@ if ( empty( $hours ) ) {
 			<th><label for="gcm_biz_price">Price Range</label></th>
 			<td>
 				<select id="gcm_biz_price" name="<?php echo esc_attr( $opt ); ?>[price_range]">
-					<?php foreach ( [ '', '$', '$$', '$$$', '$$$$' ] as $p ) : ?>
+					<?php foreach ( array( '', '$', '$$', '$$$', '$$$$' ) as $p ) : ?>
 						<option value="<?php echo esc_attr( $p ); ?>" <?php selected( $b['price_range'] ?? '', $p ); ?>><?php echo $p ? esc_html( $p ) : '— not set —'; ?></option>
 					<?php endforeach; ?>
 				</select>
@@ -155,8 +155,8 @@ if ( empty( $hours ) ) {
 			<th>Payment Accepted</th>
 			<td>
 				<?php
-				$payment_methods = [ 'Cash', 'Check', 'Credit Card', 'Debit Card', 'Invoice', 'PayPal', 'Apple Pay', 'Google Pay', 'Venmo' ];
-				$accepted        = (array) ( $b['payment_accepted'] ?? [] );
+				$payment_methods = array( 'Cash', 'Check', 'Credit Card', 'Debit Card', 'Invoice', 'PayPal', 'Apple Pay', 'Google Pay', 'Venmo' );
+				$accepted        = (array) ( $b['payment_accepted'] ?? array() );
 				foreach ( $payment_methods as $method ) :
 					?>
 					<label style="display:inline-block;margin-right:16px;margin-bottom:4px">
@@ -174,7 +174,7 @@ if ( empty( $hours ) ) {
 
 	<h2>Address &amp; Location</h2>
 	<table class="form-table gcm-form-table">
-		<?php $a = $b['address'] ?? []; ?>
+		<?php $a = $b['address'] ?? array(); ?>
 		<tr>
 			<th><label for="gcm_addr_street">Street Address</label></th>
 			<td><input type="text" id="gcm_addr_street" name="<?php echo esc_attr( $opt ); ?>[address][street]" value="<?php echo esc_attr( $a['street'] ?? '' ); ?>" class="regular-text"></td>
@@ -222,7 +222,7 @@ if ( empty( $hours ) ) {
 		<tr>
 			<th><label>Map Links</label></th>
 			<td>
-				<?php $map_links = $b['map_links'] ?? []; ?>
+				<?php $map_links = $b['map_links'] ?? array(); ?>
 				<label style="display:block;margin-bottom:4px;">
 					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[map_links][google]" value="1" <?php checked( ! empty( $map_links['google'] ) ); ?>>
 					Google Maps
@@ -316,9 +316,9 @@ if ( empty( $hours ) ) {
 				data-sortable="true"
 				data-name-base="<?php echo esc_attr( $opt ); ?>[hours]">
 				<?php
-				$days_all = [ 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ];
+				$days_all = array( 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' );
 				foreach ( $hours as $ri => $row ) :
-					$row_days = is_array( $row['days'] ) ? $row['days'] : [];
+					$row_days = is_array( $row['days'] ) ? $row['days'] : array();
 					?>
 				<tr class="gcm-repeater-row">
 					<td class="gcm-drag-handle-cell"><span class="gcm-drag-handle dashicons dashicons-move" title="Drag to reorder"></span></td>
@@ -348,7 +348,7 @@ if ( empty( $hours ) ) {
 	<p class="description">Cities or regions you serve. Each becomes a <code>City</code> node in <code>areaServed</code>.</p>
 	<div class="gcm-repeater" id="gcm-areas-repeater">
 		<ul class="gcm-simple-list" id="gcm-areas-list" data-name-base="<?php echo esc_attr( $opt ); ?>[service_areas]">
-			<?php foreach ( (array) ( $b['service_areas'] ?? [] ) as $ai => $area ) : ?>
+			<?php foreach ( (array) ( $b['service_areas'] ?? array() ) as $ai => $area ) : ?>
 				<li class="gcm-simple-list-item">
 					<input type="text" name="<?php echo esc_attr( $opt ); ?>[service_areas][]"
 						value="<?php echo esc_attr( $area ); ?>" class="regular-text" placeholder="City name">
@@ -362,7 +362,7 @@ if ( empty( $hours ) ) {
 	<h2>Social Profiles (sameAs)</h2>
 	<table class="form-table gcm-form-table">
 		<?php
-		$social_fields = [
+		$social_fields = array(
 			'facebook'  => 'Facebook',
 			'instagram' => 'Instagram',
 			'linkedin'  => 'LinkedIn',
@@ -370,8 +370,8 @@ if ( empty( $hours ) ) {
 			'twitter'   => 'Twitter / X',
 			'bluesky'   => 'BlueSky',
 			'pinterest' => 'Pinterest',
-		];
-		$accounts      = $b['accounts'] ?? [];
+		);
+		$accounts      = $b['accounts'] ?? array();
 		foreach ( $social_fields as $field => $label ) :
 			?>
 		<tr>

@@ -26,10 +26,10 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		if ( $description ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'description',
 					'content' => $description,
-				]
+				)
 			);
 		}
 
@@ -37,20 +37,20 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		if ( $canonical ) {
 			$this->add_link(
 				$data,
-				[
+				array(
 					'rel'  => 'canonical',
 					'href' => $canonical,
-				]
+				)
 			);
 		}
 
 		// Robots meta — always emit so crawlers have explicit instruction.
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'name'    => 'robots',
 				'content' => $robots,
-			]
+			)
 		);
 
 		// License / copyright link on singular and attachment pages.
@@ -324,7 +324,7 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	}
 
 	private function build_robots_string( bool $noindex, bool $nofollow, bool $noarchive, bool $nosnippet, bool $noimageindex ): string {
-		$parts   = [];
+		$parts   = array();
 		$parts[] = $noindex ? 'noindex' : 'index';
 		$parts[] = $nofollow ? 'nofollow' : 'follow';
 		if ( $noarchive ) {
@@ -412,18 +412,18 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		if ( filter_var( $copyright, FILTER_VALIDATE_URL ) ) {
 			$this->add_link(
 				$data,
-				[
+				array(
 					'rel'  => 'license',
 					'href' => esc_url( $copyright ),
-				]
+				)
 			);
 		} else {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'copyright',
 					'content' => esc_attr( $copyright ),
-				]
+				)
 			);
 		}
 	}

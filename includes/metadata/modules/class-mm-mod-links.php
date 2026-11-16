@@ -22,23 +22,23 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		// Register custom cron schedule.
-		add_filter( 'cron_schedules', [ $this, 'add_cron_schedule' ] );
+		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
 
 		// Schedule the recurring check if not yet set.
-		add_action( 'wp', [ $this, 'maybe_schedule_cron' ] );
-		add_action( 'mm_meta_check_links', MM_Cron_Tracker::wrap( 'mm_meta_check_links', [ $this, 'run_batch_check' ] ) );
+		add_action( 'wp', array( $this, 'maybe_schedule_cron' ) );
+		add_action( 'mm_meta_check_links', MM_Cron_Tracker::wrap( 'mm_meta_check_links', array( $this, 'run_batch_check' ) ) );
 
 		// Extract links on post save.
-		add_action( 'save_post', [ $this, 'extract_from_post' ], 10, 2 );
+		add_action( 'save_post', array( $this, 'extract_from_post' ), 10, 2 );
 
 		// On post delete, purge link records.
-		add_action( 'before_delete_post', [ $this, 'purge_for_post' ] );
+		add_action( 'before_delete_post', array( $this, 'purge_for_post' ) );
 
 		// Admin AJAX.
-		add_action( 'wp_ajax_mm_meta_links_fetch', [ $this, 'ajax_fetch_links' ] );
-		add_action( 'wp_ajax_mm_meta_recheck_link', [ $this, 'ajax_recheck_link' ] );
-		add_action( 'wp_ajax_mm_meta_ignore_link', [ $this, 'ajax_ignore_link' ] );
-		add_action( 'wp_ajax_mm_meta_scan_all_posts', [ $this, 'ajax_scan_all_posts' ] );
+		add_action( 'wp_ajax_mm_meta_links_fetch', array( $this, 'ajax_fetch_links' ) );
+		add_action( 'wp_ajax_mm_meta_recheck_link', array( $this, 'ajax_recheck_link' ) );
+		add_action( 'wp_ajax_mm_meta_ignore_link', array( $this, 'ajax_ignore_link' ) );
+		add_action( 'wp_ajax_mm_meta_scan_all_posts', array( $this, 'ajax_scan_all_posts' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -119,10 +119,10 @@ class MM_Mod_Links extends MM_Mod_Base {
 		$monitored_types = array_keys(
 			$this->settings->get(
 				'sitemap.post_types',
-				[
+				array(
 					'post' => true,
 					'page' => true,
-				]
+				)
 			)
 		);
 		if ( ! in_array( $post->post_type, $monitored_types, true ) ) {
@@ -154,7 +154,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 	}
 
 	private function parse_links( string $html, int $post_id ): array {
-		$links = [];
+		$links = array();
 		$home  = home_url();
 
 		// Extract <a href="...">anchor</a>.
@@ -174,11 +174,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 				if ( ! str_starts_with( $url, 'http' ) ) {
 					$url = trailingslashit( $home ) . ltrim( $url, '/' );
 				}
-				$links[] = [
+				$links[] = array(
 					'url'    => $url,
 					'anchor' => substr( $anchor, 0, 500 ),
 					'type'   => ( str_starts_with( $url, $home ) ) ? 'internal' : 'external',
-				];
+				);
 			}
 		}
 
@@ -189,7 +189,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->delete( $table, [ 'post_id' => $post_id ], [ '%d' ] );
+		$wpdb->delete( $table, array( 'post_id' => $post_id ), array( '%d' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -197,10 +197,10 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	public function add_cron_schedule( array $schedules ): array {
-		$schedules['mm_meta_6h'] = [
+		$schedules['mm_meta_6h'] = array(
 			'interval' => 6 * HOUR_IN_SECONDS,
 			'display'  => 'Every 6 Hours',
-		];
+		);
 		return $schedules;
 	}
 
@@ -235,7 +235,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 			return;
 		}
 
-		$ignore_domains = array_filter( (array) $this->settings->get( 'links.ignore_domains', [] ) );
+		$ignore_domains = array_filter( (array) $this->settings->get( 'links.ignore_domains', array() ) );
 
 		foreach ( $rows as $row ) {
 			$url = $row['url'];
@@ -252,14 +252,14 @@ class MM_Mod_Links extends MM_Mod_Base {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$wpdb->update(
 				$table,
-				[
+				array(
 					'http_code'    => $code,
 					'is_broken'    => $broken,
 					'last_checked' => current_time( 'mysql', true ),
-				],
-				[ 'id' => (int) $row['id'] ],
-				[ '%d', '%d', '%s' ],
-				[ '%d' ]
+				),
+				array( 'id' => (int) $row['id'] ),
+				array( '%d', '%d', '%s' ),
+				array( '%d' )
 			);
 		}
 
@@ -280,11 +280,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		$response = wp_remote_head(
 			$url,
-			[
+			array(
 				'timeout'     => $timeout,
 				'redirection' => 3,
 				'user-agent'  => 'GCM-SEO-LinkChecker/1.0',
-			]
+			)
 		);
 		if ( is_wp_error( $response ) ) {
 			return 0;
@@ -318,7 +318,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 				home_url(),
 				admin_url( 'admin.php?page=mm-meta-links' )
 			);
-			wp_mail( $email, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wpmail_wp_mail
+			wp_mail( $email, $subject, $body, array( 'Content-Type: text/plain; charset=UTF-8' ) ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wpmail_wp_mail
 			set_transient( $cache_key, 1, $interval );
 		}
 	}
@@ -374,12 +374,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		wp_send_json_success(
-			[
+			array(
 				'rows'     => $rows,
 				'total'    => $total,
 				'paged'    => $paged,
 				'per_page' => $per_page,
-			]
+			)
 		);
 	}
 
@@ -409,21 +409,21 @@ class MM_Mod_Links extends MM_Mod_Base {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->update(
 			$table,
-			[
+			array(
 				'http_code'    => $code,
 				'is_broken'    => $broken,
 				'last_checked' => current_time( 'mysql', true ),
-			],
-			[ 'id' => $id ],
-			[ '%d', '%d', '%s' ],
-			[ '%d' ]
+			),
+			array( 'id' => $id ),
+			array( '%d', '%d', '%s' ),
+			array( '%d' )
 		);
 
 		wp_send_json_success(
-			[
+			array(
 				'http_code' => $code,
 				'is_broken' => $broken,
-			]
+			)
 		);
 	}
 
@@ -443,7 +443,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->update( $table, [ 'is_ignored' => $ignored ], [ 'id' => $id ], [ '%d' ], [ '%d' ] );
+		$wpdb->update( $table, array( 'is_ignored' => $ignored ), array( 'id' => $id ), array( '%d' ), array( '%d' ) );
 
 		wp_send_json_success();
 	}
@@ -477,10 +477,10 @@ class MM_Mod_Links extends MM_Mod_Base {
 		$monitored_types = array_keys(
 			$this->settings->get(
 				'sitemap.post_types',
-				[
+				array(
 					'post' => true,
 					'page' => true,
-				]
+				)
 			)
 		);
 		$types_ph        = implode( ',', array_fill( 0, count( $monitored_types ), '%s' ) );
@@ -497,13 +497,13 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		if ( 0 === $total ) {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-			return [
+			return array(
 				'total'      => 0,
 				'scanned'    => 0,
 				'skipped'    => 0,
 				'new_offset' => 0,
 				'done'       => true,
-			];
+			);
 		}
 
 		// Fetch next batch in stable ID order.
@@ -513,20 +513,20 @@ class MM_Mod_Links extends MM_Mod_Base {
 				$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->posts is the core table property; the IN list is built %s placeholders and all values pass through prepare().
 					"SELECT ID FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ({$types_ph}) ORDER BY ID ASC LIMIT %d OFFSET %d",
-					...[ ...$monitored_types, $batch_size, $offset ]
+					...array( ...$monitored_types, $batch_size, $offset )
 				)
 			)
 		);
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		if ( ! $post_ids ) {
-			return [
+			return array(
 				'total'      => $total,
 				'scanned'    => 0,
 				'skipped'    => 0,
 				'new_offset' => $offset,
 				'done'       => true,
-			];
+			);
 		}
 
 		// Batch-check which post IDs already have entries — skip those.
@@ -556,12 +556,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		$new_offset = $offset + count( $post_ids );
 
-		return [
+		return array(
 			'total'      => $total,
 			'scanned'    => count( $post_ids ),
 			'skipped'    => count( $already ),
 			'new_offset' => $new_offset,
 			'done'       => $new_offset >= $total,
-		];
+		);
 	}
 }

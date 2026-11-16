@@ -98,10 +98,10 @@ $s   = $settings;
 			<td>
 				<select name="<?php echo esc_attr( $opt ); ?>[social][twitter_card_type]">
 					<?php
-					foreach ( [
+					foreach ( array(
 						'summary_large_image' => 'Summary Large Image (recommended)',
 						'summary'             => 'Summary',
-					] as $v => $l ) :
+					) as $v => $l ) :
 						?>
 						<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $s->get( 'social.twitter_card_type', 'summary_large_image' ), $v ); ?>><?php echo esc_html( $l ); ?></option>
 					<?php endforeach; ?>

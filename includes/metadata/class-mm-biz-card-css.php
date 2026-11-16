@@ -51,7 +51,7 @@ class MM_Biz_Card_CSS {
 		$btn_hover_text    = $raw_hover_text ? self::color( $raw_hover_text ) : '';
 		$hover_css         = '';
 		if ( $btn_hover_on ) {
-			$hover_parts = [];
+			$hover_parts = array();
 			if ( $btn_hover_bg ) {
 				$hover_parts[] = "background:{$btn_hover_bg}";
 			}

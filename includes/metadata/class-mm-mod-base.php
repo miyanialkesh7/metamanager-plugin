@@ -14,7 +14,7 @@ abstract class MM_Mod_Base {
 	 * Track which nav menus were rendered during this request.
 	 * Populated by MM_Metadata_Loader::track_rendered_menu().
 	 */
-	public static array $rendered_menus = [];
+	public static array $rendered_menus = array();
 
 	protected MM_Site_Settings $settings;
 
@@ -48,39 +48,39 @@ abstract class MM_Mod_Base {
 		static $designated = null;
 		if ( null === $designated ) {
 			$designated = get_terms(
-				[
+				array(
 					'taxonomy'   => 'nav_menu',
-					'meta_query' => [
-						[
+					'meta_query' => array(
+						array(
 							'key'   => '_mm_nav_menu_primary',
 							'value' => '1',
-						],
-					],
+						),
+					),
 					'number'     => 1,
 					'hide_empty' => false,
-				]
+				)
 			);
 		}
 		if ( ! is_wp_error( $designated ) && ! empty( $designated ) ) {
 			$schema_menu_id = (int) $designated[0]->term_id;
 			$menu_items     = wp_get_nav_menu_items( $schema_menu_id );
 			if ( ! empty( $menu_items ) ) {
-				$items    = [];
+				$items    = array();
 				$position = 1;
 				foreach ( $menu_items as $item ) {
 					if ( $item->url && $item->title ) {
-						$items[] = [
+						$items[] = array(
 							'name'     => $item->title,
 							'url'      => $item->url,
 							'position' => $position++,
-						];
+						);
 					}
 				}
-				return [
+				return array(
 					'id'    => $schema_menu_id,
 					'name'  => $designated[0]->name,
 					'items' => $items,
-				];
+				);
 			}
 		}
 
@@ -109,25 +109,25 @@ abstract class MM_Mod_Base {
 		$menu_obj   = get_term( $menu_id, 'nav_menu' );
 		$menu_name  = ( $menu_obj && ! is_wp_error( $menu_obj ) ) ? $menu_obj->name : 'Navigation';
 
-		$items = [];
+		$items = array();
 		if ( is_array( $menu_items ) ) {
 			$position = 1;
 			foreach ( $menu_items as $item ) {
 				if ( $item->url && $item->title ) {
-					$items[] = [
+					$items[] = array(
 						'name'     => $item->title,
 						'url'      => $item->url,
 						'position' => $position++,
-					];
+					);
 				}
 			}
 		}
 
-		return [
+		return array(
 			'id'    => $menu_id,
 			'name'  => $menu_name,
 			'items' => $items,
-		];
+		);
 	}
 
 	/**
@@ -138,16 +138,16 @@ abstract class MM_Mod_Base {
 	 */
 	public static function postal_address_node( array $addr ): array {
 		if ( empty( $addr['street'] ) ) {
-			return [];
+			return array();
 		}
-		return [
+		return array(
 			'@type'           => 'PostalAddress',
 			'streetAddress'   => sanitize_text_field( $addr['street'] ?? '' ),
 			'addressLocality' => sanitize_text_field( $addr['city'] ?? '' ),
 			'addressRegion'   => sanitize_text_field( $addr['state'] ?? '' ),
 			'postalCode'      => sanitize_text_field( $addr['zip'] ?? '' ),
 			'addressCountry'  => sanitize_text_field( $addr['country'] ?? 'US' ),
-		];
+		);
 	}
 
 	/** Add a meta tag to the data array, preventing duplicates by name/property. */
@@ -224,11 +224,11 @@ abstract class MM_Mod_Base {
 		if ( $attachment_id ) {
 			$meta = wp_get_attachment_metadata( $attachment_id );
 			$src  = wp_get_attachment_image_src( $attachment_id, 'full' );
-			return [
+			return array(
 				'url'    => $src ? $src[0] : '',
 				'width'  => $meta['width'] ?? ( $src[1] ?? 0 ),
 				'height' => $meta['height'] ?? ( $src[2] ?? 0 ),
-			];
+			);
 		}
 		if ( $url ) {
 			// Try to find the attachment by URL.
@@ -236,16 +236,16 @@ abstract class MM_Mod_Base {
 			if ( $id ) {
 				return $this->image_data( $id );
 			}
-			return [
+			return array(
 				'url'    => $url,
 				'width'  => 0,
 				'height' => 0,
-			];
+			);
 		}
-		return [
+		return array(
 			'url'    => '',
 			'width'  => 0,
 			'height' => 0,
-		];
+		);
 	}
 }

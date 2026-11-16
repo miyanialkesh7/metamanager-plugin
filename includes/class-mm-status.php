@@ -25,10 +25,10 @@ class MM_Status {
 	/**
 	 * Candidate paths for daemon scripts installed by the .deb package.
 	 */
-	private const DAEMON_PATHS = [
+	private const DAEMON_PATHS = array(
 		'/usr/local/bin/metamanager-compress-daemon.sh',
 		'/usr/local/bin/metamanager-meta-daemon.sh',
-	];
+	);
 
 	/**
 	 * Check whether the daemon package is installed.
@@ -54,47 +54,47 @@ class MM_Status {
 	/**
 	 * Candidate paths for ExifTool.
 	 */
-	private const EXIFTOOL_PATHS = [
+	private const EXIFTOOL_PATHS = array(
 		'/usr/bin/exiftool',
 		'/usr/local/bin/exiftool',
 		'/opt/homebrew/bin/exiftool',
-	];
+	);
 
 	/**
 	 * Candidate paths for jpegtran (libjpeg / libjpeg-turbo).
 	 */
-	private const JPEGTRAN_PATHS = [
+	private const JPEGTRAN_PATHS = array(
 		'/usr/bin/jpegtran',
 		'/usr/local/bin/jpegtran',
 		'/opt/homebrew/bin/jpegtran',
-	];
+	);
 
 	/**
 	 * Candidate paths for optipng.
 	 */
-	private const OPTIPNG_PATHS = [
+	private const OPTIPNG_PATHS = array(
 		'/usr/bin/optipng',
 		'/usr/local/bin/optipng',
 		'/opt/homebrew/bin/optipng',
-	];
+	);
 
 	/**
 	 * Candidate paths for cwebp (WebP lossless compression).
 	 */
-	private const CWEBP_PATHS = [
+	private const CWEBP_PATHS = array(
 		'/usr/bin/cwebp',
 		'/usr/local/bin/cwebp',
 		'/opt/homebrew/bin/cwebp',
-	];
+	);
 
 	/**
 	 * Candidate paths for ffmpeg (video container remux).
 	 */
-	private const FFMPEG_PATHS = [
+	private const FFMPEG_PATHS = array(
 		'/usr/bin/ffmpeg',
 		'/usr/local/bin/ffmpeg',
 		'/opt/homebrew/bin/ffmpeg',
-	];
+	);
 
 	/**
 	 * Check whether ExifTool is installed and executable.
@@ -262,38 +262,38 @@ class MM_Status {
 
 		// Audio and PDF are not compressed by Metamanager daemons.
 		if ( ! $is_image && ! $is_video ) {
-			return [
+			return array(
 				'status' => 'na',
 				'label'  => '—',
 				'color'  => '#bbb',
-			];
+			);
 		}
 
 		// Videos only have a single 'full' size (ffmpeg remux).
 		if ( $is_video ) {
 			$file = get_attached_file( $attachment_id );
 			if ( ! $file || ! file_exists( $file ) ) {
-				return [
+				return array(
 					'status' => 'na',
 					'label'  => '—',
 					'color'  => '#bbb',
-				];
+				);
 			}
 			if ( self::is_compressed( $attachment_id, 'full' ) ) {
-				return [
+				return array(
 					'status' => 'all',
 					'label'  => '✔ Compressed',
 					'color'  => '#13bb2c',
-				];
+				);
 			}
-			return [
+			return array(
 				'status' => 'none',
 				'label'  => '✘ Not Compressed',
 				'color'  => '#e54c3c',
-			];
+			);
 		}
 
-		$meta = wp_get_attachment_metadata( $attachment_id ) ?: [];
+		$meta = wp_get_attachment_metadata( $attachment_id ) ?: array();
 		$file = get_attached_file( $attachment_id );
 
 		$all_compressed = true;
@@ -322,24 +322,24 @@ class MM_Status {
 		}
 
 		if ( $all_compressed && $any_compressed ) {
-			return [
+			return array(
 				'status' => 'all',
 				'label'  => '✔ Compressed',
 				'color'  => '#13bb2c',
-			];
+			);
 		}
 		if ( $any_compressed ) {
-			return [
+			return array(
 				'status' => 'partial',
 				'label'  => '● Partial',
 				'color'  => '#e6b800',
-			];
+			);
 		}
-		return [
+		return array(
 			'status' => 'none',
 			'label'  => '✘ Not Compressed',
 			'color'  => '#e54c3c',
-		];
+		);
 	}
 
 	// -----------------------------------------------------------------------
@@ -352,7 +352,7 @@ class MM_Status {
 	 * @return array<string, bool>
 	 */
 	public static function system_status(): array {
-		return [
+		return array(
 			'daemon_package'  => self::daemon_package_installed(),
 			'exiftool'        => self::exiftool_available(),
 			'jpegtran'        => self::jpegtran_available(),
@@ -361,7 +361,7 @@ class MM_Status {
 			'ffmpeg'          => self::ffmpeg_available(),
 			'compress_daemon' => self::compress_daemon_running(),
 			'meta_daemon'     => self::meta_daemon_running(),
-		];
+		);
 	}
 
 	/**
@@ -383,12 +383,12 @@ class MM_Status {
 		$meta_queue     = 0;
 		$completed      = 0;
 		$failed         = 0;
-		foreach ( [
+		foreach ( array(
 			'compress'  => 'compress_queue',
 			'meta'      => 'meta_queue',
 			'completed' => 'completed',
 			'failed'    => 'failed',
-		] as $dir => $key ) {
+		) as $dir => $key ) {
 			$path = $job_root . '/' . $dir;
 			if ( is_dir( $path ) ) {
 				$$key = count( glob( $path . '/*.json' ) ) + count( glob( $path . '/*.json.processing' ) );

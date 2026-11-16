@@ -29,10 +29,10 @@ $exclude_sitemap  = ! empty( $meta['exclude_sitemap'] );
 	<th scope="row">Robots</th>
 	<td>
 		<?php
-		foreach ( [
+		foreach ( array(
 			'noindex'  => 'Noindex',
 			'nofollow' => 'Nofollow',
-		] as $field => $label ) :
+		) as $field => $label ) :
 			$current = $$field;
 			?>
 		<fieldset style="margin-bottom:6px">

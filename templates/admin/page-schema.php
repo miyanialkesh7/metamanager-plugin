@@ -7,9 +7,9 @@
 defined( 'ABSPATH' ) || exit;
 $opt        = MM_META_OPT_SETTINGS;
 $s          = $settings;
-$post_types = get_post_types( [ 'public' => true ], 'objects' );
+$post_types = get_post_types( array( 'public' => true ), 'objects' );
 unset( $post_types['attachment'] );
-$pt_types = $s->get( 'schema.post_type_types', [] );
+$pt_types = $s->get( 'schema.post_type_types', array() );
 
 $schema_types = MM_Schema_Types::get_schema_types();
 ?>

@@ -26,103 +26,103 @@ class MM_Metadata_Admin {
 	 *   'inner_form'   => Template manages its own <form> tag (no outer wrapper).
 	 * ]
 	 */
-	private array $pages = [
-		'metamanager-business' => [
+	private array $pages = array(
+		'metamanager-business' => array(
 			'label'        => 'Business Profile',
 			'option_group' => 'mm_meta_business_group',
 			'section'      => null,
 			'template'     => 'business',
 			'inner_form'   => false,
-		],
-		'mm-meta-titles'       => [
+		),
+		'mm-meta-titles'       => array(
 			'label'        => 'Titles',
 			'option_group' => 'mm_meta_titles_group',
 			'section'      => 'titles',
 			'template'     => 'titles',
 			'inner_form'   => false,
-		],
-		'mm-meta-social'       => [
+		),
+		'mm-meta-social'       => array(
 			'label'        => 'Social',
 			'option_group' => 'mm_meta_social_group',
 			'section'      => 'social',
 			'template'     => 'social',
 			'inner_form'   => false,
-		],
-		'mm-meta-schema'       => [
+		),
+		'mm-meta-schema'       => array(
 			'label'        => 'Schema',
 			'option_group' => 'mm_meta_schema_group',
 			'section'      => 'schema',
 			'template'     => 'schema',
 			'inner_form'   => false,
-		],
-		'mm-meta-sitemaps'     => [
+		),
+		'mm-meta-sitemaps'     => array(
 			'label'        => 'Sitemaps',
 			'option_group' => 'mm_meta_sitemaps_group',
 			'section'      => 'sitemap',
 			'template'     => 'sitemaps',
 			'inner_form'   => false,
-		],
-		'mm-meta-robots'       => [
+		),
+		'mm-meta-robots'       => array(
 			'label'        => 'Robots.txt',
 			'option_group' => 'mm_meta_robots_group',
 			'section'      => 'robots',
 			'template'     => 'robots',
 			'inner_form'   => false,
-		],
-		'mm-meta-authors'      => [
+		),
+		'mm-meta-authors'      => array(
 			'label'        => 'Authors',
 			'option_group' => 'mm_meta_authors_group',
 			'section'      => 'authors',
 			'template'     => 'authors',
 			'inner_form'   => false,
-		],
-		'mm-meta-hygiene'      => [
+		),
+		'mm-meta-hygiene'      => array(
 			'label'        => 'Hygiene',
 			'option_group' => 'mm_meta_hygiene_group',
 			'section'      => 'hygiene',
 			'template'     => 'hygiene',
 			'inner_form'   => false,
-		],
-		'mm-meta-feed'         => [
+		),
+		'mm-meta-feed'         => array(
 			'label'        => 'RSS Feed',
 			'option_group' => 'mm_meta_feed_group',
 			'section'      => 'feed',
 			'template'     => 'feed',
 			'inner_form'   => false,
-		],
-		'mm-meta-links'        => [
+		),
+		'mm-meta-links'        => array(
 			'label'        => 'Links',
 			'option_group' => 'mm_meta_links_group',
 			'section'      => 'links',
 			'template'     => 'links',
 			'inner_form'   => true,
-		],
-		'mm-meta-tools'        => [
+		),
+		'mm-meta-tools'        => array(
 			'label'        => 'Tools',
 			'option_group' => null,
 			'section'      => null,
 			'template'     => 'tools',
 			'inner_form'   => true,
-		],
-		'mm-meta-listing'      => [
+		),
+		'mm-meta-listing'      => array(
 			'label'        => 'Button Styles',
 			'option_group' => 'mm_meta_listing_group',
 			'section'      => 'listing',
 			'template'     => 'listing',
 			'inner_form'   => false,
-		],
-	];
+		),
+	);
 
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
 	public function register_hooks(): void {
-		add_action( 'admin_menu', [ $this, 'register_menu' ] );
-		add_action( 'admin_init', [ $this, 'register_settings' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-		add_action( 'current_screen', [ $this, 'add_help_tabs' ] );
-		add_action( 'wp_ajax_mm_meta_tools_action', [ $this, 'ajax_tools_action' ] );
+		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'current_screen', array( $this, 'add_help_tabs' ) );
+		add_action( 'wp_ajax_mm_meta_tools_action', array( $this, 'ajax_tools_action' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -133,7 +133,7 @@ class MM_Metadata_Admin {
 		// Note: the top-level 'metamanager' menu is registered by MM_Admin::add_menu().
 		// This class only registers its submenu pages under that existing parent.
 
-		add_submenu_page( 'metamanager', 'Business Profile — Metamanager', 'Business Profile', 'manage_options', 'metamanager-business', [ $this, 'render_business' ] );
+		add_submenu_page( 'metamanager', 'Business Profile — Metamanager', 'Business Profile', 'manage_options', 'metamanager-business', array( $this, 'render_business' ) );
 		add_submenu_page( 'metamanager', 'Titles — Metamanager', 'Titles', 'manage_options', 'mm-meta-titles', fn() => $this->render( 'mm-meta-titles' ) );
 		add_submenu_page( 'metamanager', 'Social — Metamanager', 'Social', 'manage_options', 'mm-meta-social', fn() => $this->render( 'mm-meta-social' ) );
 		add_submenu_page( 'metamanager', 'Sitemaps — Metamanager', 'Sitemaps', 'manage_options', 'mm-meta-sitemaps', fn() => $this->render( 'mm-meta-sitemaps' ) );
@@ -155,9 +155,9 @@ class MM_Metadata_Admin {
 		register_setting(
 			'mm_meta_business_group',
 			MM_META_OPT_BUSINESS,
-			[
-				'sanitize_callback' => [ $this, 'sanitize_business' ],
-			]
+			array(
+				'sanitize_callback' => array( $this, 'sanitize_business' ),
+			)
 		);
 
 		// Each section registers its own group → same shared option key.
@@ -166,7 +166,7 @@ class MM_Metadata_Admin {
 		// on a shared option is destructive because they chain in sanitize_option():
 		// each callback reloads from DB via get_option(), so the POST data from the
 		// form is lost by the time the matching section's callback fires.
-		$section_groups = [
+		$section_groups = array(
 			'mm_meta_titles_group'   => 'titles',
 			'mm_meta_social_group'   => 'social',
 			'mm_meta_schema_group'   => 'schema',
@@ -177,7 +177,7 @@ class MM_Metadata_Admin {
 			'mm_meta_feed_group'     => 'feed',
 			'mm_meta_links_group'    => 'links',
 			'mm_meta_listing_group'  => 'listing',
-		];
+		);
 
 		foreach ( $section_groups as $group => $section ) {
 			register_setting( $group, MM_META_OPT_SETTINGS );
@@ -187,9 +187,9 @@ class MM_Metadata_Admin {
 		register_setting(
 			MM_Mod_Business_Contact::OPT_GROUP,
 			MM_Mod_Business_Contact::OPT_STYLE,
-			[
-				'sanitize_callback' => [ $this, 'sanitize_contact_style' ],
-			]
+			array(
+				'sanitize_callback' => array( $this, 'sanitize_contact_style' ),
+			)
 		);
 	}
 
@@ -239,7 +239,7 @@ class MM_Metadata_Admin {
 	// -------------------------------------------------------------------------
 
 	public function enqueue_assets( string $hook ): void {
-		$gcm_hooks = [
+		$gcm_hooks = array(
 			'metamanager_page_metamanager-business',
 			'metamanager_page_mm-meta-titles',
 			'metamanager_page_mm-meta-social',
@@ -251,28 +251,28 @@ class MM_Metadata_Admin {
 			'metamanager_page_mm-meta-feed',
 			'metamanager_page_mm-meta-links',
 			'metamanager_page_mm-meta-tools',
-		];
+		);
 
 		if ( ! in_array( $hook, $gcm_hooks, true ) ) {
 			return;
 		}
 
-		wp_enqueue_style( 'mm-meta-admin', MM_META_URL . 'assets/css/metadata-admin.css', [], MM_META_VERSION );
+		wp_enqueue_style( 'mm-meta-admin', MM_META_URL . 'assets/css/metadata-admin.css', array(), MM_META_VERSION );
 		wp_enqueue_media();
 
-		wp_enqueue_script( 'mm-meta-admin-repeater', MM_META_URL . 'assets/js/admin-repeater.js', [ 'jquery', 'jquery-ui-sortable' ], MM_META_VERSION, true );
-		wp_enqueue_script( 'mm-meta-admin-media', MM_META_URL . 'assets/js/admin-media.js', [ 'jquery' ], MM_META_VERSION, true );
-		wp_enqueue_script( 'mm-meta-admin-tabs', MM_META_URL . 'assets/js/admin-tabs.js', [], MM_META_VERSION, true );
+		wp_enqueue_script( 'mm-meta-admin-repeater', MM_META_URL . 'assets/js/admin-repeater.js', array( 'jquery', 'jquery-ui-sortable' ), MM_META_VERSION, true );
+		wp_enqueue_script( 'mm-meta-admin-media', MM_META_URL . 'assets/js/admin-media.js', array( 'jquery' ), MM_META_VERSION, true );
+		wp_enqueue_script( 'mm-meta-admin-tabs', MM_META_URL . 'assets/js/admin-tabs.js', array(), MM_META_VERSION, true );
 
 		if ( 'metamanager_page_mm-meta-links' === $hook ) {
-			wp_enqueue_script( 'mm-meta-admin-links', MM_META_URL . 'assets/js/admin-links.js', [ 'jquery' ], MM_META_VERSION, true );
+			wp_enqueue_script( 'mm-meta-admin-links', MM_META_URL . 'assets/js/admin-links.js', array( 'jquery' ), MM_META_VERSION, true );
 			wp_localize_script(
 				'mm-meta-admin-links',
 				'gcmLinks',
-				[
+				array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
 					'nonce'    => wp_create_nonce( 'mm_meta_links_nonce' ),
-				]
+				)
 			);
 		}
 	}
@@ -323,7 +323,7 @@ class MM_Metadata_Admin {
 	 * Hooked to current_screen so $screen is already resolved.
 	 */
 	public function add_help_tabs( \WP_Screen $screen ): void {
-		$map = [
+		$map = array(
 			'metamanager_page_metamanager-business' => 'business',
 			'metamanager_page_mm-meta-titles'       => 'titles',
 			'metamanager_page_mm-meta-social'       => 'social',
@@ -335,7 +335,7 @@ class MM_Metadata_Admin {
 			'metamanager_page_mm-meta-feed'         => 'feed',
 			'metamanager_page_mm-meta-links'        => 'links',
 			'metamanager_page_mm-meta-tools'        => 'tools',
-		];
+		);
 
 		if ( ! isset( $map[ $screen->id ] ) ) {
 			return;
@@ -345,11 +345,11 @@ class MM_Metadata_Admin {
 
 		// Overview tab — every page gets one.
 		$screen->add_help_tab(
-			[
+			array(
 				'id'      => 'mm_meta_overview',
 				'title'   => __( 'Overview', 'metamanager' ),
 				'content' => MM_Metadata_Help::overview( $page ),
-			]
+			)
 		);
 
 		// Page-specific tabs.

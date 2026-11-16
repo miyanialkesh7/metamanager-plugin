@@ -13,7 +13,7 @@ class MM_Mod_Media_Display {
 		$settings = MM_Site_Settings::get_instance();
 
 		if ( $settings->get( 'media.featured_image_citation', false ) ) {
-			add_filter( 'wp_get_attachment_image', [ $this, 'filter_featured_image_citation' ], 10, 5 );
+			add_filter( 'wp_get_attachment_image', array( $this, 'filter_featured_image_citation' ), 10, 5 );
 		}
 	}
 
@@ -49,7 +49,7 @@ class MM_Mod_Media_Display {
 		$owner     = $meta( MM_Metadata::META_OWNER );
 		$date      = $meta( MM_Metadata::META_DATE );
 
-		$parts = [];
+		$parts = array();
 
 		if ( $creator ) {
 			$parts[] = esc_html( $creator );

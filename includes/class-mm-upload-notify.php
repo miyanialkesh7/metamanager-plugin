@@ -39,19 +39,19 @@ class MM_Upload_Notify {
 
 	public static function init(): void {
 		// Queue each raw upload into the current batch.
-		add_action( 'add_attachment', [ __CLASS__, 'on_attachment_added' ] );
+		add_action( 'add_attachment', array( __CLASS__, 'on_attachment_added' ) );
 
 		// Cron: send accumulated batch.
-		add_action( self::CRON_EVENT, [ __CLASS__, 'send_batch' ] );
+		add_action( self::CRON_EVENT, array( __CLASS__, 'send_batch' ) );
 
 		// Admin UI: show failed-notice warnings with Retry button.
-		add_action( 'admin_notices', [ __CLASS__, 'show_failed_notices' ] );
+		add_action( 'admin_notices', array( __CLASS__, 'show_failed_notices' ) );
 
 		// AJAX: retry a failed notification entry.
-		add_action( 'wp_ajax_mm_retry_upload_notice', [ __CLASS__, 'ajax_retry_notice' ] );
+		add_action( 'wp_ajax_mm_retry_upload_notice', array( __CLASS__, 'ajax_retry_notice' ) );
 
 		// AJAX: dismiss (delete without retry) a failed notification entry.
-		add_action( 'wp_ajax_mm_dismiss_upload_notice', [ __CLASS__, 'ajax_dismiss_notice' ] );
+		add_action( 'wp_ajax_mm_dismiss_upload_notice', array( __CLASS__, 'ajax_dismiss_notice' ) );
 
 		// Per-user receipt preference is rendered by MM_User_Meta_Panel (user-metadata.php).
 		// No separate profile field needed here.
@@ -73,15 +73,15 @@ class MM_Upload_Notify {
 		// Read current batch (may not yet exist).
 		$batch = get_transient( self::BATCH_TRANSIENT );
 		if ( ! is_array( $batch ) ) {
-			$batch = [];
+			$batch = array();
 		}
 
 		// Append this item.
-		$batch[] = [
+		$batch[] = array(
 			'attachment_id' => $attachment_id,
 			'user_id'       => $user_id,
 			'added_at'      => time(),
-		];
+		);
 
 		// Persist with a TTL long enough to survive the batch window.
 		set_transient( self::BATCH_TRANSIENT, $batch, self::BATCH_DELAY + 120 );
@@ -114,7 +114,7 @@ class MM_Upload_Notify {
 		$admin_mail = (string) get_option( 'admin_email', '' );
 
 		// Group items by user_id so each uploader gets their own section.
-		$by_user = [];
+		$by_user = array();
 		foreach ( $batch as $item ) {
 			$uid               = (int) ( $item['user_id'] ?? 0 );
 			$by_user[ $uid ][] = (int) $item['attachment_id'];
@@ -183,7 +183,7 @@ class MM_Upload_Notify {
 			);
 
 			// Build body with per-user grouping for the admin.
-			$intro_lines = [ __( 'The following images were uploaded to the Media Library:', 'metamanager' ), '' ];
+			$intro_lines = array( __( 'The following images were uploaded to the Media Library:', 'metamanager' ), '' );
 			foreach ( $by_user as $uid => $ids ) {
 				$user     = $uid > 0 ? get_userdata( $uid ) : false;
 				$uploader = $user ? $user->display_name . ' <' . $user->user_email . '>' : __( '(unknown user)', 'metamanager' );
@@ -226,7 +226,7 @@ class MM_Upload_Notify {
 				count( $all_ids )
 			);
 
-			$body_lines = [ __( 'The following images were uploaded to the Media Library:', 'metamanager' ), '' ];
+			$body_lines = array( __( 'The following images were uploaded to the Media Library:', 'metamanager' ), '' );
 			foreach ( $all_ids as $id ) {
 				$title        = html_entity_decode( (string) get_the_title( $id ), ENT_QUOTES );
 				$url          = wp_get_attachment_url( $id );
@@ -262,7 +262,7 @@ class MM_Upload_Notify {
 	 */
 	private static function send_mail( string $to, string $subject, string $body ): bool {
 		try {
-			$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
+			$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 			$sent    = wp_mail( $to, $subject, $body, $headers );
 		} catch ( \Throwable $e ) {
 			error_log( '[Metamanager] wp_mail() threw an exception: ' . $e->getMessage() );
@@ -295,7 +295,7 @@ class MM_Upload_Notify {
 
 		$key = md5( $to . $subject . implode( ',', $attachment_ids ) . (string) time() );
 
-		$failures[ $key ] = [
+		$failures[ $key ] = array(
 			'key'            => $key,
 			'to'             => $to,
 			'subject'        => $subject,
@@ -304,7 +304,7 @@ class MM_Upload_Notify {
 			'user_id'        => $user_id,
 			'failed_at'      => time(),
 			'retry_count'    => 0,
-		];
+		);
 
 		update_option( self::FAILED_OPTION, $failures, false );
 
@@ -330,7 +330,7 @@ class MM_Upload_Notify {
 		}
 
 		foreach ( $failures as $key => $entry ) {
-			$count   = count( (array) ( $entry['attachment_ids'] ?? [] ) );
+			$count   = count( (array) ( $entry['attachment_ids'] ?? array() ) );
 			$to      = esc_html( $entry['to'] ?? '' );
 			$retries = (int) ( $entry['retry_count'] ?? 0 );
 			$date    = wp_date(
@@ -501,7 +501,7 @@ class MM_Upload_Notify {
 		string $site_url
 	): string {
 		$site_name = wp_specialchars_decode( (string) get_option( 'blogname', 'WordPress' ), ENT_QUOTES );
-		$lines     = [ $greeting, '', $intro, '' ];
+		$lines     = array( $greeting, '', $intro, '' );
 		foreach ( $ids as $id ) {
 			$title   = html_entity_decode( (string) get_the_title( $id ), ENT_QUOTES );
 			$url     = wp_get_attachment_url( $id );
@@ -547,7 +547,7 @@ class MM_Upload_Notify {
 	 * @return array<string, array<string, mixed>>
 	 */
 	public static function get_failed_notices(): array {
-		$value = get_option( self::FAILED_OPTION, [] );
-		return is_array( $value ) ? $value : [];
+		$value = get_option( self::FAILED_OPTION, array() );
+		return is_array( $value ) ? $value : array();
 	}
 }

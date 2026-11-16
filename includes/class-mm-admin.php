@@ -35,8 +35,8 @@ class MM_Admin {
 	 * The arrays list which of the $all_fields keys are writable for that level.
 	 * The JS uses data-write-cap on each grid item to show/hide fields dynamically.
 	 */
-	private const FIELD_COMPAT = [
-		'full'        => [
+	private const FIELD_COMPAT = array(
+		'full'        => array(
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_OWNER,
@@ -48,8 +48,8 @@ class MM_Admin {
 			MM_Metadata::META_STATE,
 			MM_Metadata::META_COUNTRY,
 			MM_Metadata::META_RATING,
-		],
-		'xmp_only'    => [
+		),
+		'xmp_only'    => array(
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_HEADLINE,
@@ -60,15 +60,15 @@ class MM_Admin {
 			MM_Metadata::META_STATE,
 			MM_Metadata::META_COUNTRY,
 			MM_Metadata::META_RATING,
-		],
-		'vorbis_only' => [
+		),
+		'vorbis_only' => array(
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_HEADLINE,
 			MM_Metadata::META_KEYWORDS,
 			MM_Metadata::META_DATE,
-		],
-	];
+		),
+	);
 
 	/**
 	 * Register all admin hooks.
@@ -76,62 +76,62 @@ class MM_Admin {
 	 */
 	public static function init(): void {
 		// Menu.
-		add_action( 'admin_menu', [ __CLASS__, 'add_menu' ] );
+		add_action( 'admin_menu', array( __CLASS__, 'add_menu' ) );
 
 		// Dashboard widget.
-		add_action( 'wp_dashboard_setup', [ __CLASS__, 'register_dashboard_widget' ] );
+		add_action( 'wp_dashboard_setup', array( __CLASS__, 'register_dashboard_widget' ) );
 
 		// Status banner on Media Library and our own pages.
-		add_action( 'admin_notices', [ __CLASS__, 'status_banner' ] );
+		add_action( 'admin_notices', array( __CLASS__, 'status_banner' ) );
 
 		// Media Library column.
-		add_filter( 'manage_upload_columns', [ __CLASS__, 'add_media_column' ] );
-		add_action( 'manage_media_custom_column', [ __CLASS__, 'render_media_column' ], 10, 2 );
+		add_filter( 'manage_upload_columns', array( __CLASS__, 'add_media_column' ) );
+		add_action( 'manage_media_custom_column', array( __CLASS__, 'render_media_column' ), 10, 2 );
 
 		// Per-image metadata pane (single image edit screen).
-		add_action( 'edit_form_advanced', [ __CLASS__, 'render_attachment_meta_pane' ] );
+		add_action( 'edit_form_advanced', array( __CLASS__, 'render_attachment_meta_pane' ) );
 
 		// Bulk actions.
-		add_filter( 'bulk_actions-upload', [ __CLASS__, 'register_bulk_actions' ] );
-		add_filter( 'handle_bulk_actions-upload', [ __CLASS__, 'handle_bulk_actions' ], 10, 3 );
-		add_action( 'admin_notices', [ __CLASS__, 'bulk_action_notices' ] );
+		add_filter( 'bulk_actions-upload', array( __CLASS__, 'register_bulk_actions' ) );
+		add_filter( 'handle_bulk_actions-upload', array( __CLASS__, 'handle_bulk_actions' ), 10, 3 );
+		add_action( 'admin_notices', array( __CLASS__, 'bulk_action_notices' ) );
 
 		// Scripts and styles.
-		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 
 		// AJAX: live job dashboard.
-		add_action( 'wp_ajax_mm_jobs_refresh', [ __CLASS__, 'ajax_jobs_refresh' ] );
+		add_action( 'wp_ajax_mm_jobs_refresh', array( __CLASS__, 'ajax_jobs_refresh' ) );
 
 		// AJAX: dashboard widget system status refresh.
-		add_action( 'wp_ajax_mm_status_refresh', [ __CLASS__, 'ajax_status_refresh' ] );
+		add_action( 'wp_ajax_mm_status_refresh', array( __CLASS__, 'ajax_status_refresh' ) );
 
 		// Note: rest_api_init for register_rest_routes is registered unconditionally
 		// in metamanager.php so REST requests (which are not is_admin() context)
 		// also have the routes available.
 
 		// AJAX: re-queue a failed job.
-		add_action( 'wp_ajax_mm_requeue_job', [ __CLASS__, 'ajax_requeue_job' ] );
+		add_action( 'wp_ajax_mm_requeue_job', array( __CLASS__, 'ajax_requeue_job' ) );
 
 		// AJAX: scan existing library (import metadata for all un-synced images).
-		add_action( 'wp_ajax_mm_scan_library', [ __CLASS__, 'ajax_scan_library' ] );
+		add_action( 'wp_ajax_mm_scan_library', array( __CLASS__, 'ajax_scan_library' ) );
 
 		// AJAX: re-compress a single attachment from its edit screen.
-		add_action( 'wp_ajax_mm_recompress', [ __CLASS__, 'ajax_recompress' ] );
+		add_action( 'wp_ajax_mm_recompress', array( __CLASS__, 'ajax_recompress' ) );
 
 		// AJAX: apply shared metadata values to a batch of selected images.
-		add_action( 'wp_ajax_mm_apply_bulk_meta', [ __CLASS__, 'ajax_apply_bulk_meta' ] );
+		add_action( 'wp_ajax_mm_apply_bulk_meta', array( __CLASS__, 'ajax_apply_bulk_meta' ) );
 
 		// AJAX: search WooCommerce products for linking.
-		add_action( 'wp_ajax_mm_search_wc_products', [ __CLASS__, 'ajax_search_wc_products' ] );
+		add_action( 'wp_ajax_mm_search_wc_products', array( __CLASS__, 'ajax_search_wc_products' ) );
 
 		// Bulk spinner (lightweight UX touch on the Media Library).
-		add_action( 'admin_footer-upload.php', [ __CLASS__, 'bulk_spinner_markup' ] );
+		add_action( 'admin_footer-upload.php', array( __CLASS__, 'bulk_spinner_markup' ) );
 
 		// Contextual help tabs (appear in the top-right "Help" tab on WP screens).
-		add_action( 'current_screen', [ __CLASS__, 'add_help_tabs' ] );
+		add_action( 'current_screen', array( __CLASS__, 'add_help_tabs' ) );
 
 		// Job queue status notices (duplicate compression suppressed, metadata queued in sequence).
-		add_action( 'admin_notices', [ __CLASS__, 'queue_notices' ] );
+		add_action( 'admin_notices', array( __CLASS__, 'queue_notices' ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -143,20 +143,20 @@ class MM_Admin {
 	public static function add_help_tabs( \WP_Screen $screen ): void {
 		if ( 'metamanager_page_mm-site-assistant' === $screen->id ) {
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm-ai-overview',
 					'title'   => __( 'Site Assistant', 'metamanager' ),
 					'content' => '<p>' . esc_html__( 'The assistant acts only through this site\'s registered abilities. Reads (reports, listings) execute immediately. Writes appear as approval cards: Approve, Decline, or edit the input first. Destructive actions require typing CONFIRM. Every execution is written to the audit trail with actor, ability, input and outcome.', 'metamanager' ) . '</p>'
 						. '<p>' . esc_html__( 'Rate caps: 50 turns per session, 200 per user per day.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm-ai-provider',
 					'title'   => __( 'AI provider', 'metamanager' ),
 					'content' => '<p>' . esc_html__( 'The model runs through the WordPress AI Client: Settings > Connections holds the providers (Gemini = the google connector; install its provider plugin, ai-provider-for-google) and the API key (option connectors_ai_google_api_key). No provider configured? The assistant says so instead of guessing.', 'metamanager' ) . '</p>'
 						. '<p>' . esc_html__( 'Descriptions derive only from the native excerpt field (enabled for pages and posts).', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 			return;
 		}
@@ -164,7 +164,7 @@ class MM_Admin {
 		// Jobs dashboard help.
 		if ( 'toplevel_page_metamanager' === $screen->id ) {
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_overview',
 					'title'   => __( 'Overview', 'metamanager' ),
 					'content' =>
@@ -173,11 +173,11 @@ class MM_Admin {
 						'<p>' . esc_html__( 'The dashboard refreshes automatically every 5 seconds. You do not need to reload the page.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'The dashboard includes three sections: pending jobs, job history (completed/failed), and cron event history with last run times, status icons, and pass/fail counts.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Access to this dashboard and all write operations (bulk actions, re-queue, library scan) requires the Editor role or higher (edit_others_posts capability). Per-attachment actions such as recompressing or saving metadata on a single file respect normal WordPress ownership — Authors can act on their own uploads.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_queue',
 					'title'   => __( 'Pending Jobs', 'metamanager' ),
 					'content' =>
@@ -185,11 +185,11 @@ class MM_Admin {
 						'<p>' . esc_html__( 'Jobs enter the queue when you upload a media file, save metadata fields on an attachment edit screen, run Scan Existing Library from this dashboard, or trigger a bulk or batch action from the Media Library.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Each job is written as a small JSON file to one of two directories inside wp-content/metamanager-jobs/: compress/ for image compression jobs, and meta/ for metadata embedding jobs.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'The OS daemons watch these directories with inotifywait and process jobs immediately — no polling delay. Jobs disappear from this view as soon as a daemon processes them.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_history',
 					'title'   => __( 'Job Results', 'metamanager' ),
 					'content' =>
@@ -197,11 +197,11 @@ class MM_Admin {
 						'<p>' . esc_html__( 'After a daemon finishes a job it writes a result JSON to the completed/ or failed/ directory. WP-Cron reads these files every 60 seconds and records them in the database.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Completed jobs show the file size, dimensions (where applicable), timestamps, and the trigger that created the job (e.g. upload, edit, scan, batch apply, CLI). Failed jobs show a Re-queue button — click it to re-submit the original job file without any manual steps.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Use the search box to filter by file name, job type, or status. Clear History removes all records from the database but does not affect any media files.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_daemons',
 					'title'   => __( 'Daemons', 'metamanager' ),
 					'content' =>
@@ -216,11 +216,11 @@ class MM_Admin {
 						'<p>' . esc_html__( 'To restart a daemon from the server:', 'metamanager' ) . '</p>' .
 						'<code>sudo systemctl restart metamanager-compress-daemon</code><br>' .
 						'<code>sudo systemctl restart metamanager-meta-daemon</code>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_bulk_actions',
 					'title'   => __( 'Bulk Actions', 'metamanager' ),
 					'content' =>
@@ -229,11 +229,11 @@ class MM_Admin {
 						'<li><strong>' . esc_html__( 'Compress Lossless', 'metamanager' ) . '</strong> — ' . esc_html__( 'Queues lossless compression for all uncompressed files in the selection. Images: JPEG via jpegtran, PNG via optipng, WebP via cwebp. Video: container remux via ffmpeg. Files are only replaced if the result is smaller.', 'metamanager' ) . '</li>' .
 						'<li><strong>' . esc_html__( 'Inject Site Info into Metadata', 'metamanager' ) . '</strong> — ' . esc_html__( 'Writes Publisher (your site name) and Website (your site URL) into IPTC and XMP. This is neutral provenance — it never sets Creator, Copyright, or Owner.', 'metamanager' ) . '</li>' .
 						'</ul>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'title'   => __( 'Metadata Fields', 'metamanager' ),
 					'content' =>
 						'<h2>' . esc_html__( 'Metadata Fields', 'metamanager' ) . '</h2>' .
@@ -262,11 +262,11 @@ class MM_Admin {
 					'<tr><td style="padding:4px 8px;">Country</td><td style="padding:4px 8px;">Per-image field</td><td style="padding:4px 8px;">Yes — Batch Metadata</td></tr>' .
 					'</table>' .
 						'<p style="margin-top:.75em;">' . esc_html__( 'All per-image fields can be stamped across multiple images at once from the Batch Metadata page. Leave any field blank to leave it unchanged on the selected images.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_updates',
 					'title'   => __( 'Updates', 'metamanager' ),
 					'content' =>
@@ -274,11 +274,11 @@ class MM_Admin {
 						'<p>' . esc_html__( 'Metamanager integrates with the WordPress update system. New releases from the apt server appear automatically in Dashboard → Updates.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'To check immediately, go to Plugins → Installed Plugins and click the "Check for Updates" link next to Metamanager.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Daemon updates are triggered automatically by the plugin after every plugin update. The server\'s apt channel (test or stable) determines which daemon version is installed.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_cron',
 					'title'   => __( 'WP-Cron History', 'metamanager' ),
 					'content' =>
@@ -295,7 +295,7 @@ class MM_Admin {
 						'<li><strong>mm_write_status_json</strong> — ' . esc_html__( 'Writes the status JSON file consumed by GCM and monitoring tools.', 'metamanager' ) . '</li>' .
 						'</ul>' .
 						'<p>' . esc_html__( 'Cron history is visible in the dashboard widget under Metamanager → Dashboard, and in the status JSON file under the "cron" key.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->set_help_sidebar(
@@ -310,7 +310,7 @@ class MM_Admin {
 		// Media Library help sidebar addendum.
 		if ( 'upload' === $screen->id ) {
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_media_column',
 					'title'   => __( 'Compression Column', 'metamanager' ),
 					'content' =>
@@ -325,11 +325,11 @@ class MM_Admin {
 						'<li><strong style="color:#888;">' . esc_html__( 'Not compressed', 'metamanager' ) . '</strong> — ' . esc_html__( 'No compression job has run yet. Use Compress Lossless from the Bulk Actions menu.', 'metamanager' ) . '</li>' .
 						'</ul>' .
 						'<p><a href="' . esc_url( admin_url( 'admin.php?page=metamanager' ) ) . '">' . esc_html__( 'View Job Dashboard →', 'metamanager' ) . '</a></p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_media_meta_sync',
 					'title'   => __( 'Meta Sync Column', 'metamanager' ),
 					'content' =>
@@ -342,14 +342,14 @@ class MM_Admin {
 						'<li><strong style="color:#e54c3c;">' . esc_html__( 'Not embedded', 'metamanager' ) . '</strong> — ' . esc_html__( 'No metadata has been written to the file yet. Use Embed Metadata from the Bulk Actions menu, or save the attachment to trigger automatic embedding.', 'metamanager' ) . '</li>' .
 						'</ul>' .
 						'<p>' . esc_html__( 'Metadata embedding happens automatically on upload. You can also trigger it manually from the Media Library bulk actions or the attachment edit screen.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 		}
 
 		// Batch Metadata (Media Processing) help.
 		if ( 'metamanager_page_metamanager-bulk-meta' === $screen->id ) {
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_bulk_meta_overview',
 					'title'   => __( 'Overview', 'metamanager' ),
 					'content' =>
@@ -357,14 +357,14 @@ class MM_Admin {
 						'<p>' . esc_html__( 'This page lets you bulk-edit metadata fields across multiple media files at once. Select files, choose a field, set a value, and apply — the changes are saved to WordPress and queued for daemon embedding into the files.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Fields available for bulk editing: Creator, Copyright, Owner, Headline, Credit, Keywords, Date, City, State, Country, Rating.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Changes are applied immediately to WordPress post meta. A metadata write-back job is then queued for each affected file so the daemon embeds the new values into EXIF/IPTC/XMP.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 		}
 
 		// Settings page help.
 		if ( 'metamanager_page_metamanager-settings' === $screen->id ) {
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_settings_api',
 					'title'   => __( 'REST API Access', 'metamanager' ),
 					'content' =>
@@ -375,11 +375,11 @@ class MM_Admin {
 						'<li><strong>' . esc_html__( 'Allowed IP Addresses', 'metamanager' ) . '</strong> — ' . esc_html__( 'Restricts unauthenticated access to requests originating from the listed IPv4 or IPv6 addresses. Leave blank to allow requests from any IP. Logged-in users are not subject to this restriction.', 'metamanager' ) . '</li>' .
 						'</ul>' .
 						'<p>' . esc_html__( 'Normal WordPress authentication (X-WP-Nonce header or cookie) and capability checks still apply to all requests.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_settings_notify',
 					'title'   => __( 'Upload Receipts', 'metamanager' ),
 					'content' =>
@@ -390,11 +390,11 @@ class MM_Admin {
 						'<li><strong>' . esc_html__( 'Extra CC address', 'metamanager' ) . '</strong> — ' . esc_html__( 'An additional email address to CC on every upload receipt sent to the admin. Leave blank to send only to the admin address. Per-user receipts are controlled from each user\'s own profile page.', 'metamanager' ) . '</li>' .
 						'</ul>' .
 						'<p>' . esc_html__( 'If an email fails to send, an admin notice banner appears at the top of the dashboard with a one-click retry button. Dismiss it to discard the failed batch without retrying.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->add_help_tab(
-				[
+				array(
 					'id'      => 'mm_help_settings_data',
 					'title'   => __( 'Data & Uninstall', 'metamanager' ),
 					'content' =>
@@ -402,7 +402,7 @@ class MM_Admin {
 						'<p>' . esc_html__( 'By default, Metamanager leaves all data in place when the plugin is deleted — options, post meta, and the job log table are kept so nothing is lost on an accidental uninstall.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'Enable "Remove all data on uninstall" only when you are certain you want a clean removal. When this setting is on, deleting the plugin from the Plugins screen will permanently remove all plugin options, all custom post meta, the metamanager_jobs database table, and the job queue directory.', 'metamanager' ) . '</p>' .
 						'<p>' . esc_html__( 'The daemon services must be stopped and removed manually from the server.', 'metamanager' ) . '</p>',
-				]
+				)
 			);
 
 			$screen->set_help_sidebar(
@@ -427,7 +427,7 @@ class MM_Admin {
 			esc_html__( 'Metamanager', 'metamanager' ),
 			'edit_others_posts',
 			'metamanager',
-			[ __CLASS__, 'render_jobs_page' ],
+			array( __CLASS__, 'render_jobs_page' ),
 			'dashicons-media-code',
 			58
 		);
@@ -439,7 +439,7 @@ class MM_Admin {
 			esc_html__( 'Dashboard', 'metamanager' ),
 			'edit_others_posts',
 			'metamanager',
-			[ __CLASS__, 'render_jobs_page' ]
+			array( __CLASS__, 'render_jobs_page' )
 		);
 		add_submenu_page(
 			'metamanager',
@@ -447,7 +447,7 @@ class MM_Admin {
 			esc_html__( 'Media Processing', 'metamanager' ),
 			'edit_others_posts',
 			'metamanager-bulk-meta',
-			[ __CLASS__, 'render_bulk_meta_page' ]
+			array( __CLASS__, 'render_bulk_meta_page' )
 		);
 	}
 
@@ -457,7 +457,7 @@ class MM_Admin {
 
 	public static function status_banner(): void {
 		global $pagenow;
-		$is_mm_page   = isset( $_GET['page'] ) && in_array( sanitize_key( $_GET['page'] ), [ 'metamanager-bulk-meta', 'metamanager-settings' ], true ); // phpcs:ignore WordPress.Security.NonceVerification
+		$is_mm_page   = isset( $_GET['page'] ) && in_array( sanitize_key( $_GET['page'] ), array( 'metamanager-bulk-meta', 'metamanager-settings' ), true ); // phpcs:ignore WordPress.Security.NonceVerification
 		$is_media_lib = ( 'upload.php' === $pagenow );
 
 		if ( ! $is_mm_page && ! $is_media_lib ) {
@@ -505,15 +505,15 @@ class MM_Admin {
 		wp_add_dashboard_widget(
 			'mm_system_status',
 			__( 'Metamanager System Status', 'metamanager' ),
-			[ __CLASS__, 'render_dashboard_widget' ]
+			array( __CLASS__, 'render_dashboard_widget' )
 		);
 	}
 
 	public static function render_dashboard_widget(): void {
 		$status    = MM_Status::system_status();
 		$updater   = self::get_updater_status();
-		$queues    = $updater['queues'] ?? [];
-		$cron_data = $updater['cron'] ?? [];
+		$queues    = $updater['queues'] ?? array();
+		$cron_data = $updater['cron'] ?? array();
 
 		$tool_icon = function ( bool $ok, string $ok_title, string $fail_title ) {
 			return $ok
@@ -718,7 +718,7 @@ class MM_Admin {
 			return null;
 		}
 		// Flatten for the dashboard widget.
-		return [
+		return array(
 			'installed_version'   => $data['daemon_version'] ?? null,
 			'last_check'          => $data['ts'] ?? '',
 			'last_update'         => '',
@@ -726,10 +726,10 @@ class MM_Admin {
 			'message'             => '',
 			'daemon_pid_compress' => $data['daemons']['compress']['pid'] ?? '',
 			'daemon_pid_meta'     => $data['daemons']['meta']['pid'] ?? '',
-			'queues'              => $data['queues'] ?? [],
-			'tools'               => $data['tools'] ?? [],
-			'cron'                => $data['cron'] ?? [],
-		];
+			'queues'              => $data['queues'] ?? array(),
+			'tools'               => $data['tools'] ?? array(),
+			'cron'                => $data['cron'] ?? array(),
+		);
 	}
 
 	// -----------------------------------------------------------------------
@@ -891,7 +891,7 @@ class MM_Admin {
 				echo '<span class="dashicons dashicons-warning" style="color:#e65100;flex-shrink:0;"></span>';
 				echo '<strong>' . esc_html__( 'Metadata write-back discrepancies detected', 'metamanager' ) . '</strong>';
 				echo '</div>';
-				$field_labels = [
+				$field_labels = array(
 					MM_Metadata::META_CREATOR   => __( 'Creator', 'metamanager' ),
 					MM_Metadata::META_COPYRIGHT => __( 'Copyright', 'metamanager' ),
 					MM_Metadata::META_OWNER     => __( 'Owner', 'metamanager' ),
@@ -901,7 +901,7 @@ class MM_Admin {
 					MM_Metadata::META_CITY      => __( 'City', 'metamanager' ),
 					MM_Metadata::META_STATE     => __( 'State', 'metamanager' ),
 					MM_Metadata::META_COUNTRY   => __( 'Country', 'metamanager' ),
-				];
+				);
 				echo '<ul style="margin:0;padding-left:20px;font-size:13px;">';
 				foreach ( $discrepancies as $meta_key => $diff ) {
 					$label    = isset( $field_labels[ $meta_key ] ) ? (string) $field_labels[ $meta_key ] : (string) $meta_key;
@@ -950,7 +950,7 @@ class MM_Admin {
 		}
 
 		// Show Metamanager-managed post meta values in a read-only table.
-		$meta_keys = [
+		$meta_keys = array(
 			MM_Metadata::META_CREATOR   => __( 'Creator', 'metamanager' ),
 			MM_Metadata::META_COPYRIGHT => __( 'Copyright', 'metamanager' ),
 			MM_Metadata::META_OWNER     => __( 'Owner', 'metamanager' ),
@@ -965,7 +965,7 @@ class MM_Admin {
 			MM_Metadata::META_GPS_LAT   => __( 'GPS Latitude', 'metamanager' ),
 			MM_Metadata::META_GPS_LON   => __( 'GPS Longitude', 'metamanager' ),
 			MM_Metadata::META_GPS_ALT   => __( 'GPS Altitude', 'metamanager' ),
-		];
+		);
 
 		echo '<div>';
 		echo '<table class="widefat striped" style="font-size:13px;">';
@@ -1128,14 +1128,14 @@ class MM_Admin {
 	private static function get_and_clear_queue_notices(): array {
 		$user_id = get_current_user_id();
 		if ( ! $user_id ) {
-			return [];
+			return array();
 		}
 		$key   = 'mm_queue_notices_' . $user_id;
-		$items = get_transient( $key ) ?: [];
+		$items = get_transient( $key ) ?: array();
 		if ( ! empty( $items ) ) {
 			delete_transient( $key );
 		}
-		return is_array( $items ) ? $items : [];
+		return is_array( $items ) ? $items : array();
 	}
 
 	/**
@@ -1146,7 +1146,7 @@ class MM_Admin {
 	 * @return string[]
 	 */
 	private static function format_notices_for_ajax( array $items ): array {
-		$messages = [];
+		$messages = array();
 		foreach ( $items as $item ) {
 			$name  = $item['name'];
 			$sizes = implode( ', ', array_unique( $item['sizes'] ) );
@@ -1228,19 +1228,19 @@ class MM_Admin {
 			if ( $is_video ) {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) && ! MM_Status::is_compressed( $id, 'full' ) ) {
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'bulk' ] );
+					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'bulk' ) );
 					++$count;
 				}
 				continue;
 			}
 
 			// Images: existing per-size logic.
-			$meta   = wp_get_attachment_metadata( $id ) ?: [];
+			$meta   = wp_get_attachment_metadata( $id ) ?: array();
 			$file   = get_attached_file( $id );
 			$queued = false;
 
 			if ( $file && file_exists( $file ) && ! MM_Status::is_compressed( $id, 'full' ) ) {
-				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'bulk' ] );
+				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'bulk' ) );
 				$queued = true;
 			}
 
@@ -1252,7 +1252,7 @@ class MM_Admin {
 					}
 					$img_path = $dir . $info['file'];
 					if ( file_exists( $img_path ) && ! MM_Status::is_compressed( $id, $size ) ) {
-						MM_Job_Queue::write_job( 'compression', $id, $img_path, $size, [ 'trigger' => 'bulk' ] );
+						MM_Job_Queue::write_job( 'compression', $id, $img_path, $size, array( 'trigger' => 'bulk' ) );
 						$queued = true;
 					}
 				}
@@ -1283,11 +1283,11 @@ class MM_Admin {
 				continue;
 			}
 			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'bulk_site_info' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'metadata', array( 'trigger' => 'bulk_site_info' ) );
 			} else {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) && MM_Metadata::can_write_meta( $mime ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'bulk_site_info' ] );
+					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', array( 'trigger' => 'bulk_site_info' ) );
 				}
 			}
 			++$count;
@@ -1307,17 +1307,17 @@ class MM_Admin {
 			wp_enqueue_script(
 				'mm-status',
 				MM_PLUGIN_URL . 'assets/js/mm-status.js',
-				[ 'jquery' ],
+				array( 'jquery' ),
 				MM_VERSION,
 				true
 			);
 			wp_localize_script(
 				'mm-status',
 				'MMStatus',
-				[
+				array(
 					'restUrl' => rest_url( 'metamanager/v1/compression-status' ),
 					'nonce'   => wp_create_nonce( 'wp_rest' ),
-				]
+				)
 			);
 			return;
 		}
@@ -1331,8 +1331,8 @@ class MM_Admin {
 				$lat = (string) get_post_meta( $post_id, MM_Metadata::META_GPS_LAT, true );
 				$lon = (string) get_post_meta( $post_id, MM_Metadata::META_GPS_LON, true );
 				if ( '' !== $lat && '' !== $lon ) {
-					wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', [], '1.9.4' );
-					wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', [], '1.9.4', true );
+					wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
+					wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true );
 					add_action(
 						'admin_footer',
 						function () use ( $lat, $lon ) {
@@ -1392,137 +1392,137 @@ class MM_Admin {
 		register_rest_route(
 			'metamanager/v1',
 			'/compression-status',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'rest_compression_status' ],
+				'callback'            => array( __CLASS__, 'rest_compression_status' ),
 				'permission_callback' => $auth_uploader,
-				'args'                => [
-					'ids' => [
+				'args'                => array(
+					'ids' => array(
 						'required'          => true,
 						'validate_callback' => fn( $v ) => is_array( $v ),
 						'sanitize_callback' => fn( $v ) => array_map( 'absint', (array) $v ),
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Job history (paginated, filterable) ---
 		register_rest_route(
 			'metamanager/v1',
 			'/jobs',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'rest_get_jobs' ],
+				'callback'            => array( __CLASS__, 'rest_get_jobs' ),
 				'permission_callback' => $auth_editor,
-				'args'                => [
-					'search'   => [
+				'args'                => array(
+					'search'   => array(
 						'type'    => 'string',
 						'default' => '',
-					],
-					'orderby'  => [
+					),
+					'orderby'  => array(
 						'type'    => 'string',
 						'default' => 'id',
-					],
-					'order'    => [
+					),
+					'order'    => array(
 						'type'    => 'string',
 						'default' => 'DESC',
-					],
-					'per_page' => [
+					),
+					'per_page' => array(
 						'type'    => 'integer',
 						'default' => 20,
 						'minimum' => 1,
 						'maximum' => 100,
-					],
-					'page'     => [
+					),
+					'page'     => array(
 						'type'    => 'integer',
 						'default' => 1,
 						'minimum' => 1,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Single job by DB ID ---
 		register_rest_route(
 			'metamanager/v1',
 			'/jobs/(?P<id>[0-9]+)',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'rest_get_job' ],
+				'callback'            => array( __CLASS__, 'rest_get_job' ),
 				'permission_callback' => $auth_editor,
-				'args'                => [
-					'id' => [
+				'args'                => array(
+					'id' => array(
 						'type'     => 'integer',
 						'required' => true,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Attachment compression + sync status ---
 		register_rest_route(
 			'metamanager/v1',
 			'/attachment/(?P<id>[0-9]+)/status',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'rest_attachment_status' ],
+				'callback'            => array( __CLASS__, 'rest_attachment_status' ),
 				'permission_callback' => $auth_uploader,
-				'args'                => [
-					'id' => [
+				'args'                => array(
+					'id' => array(
 						'type'     => 'integer',
 						'required' => true,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Queue compression for one attachment ---
 		register_rest_route(
 			'metamanager/v1',
 			'/attachment/(?P<id>[0-9]+)/compress',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'rest_compress_attachment' ],
+				'callback'            => array( __CLASS__, 'rest_compress_attachment' ),
 				'permission_callback' => $auth_editor,
-				'args'                => [
-					'id'    => [
+				'args'                => array(
+					'id'    => array(
 						'type'     => 'integer',
 						'required' => true,
-					],
-					'force' => [
+					),
+					'force' => array(
 						'type'    => 'boolean',
 						'default' => false,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Queue metadata embedding for one attachment ---
 		register_rest_route(
 			'metamanager/v1',
 			'/attachment/(?P<id>[0-9]+)/embed',
-			[
+			array(
 				'methods'             => 'POST',
-				'callback'            => [ __CLASS__, 'rest_embed_attachment' ],
+				'callback'            => array( __CLASS__, 'rest_embed_attachment' ),
 				'permission_callback' => $auth_editor,
-				'args'                => [
-					'id' => [
+				'args'                => array(
+					'id' => array(
 						'type'     => 'integer',
 						'required' => true,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		// --- Aggregate stats ---
 		register_rest_route(
 			'metamanager/v1',
 			'/stats',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'rest_get_stats' ],
+				'callback'            => array( __CLASS__, 'rest_get_stats' ),
 				'permission_callback' => $auth_editor,
-			]
+			)
 		);
 
 		// --- System status (daemon status, queues, tools) ---
@@ -1531,20 +1531,20 @@ class MM_Admin {
 		register_rest_route(
 			'metamanager/v1',
 			'/status',
-			[
+			array(
 				'methods'             => 'GET',
-				'callback'            => [ __CLASS__, 'rest_get_status' ],
+				'callback'            => array( __CLASS__, 'rest_get_status' ),
 				'permission_callback' => function () {
 					if ( ! is_user_logged_in() ) {
 						return new \WP_Error(
 							'rest_unauthorized',
 							__( 'Authentication required.', 'metamanager' ),
-							[ 'status' => 401 ]
+							array( 'status' => 401 )
 						);
 					}
 					return current_user_can( 'manage_options' );
 				},
-			]
+			)
 		);
 	}
 
@@ -1556,7 +1556,7 @@ class MM_Admin {
 	 */
 	public static function rest_compression_status( \WP_REST_Request $request ) {
 		$ids    = (array) $request->get_param( 'ids' );
-		$result = [];
+		$result = array();
 		foreach ( $ids as $id ) {
 			$result[ $id ] = MM_Status::compression_status( (int) $id );
 		}
@@ -1568,13 +1568,13 @@ class MM_Admin {
 	 */
 	public static function rest_get_jobs( \WP_REST_Request $request ) {
 		$result   = MM_DB::get_jobs(
-			[
+			array(
 				'search'   => (string) $request->get_param( 'search' ),
 				'orderby'  => (string) $request->get_param( 'orderby' ),
 				'order'    => (string) $request->get_param( 'order' ),
 				'per_page' => (int) $request->get_param( 'per_page' ),
 				'paged'    => (int) $request->get_param( 'page' ),
-			]
+			)
 		);
 		$response = rest_ensure_response( $result['jobs'] );
 		$response->header( 'X-WP-Total', (string) $result['total'] );
@@ -1588,7 +1588,7 @@ class MM_Admin {
 	public static function rest_get_job( \WP_REST_Request $request ) {
 		$job = MM_DB::get_job( (int) $request->get_param( 'id' ) );
 		if ( ! $job ) {
-			return new \WP_Error( 'not_found', __( 'Job not found.', 'metamanager' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Job not found.', 'metamanager' ), array( 'status' => 404 ) );
 		}
 		return rest_ensure_response( $job );
 	}
@@ -1599,14 +1599,14 @@ class MM_Admin {
 	public static function rest_attachment_status( \WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 		if ( ! get_post( $id ) ) {
-			return new \WP_Error( 'not_found', __( 'Attachment not found.', 'metamanager' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Attachment not found.', 'metamanager' ), array( 'status' => 404 ) );
 		}
 		return rest_ensure_response(
-			[
+			array(
 				'id'          => $id,
 				'compression' => MM_Status::compression_status( $id ),
 				'meta_synced' => MM_DB::has_any_completed_metadata( $id ),
-			]
+			)
 		);
 	}
 
@@ -1629,27 +1629,27 @@ class MM_Admin {
 			$detail = MM_Metadata::is_audio_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime )
 				? __( 'Audio files and PDFs do not have a compression step. Use the metadata import endpoint instead.', 'metamanager' )
 				: __( 'Attachment type is not supported for compression.', 'metamanager' );
-			return new \WP_Error( 'not_compressible', $detail, [ 'status' => 422 ] );
+			return new \WP_Error( 'not_compressible', $detail, array( 'status' => 422 ) );
 		}
 
 		if ( $is_video ) {
 			$file = get_attached_file( $id );
 			if ( ! $file || ! file_exists( $file ) ) {
-				return new \WP_Error( 'file_not_found', __( 'Video file not found on disk.', 'metamanager' ), [ 'status' => 404 ] );
+				return new \WP_Error( 'file_not_found', __( 'Video file not found on disk.', 'metamanager' ), array( 'status' => 404 ) );
 			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
+			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'rest_api' ) );
 		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'rest_api' ] );
+			MM_Job_Queue::enqueue_all_sizes( $id, array(), 'compression', array( 'trigger' => 'rest_api' ) );
 		}
 
 		return rest_ensure_response(
-			[
+			array(
 				'id'      => $id,
 				'queued'  => true,
 				'message' => $is_video
 					? __( 'Video remux job queued.', 'metamanager' )
 					: __( 'Compression jobs queued.', 'metamanager' ),
-			]
+			)
 		);
 	}
 
@@ -1673,7 +1673,7 @@ class MM_Admin {
 			return new \WP_Error(
 				'status_unavailable',
 				__( 'Status file not available.', 'metamanager' ),
-				[ 'status' => 404 ]
+				array( 'status' => 404 )
 			);
 		}
 
@@ -1683,7 +1683,7 @@ class MM_Admin {
 			return new \WP_Error(
 				'status_read_failed',
 				__( 'Failed to read status file.', 'metamanager' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
@@ -1692,7 +1692,7 @@ class MM_Admin {
 			return new \WP_Error(
 				'status_parse_failed',
 				__( 'Status file contains invalid JSON.', 'metamanager' ),
-				[ 'status' => 500 ]
+				array( 'status' => 500 )
 			);
 		}
 
@@ -1711,7 +1711,7 @@ class MM_Admin {
 		$mime = (string) get_post_mime_type( $id );
 
 		if ( ! get_post( $id ) ) {
-			return new \WP_Error( 'not_found', __( 'Attachment not found.', 'metamanager' ), [ 'status' => 404 ] );
+			return new \WP_Error( 'not_found', __( 'Attachment not found.', 'metamanager' ), array( 'status' => 404 ) );
 		}
 
 		$is_image = wp_attachment_is_image( $id );
@@ -1722,32 +1722,32 @@ class MM_Admin {
 			return new \WP_Error(
 				'not_embeddable',
 				__( 'Attachment type does not support metadata embedding.', 'metamanager' ),
-				[ 'status' => 422 ]
+				array( 'status' => 422 )
 			);
 		}
 
 		if ( $is_image ) {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'rest_api' ] );
+			MM_Job_Queue::enqueue_all_sizes( $id, array(), 'metadata', array( 'trigger' => 'rest_api' ) );
 		} else {
 			if ( ! MM_Metadata::can_write_meta( $mime ) ) {
 				return new \WP_Error(
 					'not_embeddable',
 					__( 'This file type does not support metadata writing.', 'metamanager' ),
-					[ 'status' => 422 ]
+					array( 'status' => 422 )
 				);
 			}
 			$file = get_attached_file( $id );
-			MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
+			MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', array( 'trigger' => 'rest_api' ) );
 		}
 
 		return rest_ensure_response(
-			[
+			array(
 				'id'      => $id,
 				'queued'  => true,
 				'message' => $is_image
 					? __( 'Metadata embedding jobs queued for all image sizes.', 'metamanager' )
 					: __( 'Metadata embedding job queued.', 'metamanager' ),
-			]
+			)
 		);
 	}
 
@@ -1927,7 +1927,7 @@ class MM_Admin {
 		$file     = $job_root . '/metamanager-status.json';
 		$json     = is_readable( $file ) ? @file_get_contents( $file ) : false;
 		$data     = $json ? json_decode( $json, true ) : null;
-		$queues   = $data['queues'] ?? [];
+		$queues   = $data['queues'] ?? array();
 
 		$installed_ver = $data['daemon_version'] ?? null;
 
@@ -1937,7 +1937,7 @@ class MM_Admin {
 			$daemon_status = '<span style="color:#d63638;font-weight:600;">Daemon not installed</span>';
 		}
 
-		$action_labels = [
+		$action_labels = array(
 			'ok'       => 'Up to date',
 			'updated'  => 'Updated successfully',
 			'updating' => 'Updating...',
@@ -1946,21 +1946,21 @@ class MM_Admin {
 			'ahead'    => 'Ahead of required',
 			'waiting'  => 'Waiting for plugin',
 			'none'     => 'None',
-		];
+		);
 		$action        = ( null !== $installed_ver ) ? 'ok' : 'error';
-		$color         = in_array( $action, [ 'ok', 'updated', 'ahead' ], true ) ? '#00a32a'
-			: ( in_array( $action, [ 'failed', 'error' ], true ) ? '#d63638' : '#dba617' );
+		$color         = in_array( $action, array( 'ok', 'updated', 'ahead' ), true ) ? '#00a32a'
+			: ( in_array( $action, array( 'failed', 'error' ), true ) ? '#d63638' : '#dba617' );
 		$updater_row   = '<span style="color:' . esc_attr( $color ) . ';font-weight:600;">'
 			. esc_html( $action_labels[ $action ] )
 			. '</span>';
 
 		wp_send_json_success(
-			[
+			array(
 				'queues'        => $queues,
 				'daemon_status' => $daemon_status,
 				'updater_row'   => $updater_row,
-				'cron'          => $data['cron'] ?? [],
-			]
+				'cron'          => $data['cron'] ?? array(),
+			)
 		);
 	}
 
@@ -2000,14 +2000,14 @@ class MM_Admin {
 		if ( MM_Memory_Manager::should_pause() ) {
 			MM_Memory_Manager::set_notice();
 			wp_send_json_success(
-				[
+				array(
 					'count'   => 0,
 					'offset'  => 0,
 					'total'   => 0,
 					'done'    => false,
 					'paused'  => true,
 					'message' => 'Memory limit reached — batch paused, will resume automatically.',
-				]
+				)
 			);
 		}
 		MM_Memory_Manager::clear_notice();
@@ -2018,7 +2018,7 @@ class MM_Admin {
 
 		// Include images plus all supported video and audio MIME types.
 		$all_mime_types = array_merge(
-			[ 'image' ],
+			array( 'image' ),
 			MM_Metadata::VIDEO_MIME_TYPES,
 			MM_Metadata::AUDIO_MIME_TYPES,
 			MM_Metadata::PDF_MIME_TYPES
@@ -2027,7 +2027,7 @@ class MM_Admin {
 		// Build the list of IDs that have no completed metadata job — history table
 		// is the single source of truth; no post_meta queries needed.
 		$all_ids     = get_posts(
-			[
+			array(
 				'post_type'      => 'attachment',
 				'post_mime_type' => $all_mime_types,
 				'post_status'    => 'inherit',
@@ -2035,7 +2035,7 @@ class MM_Admin {
 				'fields'         => 'ids',
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
-			]
+			)
 		);
 		$done_ids    = MM_DB::get_ids_with_completed_job( 'metadata' );
 		$pending_ids = array_values( array_diff( array_map( 'intval', $all_ids ), $done_ids ) );
@@ -2044,13 +2044,13 @@ class MM_Admin {
 
 		// Build candidate job data for memory-aware batch sizing.
 		$candidate_ids  = array_slice( $pending_ids, $offset, $max_batch );
-		$candidate_jobs = [];
+		$candidate_jobs = array();
 		foreach ( $candidate_ids as $id ) {
 			$mime = (string) get_post_mime_type( $id );
-			$job  = [
+			$job  = array(
 				'mime_type' => $mime,
 				'size'      => 'full',
-			];
+			);
 			if ( wp_attachment_is_image( $id ) ) {
 				$meta = wp_get_attachment_metadata( $id );
 				if ( $meta ) {
@@ -2070,18 +2070,18 @@ class MM_Admin {
 
 			// Queue daemon jobs — mirrors the on_upload() path for unsynced attachments.
 			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'scan' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'both', array( 'trigger' => 'scan' ) );
 			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'scan' ] );
+					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', array( 'trigger' => 'scan' ) );
+					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'scan' ) );
 				}
 			} elseif ( MM_Metadata::is_audio_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime ) ) {
 				if ( MM_Metadata::can_write_meta( $mime ) ) {
 					$file = get_attached_file( $id );
 					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
+						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', array( 'trigger' => 'scan' ) );
 					}
 				}
 			}
@@ -2093,12 +2093,12 @@ class MM_Admin {
 		$done       = empty( $batch ) || $new_offset >= $total;
 
 		wp_send_json_success(
-			[
+			array(
 				'count'  => $count,
 				'offset' => $new_offset,
 				'total'  => $total,
 				'done'   => $done,
-			]
+			)
 		);
 	}
 
@@ -2119,20 +2119,20 @@ class MM_Admin {
 			wp_send_json_error( __( 'Invalid or unsupported attachment.', 'metamanager' ) );
 		}
 
-		$meta = wp_get_attachment_metadata( $id ) ?: [];
+		$meta = wp_get_attachment_metadata( $id ) ?: array();
 
 		if ( MM_Metadata::is_video_mime( $mime ) ) {
 			$file = get_attached_file( $id );
 			if ( ! $file || ! file_exists( $file ) ) {
 				wp_send_json_error( __( 'File not found.', 'metamanager' ) );
 			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'manual' ] );
+			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'manual' ) );
 		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', [ 'trigger' => 'manual' ] );
+			MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', array( 'trigger' => 'manual' ) );
 		}
 
 		$notices = self::get_and_clear_queue_notices();
-		wp_send_json_success( [ 'notices' => self::format_notices_for_ajax( $notices ) ] );
+		wp_send_json_success( array( 'notices' => self::format_notices_for_ajax( $notices ) ) );
 	}
 
 	/**
@@ -2148,11 +2148,11 @@ class MM_Admin {
 			wp_send_json_error( 'Permission denied.' );
 		}
 
-		$raw_ids       = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
-		$raw_fields    = (array) wp_unslash( $_POST['fields'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated against $allowed_fields allowlist below
+		$raw_ids       = array_map( 'absint', (array) ( $_POST['ids'] ?? array() ) );
+		$raw_fields    = (array) wp_unslash( $_POST['fields'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated against $allowed_fields allowlist below
 		$also_compress = ! empty( $_POST['also_compress'] );
 
-		$allowed_fields = [
+		$allowed_fields = array(
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_OWNER,
@@ -2164,10 +2164,10 @@ class MM_Admin {
 			MM_Metadata::META_STATE,
 			MM_Metadata::META_COUNTRY,
 			MM_Metadata::META_RATING,
-		];
+		);
 
 		// Build sanitized field map — skip empty values (blank = leave unchanged).
-		$fields = [];
+		$fields = array();
 		foreach ( $allowed_fields as $key ) {
 			if ( isset( $raw_fields[ $key ] ) && $raw_fields[ $key ] !== '' ) {
 				if ( MM_Metadata::META_RATING === $key ) {
@@ -2195,7 +2195,7 @@ class MM_Admin {
 			if ( 'read_only' === $write_cap ) {
 				// Read-only formats: no metadata fields can be written.
 				if ( $also_compress ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
+					MM_Job_Queue::enqueue_all_sizes( $id, array(), 'compression', array( 'trigger' => 'batch_apply' ) );
 				}
 				++$count;
 				continue;
@@ -2212,17 +2212,17 @@ class MM_Admin {
 			}
 
 			if ( ! empty( $permitted ) && $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'batch_apply' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'both', array( 'trigger' => 'batch_apply' ) );
 			} elseif ( ! empty( $permitted ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'batch_apply' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'metadata', array( 'trigger' => 'batch_apply' ) );
 			} elseif ( $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, array(), 'compression', array( 'trigger' => 'batch_apply' ) );
 			}
 
 			++$count;
 		}
 
-		wp_send_json_success( [ 'count' => $count ] );
+		wp_send_json_success( array( 'count' => $count ) );
 	}
 
 	/**
@@ -2241,26 +2241,26 @@ class MM_Admin {
 
 		$search = sanitize_text_field( wp_unslash( $_GET['search'] ?? '' ) );
 		if ( ! $search ) {
-			wp_send_json_success( [] );
+			wp_send_json_success( array() );
 		}
 
 		$products = wc_get_products(
-			[
+			array(
 				's'       => $search,
 				'limit'   => 20,
 				'orderby' => 'title',
 				'order'   => 'ASC',
 				'return'  => 'objects',
-			]
+			)
 		);
 
-		$results = [];
+		$results = array();
 		foreach ( $products as $product ) {
-			$results[] = [
+			$results[] = array(
 				'id'    => $product->get_id(),
 				'title' => $product->get_name(),
 				'price' => $product->get_price_html(),
-			];
+			);
 		}
 
 		wp_send_json_success( $results );
@@ -2286,14 +2286,14 @@ class MM_Admin {
 	 * @param string $type        'ajax' (mm-page-link buttons) or 'url' (real hrefs).
 	 * @param array  $url_args    Extra query args used when $type === 'url'.
 	 */
-	private static function render_pagination( int $paged, int $total_pages, string $type = 'ajax', array $url_args = [] ): void {
+	private static function render_pagination( int $paged, int $total_pages, string $type = 'ajax', array $url_args = array() ): void {
 		if ( $total_pages <= 1 ) {
 			return;
 		}
 
 		// Which page numbers to show (always include 1, last, and a window around current).
 		$window = 1; // pages each side of current
-		$pages  = [];
+		$pages  = array();
 		for ( $i = 1; $i <= $total_pages; $i++ ) {
 			if ( $i === 1 || $i === $total_pages || abs( $i - $paged ) <= $window ) {
 				$pages[] = $i;
@@ -2305,17 +2305,17 @@ class MM_Admin {
 				return '<span class="tablenav-pages-navspan button disabled" aria-current="page">' . esc_html( (string) $i ) . '</span>';
 			}
 			if ( 'url' === $type ) {
-				$href = esc_url( add_query_arg( array_merge( $url_args, [ 'paged' => $i ] ), admin_url( 'upload.php' ) ) );
+				$href = esc_url( add_query_arg( array_merge( $url_args, array( 'paged' => $i ) ), admin_url( 'upload.php' ) ) );
 				return '<a class="button" href="' . $href . '">' . esc_html( (string) $i ) . '</a>';
 			}
 			return '<a class="mm-page-link button" data-paged="' . esc_attr( (string) $i ) . '" href="#">' . esc_html( (string) $i ) . '</a>';
 		};
 
 		$prev_href = $paged > 1 ? ( 'url' === $type
-			? esc_url( add_query_arg( array_merge( $url_args, [ 'paged' => $paged - 1 ] ), admin_url( 'upload.php' ) ) )
+			? esc_url( add_query_arg( array_merge( $url_args, array( 'paged' => $paged - 1 ) ), admin_url( 'upload.php' ) ) )
 			: '#' ) : '';
 		$next_href = $paged < $total_pages ? ( 'url' === $type
-			? esc_url( add_query_arg( array_merge( $url_args, [ 'paged' => $paged + 1 ] ), admin_url( 'upload.php' ) ) )
+			? esc_url( add_query_arg( array_merge( $url_args, array( 'paged' => $paged + 1 ) ), admin_url( 'upload.php' ) ) )
 			: '#' ) : '';
 
 		echo '<span class="pagination-links">';
@@ -2363,24 +2363,24 @@ class MM_Admin {
 
 		// Pending jobs — always shown in full, never paginated.
 		$pending_result = MM_DB::get_jobs(
-			[
+			array(
 				'search'   => $search,
 				'status'   => 'pending',
 				'per_page' => 500,
 				'orderby'  => 'submitted_at',
 				'order'    => 'ASC',
-			]
+			)
 		);
 		$pending_jobs   = $pending_result['jobs'];
 
 		// Completed / failed — paginated.
 		$done_result = MM_DB::get_jobs(
-			[
+			array(
 				'search'   => $search,
 				'status'   => 'not_pending',
 				'paged'    => $paged,
 				'per_page' => $per_page,
-			]
+			)
 		);
 		$done_jobs   = $done_result['jobs'];
 		$done_total  = $done_result['total'];
@@ -2511,7 +2511,7 @@ class MM_Admin {
 			? '<span style="color:#dba617;font-size:12px;">' . esc_html__( 'waiting…', 'metamanager' ) . '</span>'
 			: '<span style="white-space:nowrap;color:#50575e;font-size:12px;">' . esc_html( $job->completed_at ?? $job->submitted_at ) . '</span>';
 
-		$trigger_label = strtr( $job->job_trigger ?? '', [ '_' => ' ' ] );
+		$trigger_label = strtr( $job->job_trigger ?? '', array( '_' => ' ' ) );
 
 		return '<tr>'
 			. '<td>' . $file_cell . '</td>'
@@ -2570,26 +2570,26 @@ class MM_Admin {
 		$per_page = 24;
 
 		$all_mime_types = array_merge(
-			[ 'image' ],
+			array( 'image' ),
 			MM_Metadata::VIDEO_MIME_TYPES,
 			MM_Metadata::AUDIO_MIME_TYPES,
 			MM_Metadata::PDF_MIME_TYPES
 		);
 
-		$query_args = [
+		$query_args = array(
 			'post_type'      => 'attachment',
 			'post_mime_type' => $all_mime_types,
 			'post_status'    => 'inherit',
 			'numberposts'    => $per_page,
 			'offset'         => ( $paged - 1 ) * $per_page,
 			'fields'         => 'ids',
-		];
+		);
 		if ( $search ) {
 			$query_args['s'] = $search;
 		}
-		if ( $filter && in_array( $filter, [ 'image', 'video', 'audio', 'pdf' ], true ) ) {
+		if ( $filter && in_array( $filter, array( 'image', 'video', 'audio', 'pdf' ), true ) ) {
 			$query_args['post_mime_type'] = match ( $filter ) {
-				'image' => [ 'image' ],
+				'image' => array( 'image' ),
 				'video' => MM_Metadata::VIDEO_MIME_TYPES,
 				'audio' => MM_Metadata::AUDIO_MIME_TYPES,
 				'pdf'   => MM_Metadata::PDF_MIME_TYPES,
@@ -2608,53 +2608,53 @@ class MM_Admin {
 
 		// Compressible MIME types (must match CLI compressible_mimes).
 		$compressible = array_merge(
-			[ 'image/jpeg', 'image/png', 'image/webp', 'image/avif' ],
+			array( 'image/jpeg', 'image/png', 'image/webp', 'image/avif' ),
 			MM_Metadata::VIDEO_MIME_TYPES
 		);
 
 		// All metadata fields with their UI config.
-		$all_fields = [
-			MM_Metadata::META_CREATOR   => [
+		$all_fields = array(
+			MM_Metadata::META_CREATOR   => array(
 				'label'       => __( 'Creator', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_COPYRIGHT => [
+			),
+			MM_Metadata::META_COPYRIGHT => array(
 				'label'       => __( 'Copyright', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_OWNER     => [
+			),
+			MM_Metadata::META_OWNER     => array(
 				'label'       => __( 'Owner', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_HEADLINE  => [
+			),
+			MM_Metadata::META_HEADLINE  => array(
 				'label'       => __( 'Headline', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_CREDIT    => [
+			),
+			MM_Metadata::META_CREDIT    => array(
 				'label'       => __( 'Credit', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_KEYWORDS  => [
+			),
+			MM_Metadata::META_KEYWORDS  => array(
 				'label'       => __( 'Keywords', 'metamanager' ),
 				'placeholder' => 'tag1; tag2; tag3',
-			],
-			MM_Metadata::META_DATE      => [
+			),
+			MM_Metadata::META_DATE      => array(
 				'label'       => __( 'Date Created', 'metamanager' ),
 				'placeholder' => 'YYYY-MM-DD',
-			],
-			MM_Metadata::META_CITY      => [
+			),
+			MM_Metadata::META_CITY      => array(
 				'label'       => __( 'City', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_STATE     => [
+			),
+			MM_Metadata::META_STATE     => array(
 				'label'       => __( 'State / Province', 'metamanager' ),
 				'placeholder' => '',
-			],
-			MM_Metadata::META_COUNTRY   => [
+			),
+			MM_Metadata::META_COUNTRY   => array(
 				'label'       => __( 'Country', 'metamanager' ),
 				'placeholder' => '',
-			],
-		];
+			),
+		);
 		?>
 		<div class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Batch Metadata', 'metamanager' ); ?></h1>
@@ -2673,7 +2673,7 @@ class MM_Admin {
 				<?php
 				foreach ( $all_fields as $key => $cfg ) :
 					// Build comma-separated list of write-cap levels that support this field.
-					$caps = [];
+					$caps = array();
 					foreach ( self::FIELD_COMPAT as $level => $fields ) {
 						if ( in_array( $key, $fields, true ) ) {
 							$caps[] = $level;
@@ -2779,7 +2779,7 @@ class MM_Admin {
 								$gps_lat   = (string) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
 								$gps_lon   = (string) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
 								$gps_alt   = (string) get_post_meta( $id, MM_Metadata::META_GPS_ALT, true );
-								$loc       = implode( ', ', array_filter( [ $city, $country ] ) );
+								$loc       = implode( ', ', array_filter( array( $city, $country ) ) );
 								$write_cap = MM_Metadata::WRITE_CAPABILITY[ $mime ] ?? 'read_only';
 								?>
 								<div class="mm-grid-item"
@@ -2862,11 +2862,11 @@ else :
 									$paged,
 									$total_pages,
 									'url',
-									[
+									array(
 										's'          => $search,
 										'page'       => 'metamanager-bulk-meta',
 										'media_type' => $filter,
-									]
+									)
 								);
 								?>
 							</div>

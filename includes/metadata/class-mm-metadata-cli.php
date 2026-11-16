@@ -42,8 +42,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * @when after_wp_load
 	 */
 	public function export( array $args, array $assoc_args ): void {
-		$settings = get_option( MM_META_OPT_SETTINGS, [] );
-		$business = get_option( MM_META_OPT_BUSINESS, [] );
+		$settings = get_option( MM_META_OPT_SETTINGS, array() );
+		$business = get_option( MM_META_OPT_BUSINESS, array() );
 		$format   = $assoc_args['format'] ?? 'json';
 		$flags    = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
@@ -121,11 +121,11 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 
 		// Show diff.
 		if ( $has_settings ) {
-			$old = get_option( MM_META_OPT_SETTINGS, [] );
+			$old = get_option( MM_META_OPT_SETTINGS, array() );
 			$this->show_settings_diff( $old, $settings );
 		}
 		if ( $has_business ) {
-			$old = get_option( MM_META_OPT_BUSINESS, [] );
+			$old = get_option( MM_META_OPT_BUSINESS, array() );
 			$this->show_settings_diff( $old, $business, 'business' );
 		}
 
@@ -142,7 +142,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			update_option( MM_META_OPT_BUSINESS, $business, false );
 		}
 
-		$parts = [];
+		$parts = array();
 		if ( $has_settings ) {
 			$parts[] = 'settings'; }
 		if ( $has_business ) {
@@ -339,10 +339,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 
 		$response = wp_remote_get(
 			$url,
-			[
+			array(
 				'timeout'    => 15,
 				'user-agent' => 'GCM-SEO-CLI/1.0',
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -418,7 +418,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * @return array<string, mixed>
 	 */
 	private function flatten_array( array $array, string $prefix = '' ): array {
-		$result = [];
+		$result = array();
 		foreach ( $array as $key => $value ) {
 			$new_key = '' === $prefix ? $key : "{$prefix}.{$key}";
 			if ( is_array( $value ) && ! empty( $value ) ) {

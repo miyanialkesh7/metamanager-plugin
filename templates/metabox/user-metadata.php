@@ -52,7 +52,7 @@ $upload_receipt = MM_Upload_Notify::user_wants_receipt( $user->ID );
 	<tr>
 		<th><label for="mm_meta_social_<?php echo esc_attr( $field ); ?>"><?php echo esc_html( $label ); ?></label></th>
 		<td>
-			<input type="<?php echo in_array( $field, [ 'linkedin','instagram','website' ], true ) ? 'url' : 'text'; ?>"
+			<input type="<?php echo in_array( $field, array( 'linkedin', 'instagram', 'website' ), true ) ? 'url' : 'text'; ?>"
 					id="mm_meta_social_<?php echo esc_attr( $field ); ?>"
 					name="mm_meta_social_<?php echo esc_attr( $field ); ?>"
 					value="<?php echo esc_attr( $val ); ?>"

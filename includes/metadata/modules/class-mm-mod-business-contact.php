@@ -26,11 +26,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
 	public function register_hooks(): void {
-		add_action( 'init', [ $this, 'add_rewrite_rules' ] );
-				add_filter( 'query_vars', [ $this, 'add_query_var' ] );
-		add_action( 'template_redirect', [ $this, 'maybe_serve_download' ] );
-		add_action( 'widgets_init', [ $this, 'register_widget' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
+		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
+				add_filter( 'query_vars', array( $this, 'add_query_var' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_serve_download' ) );
+		add_action( 'widgets_init', array( $this, 'register_widget' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -60,13 +60,13 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		// Business card export.
 		$format = get_query_var( 'gcm_biz_export' );
 		if ( $format ) {
-			if ( ! in_array( $format, [ 'vcard', 'json', 'csv' ], true ) ) {
-				wp_die( esc_html__( 'Invalid export format.', 'metamanager' ), '', [ 'response' => 400 ] );
+			if ( ! in_array( $format, array( 'vcard', 'json', 'csv' ), true ) ) {
+				wp_die( esc_html__( 'Invalid export format.', 'metamanager' ), '', array( 'response' => 400 ) );
 			}
 
 			$biz = $this->settings->all_business();
 			if ( empty( $biz['name'] ) ) {
-				wp_die( esc_html__( 'No business profile configured.', 'metamanager' ), '', [ 'response' => 404 ] );
+				wp_die( esc_html__( 'No business profile configured.', 'metamanager' ), '', array( 'response' => 404 ) );
 			}
 
 			nocache_headers();
@@ -98,19 +98,19 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$phone = sanitize_text_field( $biz['phone'] ?? '' );
 		$email = sanitize_email( $biz['email'] ?? '' );
 		$url   = trailingslashit( home_url() );
-		$addr  = $biz['address'] ?? [];
+		$addr  = $biz['address'] ?? array();
 		$lat   = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$lng   = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
 		$logo  = esc_url_raw( $biz['logo_url'] ?? '' );
 		$slug  = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
 
-		$lines = [
+		$lines = array(
 			'BEGIN:VCARD',
 			'VERSION:3.0',
 			'FN:' . $name,
 			'ORG:' . $name,
 			'KIND:org',
-		];
+		);
 
 		if ( $phone ) {
 			$lines[] = 'TEL;TYPE=WORK,VOICE:' . $phone; }
@@ -136,8 +136,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$lines[] = 'PHOTO;VALUE=URI:' . $logo; }
 
 		// Social URLs
-		$accounts    = $biz['accounts'] ?? [];
-		$social_urls = [];
+		$accounts    = $biz['accounts'] ?? array();
+		$social_urls = array();
 		foreach ( $accounts as $platform => $url ) {
 			if ( ! empty( $url ) ) {
 				$social_urls[] = $url;
@@ -150,7 +150,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 
 		// Hours
-		$hours = $biz['hours'] ?? [];
+		$hours = $biz['hours'] ?? array();
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			foreach ( $hours as $group ) {
 				if ( empty( $group['days'] ) ) {
@@ -182,63 +182,63 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	private function serve_json( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
-		$addr = $biz['address'] ?? [];
+		$addr = $biz['address'] ?? array();
 		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
 
 		$lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
 
-		$data = [
+		$data = array(
 			'name'    => $name,
 			'phone'   => sanitize_text_field( $biz['phone'] ?? '' ),
 			'email'   => sanitize_email( $biz['email'] ?? '' ),
 			'url'     => trailingslashit( home_url() ),
 			'address' => array_filter(
-				[
+				array(
 					'street'  => sanitize_text_field( $addr['street'] ?? '' ),
 					'city'    => sanitize_text_field( $addr['city'] ?? '' ),
 					'state'   => sanitize_text_field( $addr['state'] ?? '' ),
 					'zip'     => sanitize_text_field( $addr['zip'] ?? '' ),
 					'country' => sanitize_text_field( $addr['country'] ?? '' ),
-				]
+				)
 			),
-		];
+		);
 		if ( null !== $lat ) {
 			$data['lat'] = $lat; }
 		if ( null !== $lng ) {
 			$data['lng'] = $lng; }
 
 		// Hours
-		$hours = $biz['hours'] ?? [];
+		$hours = $biz['hours'] ?? array();
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			$data['hours'] = array_map(
 				function ( $g ) {
-					return [
-						'days'   => array_values( (array) ( $g['days'] ?? [] ) ),
+					return array(
+						'days'   => array_values( (array) ( $g['days'] ?? array() ) ),
 						'open'   => $g['open'] ?? '',
 						'close'  => $g['close'] ?? '',
 						'closed' => ! empty( $g['closed'] ),
-					];
+					);
 				},
 				$hours
 			);
 		}
 
 		// Social links
-		$accounts = $biz['accounts'] ?? [];
+		$accounts = $biz['accounts'] ?? array();
 		$social   = array_filter( $accounts );
 		if ( $social ) {
 			$data['social'] = $social;
 		}
 
 		// Service areas
-		$areas = $biz['service_areas'] ?? [];
+		$areas = $biz['service_areas'] ?? array();
 		if ( ! empty( $areas ) ) {
 			$data['service_areas'] = array_values( $areas );
 		}
 
 		// Payment accepted
-		$payment = $biz['payment_accepted'] ?? [];
+		$payment = $biz['payment_accepted'] ?? array();
 		if ( ! empty( $payment ) ) {
 			$data['payment_accepted'] = array_values( $payment );
 		}
@@ -267,21 +267,21 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	private function serve_csv( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
-		$addr = $biz['address'] ?? [];
+		$addr = $biz['address'] ?? array();
 		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
 
-		$accounts     = $biz['accounts'] ?? [];
+		$accounts     = $biz['accounts'] ?? array();
 		$social_str   = '';
-		$social_parts = [];
+		$social_parts = array();
 		foreach ( $accounts as $platform => $url ) {
 			if ( ! empty( $url ) ) {
 				$social_parts[] = "$platform:$url"; }
 		}
 		$social_str = implode( '; ', $social_parts );
 
-		$hours       = $biz['hours'] ?? [];
+		$hours       = $biz['hours'] ?? array();
 		$hours_str   = '';
-		$hours_parts = [];
+		$hours_parts = array();
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			foreach ( $hours as $g ) {
 				if ( empty( $g['days'] ) ) {
@@ -294,8 +294,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 		$hours_str = implode( '; ', $hours_parts );
 
-		$headers = [ 'Name', 'Phone', 'Email', 'Website', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude', 'Hours', 'Social', 'Description', 'Price Range', 'Service Areas' ];
-		$row     = [
+		$headers = array( 'Name', 'Phone', 'Email', 'Website', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude', 'Hours', 'Social', 'Description', 'Price Range', 'Service Areas' );
+		$row     = array(
 			$name,
 			sanitize_text_field( $biz['phone'] ?? '' ),
 			sanitize_email( $biz['email'] ?? '' ),
@@ -311,8 +311,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$social_str,
 			wp_strip_all_tags( $biz['description'] ?? '' ),
 			sanitize_text_field( $biz['price_range'] ?? '' ),
-			implode( ', ', (array) ( $biz['service_areas'] ?? [] ) ),
-		];
+			implode( ', ', (array) ( $biz['service_areas'] ?? array() ) ),
+		);
 
 		header( 'Content-Type: text/csv; charset=UTF-8' );
 		header( 'Content-Disposition: attachment; filename="' . $slug . '.csv"' );
@@ -338,12 +338,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	private function serve_event_ical( int $event_id ): void {
 		$post = get_post( $event_id );
 		if ( ! $post || 'mm_event' !== $post->post_type ) {
-			wp_die( esc_html__( 'Event not found.', 'metamanager' ), '', [ 'response' => 404 ] );
+			wp_die( esc_html__( 'Event not found.', 'metamanager' ), '', array( 'response' => 404 ) );
 		}
 
 		$saved = get_post_meta( $post->ID, 'mm_schema_fields', true );
 		if ( ! is_array( $saved ) ) {
-			$saved = [];
+			$saved = array();
 		}
 
 		$start    = $saved['event_start_date'] ?? '';
@@ -360,7 +360,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$dtstart = $this->format_ical_date( $start );
 		$dtend   = $end ? $this->format_ical_date( $end ) : '';
 
-		$lines   = [];
+		$lines   = array();
 		$lines[] = 'BEGIN:VCALENDAR';
 		$lines[] = 'VERSION:2.0';
 		$lines[] = 'PRODID:-' . get_bloginfo( 'name' ) . '-Metamanager';
@@ -426,7 +426,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	 * Escape text for iCal (fold lines > 75 octets, escape special chars).
 	 */
 	private function escape_ical_text( string $text ): string {
-		$text = str_replace( [ '\\', ',', ';' ], [ '\\\\', '\\,', '\\;' ], $text );
+		$text = str_replace( array( '\\', ',', ';' ), array( '\\\\', '\\,', '\\;' ), $text );
 		$text = str_replace( "\n", '\\n', $text );
 		$text = str_replace( "\r", '', $text );
 		return $text;
@@ -448,7 +448,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		wp_enqueue_style(
 			'mm-meta-biz-contact',
 			MM_META_URL . 'assets/css/biz-contact.css',
-			[ 'dashicons' ],
+			array( 'dashicons' ),
 			MM_META_VERSION
 		);
 		// Attach the generated sitewide card CSS as a single inline block so it
@@ -490,32 +490,32 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$s    = MM_Site_Settings::get_instance();
 		$biz  = $s->all_business();
 		$key  = sanitize_text_field( $biz['google_maps_api_key'] ?? '' );
-		$addr = $biz['address'] ?? [];
+		$addr = $biz['address'] ?? array();
 
 		if ( empty( $key ) || empty( $addr['street'] ) ) {
 			return false;
 		}
 
 		$parts   = array_filter(
-			[
+			array(
 				$addr['street'] ?? '',
 				$addr['city'] ?? '',
 				$addr['state'] ?? '',
 				$addr['zip'] ?? '',
 				$addr['country'] ?? 'US',
-			]
+			)
 		);
 		$address = implode( ', ', $parts );
 
 		$url = add_query_arg(
-			[
+			array(
 				'address' => rawurlencode( $address ),
 				'key'     => $key,
-			],
+			),
 			'https://maps.googleapis.com/maps/api/geocode/json'
 		);
 
-		$response = wp_remote_get( $url, [ 'timeout' => 15 ] );
+		$response = wp_remote_get( $url, array( 'timeout' => 15 ) );
 		if ( is_wp_error( $response ) ) {
 			return false;
 		}
@@ -526,10 +526,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 
 		$loc = $body['results'][0]['geometry']['location'];
-		return [
+		return array(
 			'lat' => (float) $loc['lat'],
 			'lng' => (float) $loc['lng'],
-		];
+		);
 	}
 
 	/**
@@ -538,21 +538,21 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	public function render_map_links( array $biz ): string {
 		$lat           = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$lng           = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
-		$addr          = $biz['address'] ?? [];
+		$addr          = $biz['address'] ?? array();
 		$addr_str      = trim(
 			implode(
 				' ',
 				array_filter(
-					[
+					array(
 						$addr['street'] ?? '',
 						$addr['city'] ?? '',
 						$addr['state'] ?? '',
 						$addr['zip'] ?? '',
-					]
+					)
 				)
 			)
 		);
-		$map_links     = $biz['map_links'] ?? [];
+		$map_links     = $biz['map_links'] ?? array();
 		$location_type = $biz['location_type'] ?? 'brick_and_mortar';
 
 		if ( 'service_area' === $location_type ) {
@@ -563,35 +563,35 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			return '';
 		}
 
-		$links = [];
+		$links = array();
 
 		if ( ! empty( $map_links['google'] ) ) {
-			$links[] = [
+			$links[] = array(
 				'class' => 'gcm-map-link--google',
 				'label' => 'Google Maps',
 				'url'   => 'https://www.google.com/maps/search/?api=1&query=' . $lat . ',' . $lng,
-			];
+			);
 		}
 		if ( ! empty( $map_links['bing'] ) ) {
-			$links[] = [
+			$links[] = array(
 				'class' => 'gcm-map-link--bing',
 				'label' => 'Bing Maps',
 				'url'   => 'https://www.bing.com/maps?cp=' . $lat . '~' . $lng . '&lvl=17',
-			];
+			);
 		}
 		if ( ! empty( $map_links['apple'] ) ) {
-			$links[] = [
+			$links[] = array(
 				'class' => 'gcm-map-link--apple',
 				'label' => 'Apple Maps',
 				'url'   => 'https://maps.apple.com/?q=' . rawurlencode( $addr_str ) . '&ll=' . $lat . ',' . $lng . '&z=17',
-			];
+			);
 		}
 		if ( ! empty( $map_links['geo'] ) ) {
-			$links[] = [
+			$links[] = array(
 				'class' => 'gcm-map-link--geo',
 				'label' => 'Long + Lat',
 				'url'   => 'geo:' . $lat . ',' . $lng . '?z=17',
-			];
+			);
 		}
 
 		if ( empty( $links ) ) {
@@ -625,10 +625,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$name   = $biz['name'];
 		$phone  = $biz['phone'] ?? '';
 		$email  = sanitize_email( $biz['email'] ?? '' );
-		$addr   = $biz['address'] ?? [];
+		$addr   = $biz['address'] ?? array();
 		$lat    = $biz['lat'] ?? '';
 		$lng    = $biz['lng'] ?? '';
-		$hours  = $biz['hours'] ?? [];
+		$hours  = $biz['hours'] ?? array();
 		$type   = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
 		$schema = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
 
@@ -685,21 +685,21 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			</div>
 
 			<?php
-			$accounts = $biz['accounts'] ?? [];
+			$accounts = $biz['accounts'] ?? array();
 			?>
 			<?php if ( ! empty( $accounts ) ) : ?>
 			<div class="gcm-contact-page__social">
 				<h3>Connect With Us</h3>
 				<div class="gcm-contact-page__social-links">
 					<?php
-					$icons = [
+					$icons = array(
 						'facebook'  => 'dashicons-facebook',
 						'instagram' => 'dashicons-instagram',
 						'twitter'   => 'dashicons-twitter',
 						'linkedin'  => 'dashicons-linkedin',
 						'youtube'   => 'dashicons-youtube',
 						'pinterest' => 'dashicons-pinterest',
-					];
+					);
 					foreach ( $accounts as $platform => $surl ) :
 						if ( empty( $surl ) ) {
 							continue;
@@ -769,8 +769,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<?php endif; ?>
 
 			<?php
-			$areas   = $biz['service_areas'] ?? [];
-			$payment = $biz['payment_accepted'] ?? [];
+			$areas   = $biz['service_areas'] ?? array();
+			$payment = $biz['payment_accepted'] ?? array();
 			?>
 			<?php if ( ! empty( $areas ) ) : ?>
 			<div class="gcm-contact-page__areas">
@@ -888,7 +888,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$events = $this->get_events_for_month( $year, $month );
 
 		// Build day => events map.
-		$day_events = [];
+		$day_events = array();
 		foreach ( $events as $event ) {
 			$saved = get_post_meta( $event->ID, 'mm_schema_fields', true );
 			$start = $saved['event_start_date'] ?? '';
@@ -913,20 +913,20 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 		$base_url  = get_permalink();
 		$prev_url  = add_query_arg(
-			[
+			array(
 				'cal_month' => $prev_month,
 				'cal_year'  => $prev_year,
-			],
+			),
 			$base_url
 		);
 		$next_url  = add_query_arg(
-			[
+			array(
 				'cal_month' => $next_month,
 				'cal_year'  => $next_year,
-			],
+			),
 			$base_url
 		);
-		$today_url = add_query_arg( [], $base_url );
+		$today_url = add_query_arg( array(), $base_url );
 
 		ob_start();
 		?>
@@ -941,7 +941,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<table class="gcm-calendar__table">
 				<thead>
 					<tr>
-						<?php foreach ( [ 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ] as $d ) : ?>
+						<?php foreach ( array( 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat' ) as $d ) : ?>
 						<th><?php echo esc_html( $d ); ?></th>
 						<?php endforeach; ?>
 					</tr>
@@ -1013,23 +1013,23 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$end_date   = sprintf( '%04d-%02d-%02d', $year, $month, (int) date( 't', mktime( 0, 0, 0, $month, 1, $year ) ) );
 
 		$query = new \WP_Query(
-			[
+			array(
 				'post_type'      => 'mm_event',
 				'posts_per_page' => 50,
-				'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-					[
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					array(
 						'key'     => 'mm_schema_fields',
 						'compare' => 'EXISTS',
-					],
-				],
-				'date_query'     => [
-					[
+					),
+				),
+				'date_query'     => array(
+					array(
 						'after'     => $start_date,
 						'before'    => $end_date . ' 23:59:59',
 						'inclusive' => true,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 
 		return $query->posts;
@@ -1041,18 +1041,18 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	private function build_schema( array $biz, array $style ): array {
 		$type   = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
-		$schema = [
+		$schema = array(
 			'@context' => 'https://schema.org',
 			'@type'    => $type,
 			'name'     => sanitize_text_field( $biz['name'] ),
 			'url'      => trailingslashit( home_url() ),
-		];
+		);
 
 		if ( ! empty( $biz['logo_url'] ) ) {
-			$schema['logo'] = [
+			$schema['logo'] = array(
 				'@type' => 'ImageObject',
 				'url'   => esc_url_raw( $biz['logo_url'] ),
-			];
+			);
 		}
 
 		if ( ! empty( $style['show_phone'] ) && ! empty( $biz['phone'] ) ) {
@@ -1062,7 +1062,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$schema['email'] = sanitize_email( $biz['email'] );
 		}
 
-		$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
+		$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? array() );
 		if ( $addr ) {
 			$schema['address'] = $addr;
 		}
@@ -1070,28 +1070,28 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$geo_lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$geo_lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
 		if ( null !== $geo_lat && null !== $geo_lng ) {
-			$schema['geo'] = [
+			$schema['geo'] = array(
 				'@type'     => 'GeoCoordinates',
 				'latitude'  => $geo_lat,
 				'longitude' => $geo_lng,
-			];
+			);
 		}
 
 		// ContactPoint nodes for rendered actions.
-		$contact_points = [];
+		$contact_points = array();
 		if ( ! empty( $style['show_phone'] ) && ! empty( $biz['phone'] ) ) {
-			$contact_points[] = [
+			$contact_points[] = array(
 				'@type'       => 'ContactPoint',
 				'telephone'   => sanitize_text_field( $biz['phone'] ),
 				'contactType' => 'customer service',
-			];
+			);
 		}
 		if ( ! empty( $style['show_email'] ) && ! empty( $biz['email'] ) ) {
-			$contact_points[] = [
+			$contact_points[] = array(
 				'@type'       => 'ContactPoint',
 				'email'       => sanitize_email( $biz['email'] ),
 				'contactType' => 'customer service',
-			];
+			);
 		}
 		if ( $contact_points ) {
 			$schema['contactPoint'] = ( 1 === count( $contact_points ) ) ? $contact_points[0] : $contact_points;
@@ -1106,12 +1106,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/** Return merged (defaults + saved) sitewide style settings. */
 	public static function get_style_settings(): array {
-		$saved  = get_option( self::OPT_STYLE, [] );
-		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
+		$saved  = get_option( self::OPT_STYLE, array() );
+		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : array() );
 		// Button styles come from the Button Styles page (listing settings).
 		static $listing_cache = null;
 		if ( null === $listing_cache ) {
-			$listing_cache = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
+			$listing_cache = get_option( 'mm_meta_settings', array() )['listing'] ?? array();
 		}
 		$listing = $listing_cache;
 		if ( is_array( $listing ) ) {
@@ -1138,7 +1138,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/** Full set of style defaults. */
 	public static function style_defaults(): array {
-		return [
+		return array(
 			// Visibility toggles
 			'show_phone'            => true,
 			'show_sms'              => true,
@@ -1176,7 +1176,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			// Typography
 			'name_font_size'        => '20px',
 			'body_font_size'        => '14px',
-		];
+		);
 	}
 }
 

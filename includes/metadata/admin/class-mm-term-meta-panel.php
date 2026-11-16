@@ -19,14 +19,14 @@ class MM_Term_Meta_Panel {
 
 	public function register_hooks(): void {
 		// Add fields to all public taxonomy forms.
-		$taxonomies = get_taxonomies( [ 'public' => true ], 'names' );
+		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
 		foreach ( $taxonomies as $taxonomy ) {
-			add_action( "{$taxonomy}_edit_form_fields", [ $this, 'render_edit_fields' ], 10, 2 );
-			add_action( "{$taxonomy}_add_form_fields", [ $this, 'render_add_fields' ], 10, 1 );
-			add_action( "edited_{$taxonomy}", [ $this, 'save_meta' ], 10, 1 );
-			add_action( "created_{$taxonomy}", [ $this, 'save_meta' ], 10, 1 );
+			add_action( "{$taxonomy}_edit_form_fields", array( $this, 'render_edit_fields' ), 10, 2 );
+			add_action( "{$taxonomy}_add_form_fields", array( $this, 'render_add_fields' ), 10, 1 );
+			add_action( "edited_{$taxonomy}", array( $this, 'save_meta' ), 10, 1 );
+			add_action( "created_{$taxonomy}", array( $this, 'save_meta' ), 10, 1 );
 		}
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -40,7 +40,7 @@ class MM_Term_Meta_Panel {
 	}
 
 	public function render_add_fields( string $taxonomy ): void {
-		$meta = [];
+		$meta = array();
 		$term = null;
 		wp_nonce_field( 'mm_meta_term_meta_save', 'mm_meta_term_nonce' );
 		include MM_META_DIR . 'templates/metabox/term-metadata-add.php';
@@ -61,7 +61,7 @@ class MM_Term_Meta_Panel {
 		}
 
 		// phpcs:disable WordPress.Security.NonceVerification
-		$clean            = [];
+		$clean            = array();
 		$og_t             = sanitize_text_field( wp_unslash( $_POST['mm_meta_og_title'] ?? '' ) );
 		$og_d             = sanitize_textarea_field( wp_unslash( $_POST['mm_meta_og_description'] ?? '' ) );
 		$og_id            = absint( wp_unslash( $_POST['mm_meta_og_image_id'] ?? 0 ) );
@@ -101,13 +101,13 @@ class MM_Term_Meta_Panel {
 	// -------------------------------------------------------------------------
 
 	public function enqueue_assets( string $hook ): void {
-		if ( ! in_array( $hook, [ 'term.php', 'edit-tags.php' ], true ) ) {
+		if ( ! in_array( $hook, array( 'term.php', 'edit-tags.php' ), true ) ) {
 			return;
 		}
 		wp_enqueue_media();
-		wp_enqueue_style( 'mm-meta-term-panel', MM_META_URL . 'assets/css/metadata-admin.css', [], MM_META_VERSION );
-		wp_enqueue_script( 'mm-meta-admin-metabox', MM_META_URL . 'assets/js/admin-metabox.js', [ 'jquery' ], MM_META_VERSION, true );
-		wp_enqueue_script( 'mm-meta-admin-media', MM_META_URL . 'assets/js/admin-media.js', [ 'jquery' ], MM_META_VERSION, true );
+		wp_enqueue_style( 'mm-meta-term-panel', MM_META_URL . 'assets/css/metadata-admin.css', array(), MM_META_VERSION );
+		wp_enqueue_script( 'mm-meta-admin-metabox', MM_META_URL . 'assets/js/admin-metabox.js', array( 'jquery' ), MM_META_VERSION, true );
+		wp_enqueue_script( 'mm-meta-admin-media', MM_META_URL . 'assets/js/admin-media.js', array( 'jquery' ), MM_META_VERSION, true );
 	}
 
 	// -------------------------------------------------------------------------

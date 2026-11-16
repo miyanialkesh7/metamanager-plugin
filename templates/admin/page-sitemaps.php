@@ -10,16 +10,16 @@ $s   = $settings;
 
 $pt_enabled  = $s->get(
 	'sitemap.post_types',
-	[
+	array(
 		'post' => true,
 		'page' => true,
-	]
+	)
 );
-$tax_enabled = $s->get( 'sitemap.taxonomies', [ 'category' => true ] );
+$tax_enabled = $s->get( 'sitemap.taxonomies', array( 'category' => true ) );
 
-$public_pts = get_post_types( [ 'public' => true ], 'objects' );
+$public_pts = get_post_types( array( 'public' => true ), 'objects' );
 unset( $public_pts['attachment'] );
-$public_taxs = get_taxonomies( [ 'public' => true ], 'objects' );
+$public_taxs = get_taxonomies( array( 'public' => true ), 'objects' );
 unset( $public_taxs['post_format'] );
 ?>
 <div class="mm-meta-panel" id="page-sitemaps">
@@ -157,9 +157,9 @@ unset( $public_taxs['post_format'] );
 
 	<h2>HTML Sitemap</h2>
 	<?php
-	$html_s    = $s->get( 'sitemap.html_sitemap', [] );
-	$html_pts  = (array) ( $html_s['post_types'] ?? [ 'page', 'post' ] );
-	$html_taxs = (array) ( $html_s['taxonomies'] ?? [] );
+	$html_s    = $s->get( 'sitemap.html_sitemap', array() );
+	$html_pts  = (array) ( $html_s['post_types'] ?? array( 'page', 'post' ) );
+	$html_taxs = (array) ( $html_s['taxonomies'] ?? array() );
 	?>
 	<table class="form-table gcm-form-table">
 		<tr>
@@ -214,11 +214,11 @@ unset( $public_taxs['post_format'] );
 			<td>
 				<select name="<?php echo esc_attr( $opt ); ?>[sitemap][html_sitemap][order_by]">
 					<?php
-					foreach ( [
+					foreach ( array(
 						'menu_order' => 'Menu Order',
 						'title'      => 'Title',
 						'date'       => 'Date Published',
-					] as $v => $l ) :
+					) as $v => $l ) :
 						?>
 						<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $html_s['order_by'] ?? 'menu_order', $v ); ?>><?php echo esc_html( $l ); ?></option>
 					<?php endforeach; ?>

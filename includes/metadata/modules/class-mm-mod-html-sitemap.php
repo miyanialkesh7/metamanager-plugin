@@ -24,9 +24,9 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 
 	public function register_hooks(): void {
 		if ( $this->settings->get( 'sitemap.html_sitemap.enabled', true ) ) {
-			add_shortcode( 'mm_sitemap', [ $this, 'render_shortcode' ] );
-			add_action( 'init', [ $this, 'register_block' ] );
-			add_action( 'widgets_init', [ $this, 'register_widget' ] );
+			add_shortcode( 'mm_sitemap', array( $this, 'render_shortcode' ) );
+			add_action( 'init', array( $this, 'register_block' ) );
+			add_action( 'widgets_init', array( $this, 'register_widget' ) );
 		}
 	}
 
@@ -37,34 +37,34 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		wp_register_script(
 			'mm-block-sitemap',
 			MM_META_URL . 'assets/js/block-sitemap.js',
-			[ 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor', 'wp-components', 'wp-server-side-render' ],
+			array( 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor', 'wp-components', 'wp-server-side-render' ),
 			MM_META_VERSION,
 			true
 		);
 		register_block_type(
 			'metamanager/sitemap',
-			[
+			array(
 				'editor_script'   => 'mm-block-sitemap',
-				'render_callback' => [ $this, 'render_shortcode' ],
-				'attributes'      => [
-					'columns'  => [
+				'render_callback' => array( $this, 'render_shortcode' ),
+				'attributes'      => array(
+					'columns'  => array(
 						'type'    => 'number',
 						'default' => 1,
-					],
-					'orderBy'  => [
+					),
+					'orderBy'  => array(
 						'type'    => 'string',
 						'default' => 'menu_order',
-					],
-					'depth'    => [
+					),
+					'depth'    => array(
 						'type'    => 'number',
 						'default' => 3,
-					],
-					'showDate' => [
+					),
+					'showDate' => array(
 						'type'    => 'boolean',
 						'default' => false,
-					],
-				],
-			]
+					),
+				),
+			)
 		);
 	}
 
@@ -77,18 +77,18 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	public function render_shortcode( $atts ): string {
-		wp_enqueue_style( 'mm-html-sitemap', MM_META_URL . 'assets/css/html-sitemap.css', [], MM_META_VERSION );
+		wp_enqueue_style( 'mm-html-sitemap', MM_META_URL . 'assets/css/html-sitemap.css', array(), MM_META_VERSION );
 
-		$cfg = $this->settings->get( 'sitemap.html_sitemap', [] );
+		$cfg = $this->settings->get( 'sitemap.html_sitemap', array() );
 
 		$flat_limit = max( 1, min( 5000, (int) ( $cfg['flat_limit'] ?? 500 ) ) );
 
 		$atts = shortcode_atts(
-			[
+			array(
 				'post_types' => implode(
 					',',
 					array_merge(
-						[ 'page', 'post' ],
+						array( 'page', 'post' ),
 						array_keys( MM_Schema_Post_Types::TYPES )
 					)
 				),
@@ -99,7 +99,7 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 				'show_date'  => 'no',
 				'order_by'   => $cfg['order_by'] ?? 'menu_order',
 				'limit'      => $flat_limit,
-			],
+			),
 			$atts,
 			'mm_sitemap'
 		);
@@ -107,12 +107,12 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		$post_types = array_filter( array_map( 'trim', explode( ',', $atts['post_types'] ) ) );
 		$taxonomies = array_filter( array_map( 'trim', explode( ',', $atts['taxonomies'] ) ) );
 		$exclude    = array_filter( array_map( 'absint', explode( ',', $atts['exclude'] ) ) );
-		$global_ex  = array_filter( array_map( 'absint', (array) ( $cfg['exclude_ids'] ?? [] ) ) );
+		$global_ex  = array_filter( array_map( 'absint', (array) ( $cfg['exclude_ids'] ?? array() ) ) );
 		$exclude    = array_unique( array_merge( $exclude, $global_ex ) );
 		$columns    = max( 1, min( 3, (int) $atts['columns'] ) );
 		$show_date  = 'yes' === $atts['show_date'];
 		$depth      = (int) $atts['depth'];
-		$order_by   = in_array( $atts['order_by'], [ 'menu_order', 'title', 'date' ], true ) ? $atts['order_by'] : 'menu_order';
+		$order_by   = in_array( $atts['order_by'], array( 'menu_order', 'title', 'date' ), true ) ? $atts['order_by'] : 'menu_order';
 		$limit      = max( 1, min( 5000, (int) $atts['limit'] ) );
 
 		$out = '<div class="gcm-html-sitemap gcm-html-sitemap--cols-' . $columns . '">';
@@ -195,15 +195,15 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 			return '';
 		}
 
-		$query_args = [
+		$query_args = array(
 			'post_type'      => $pt,
 			'post_status'    => 'publish',
 			'post_parent'    => $parent,
 			'posts_per_page' => $limit,
 			'no_found_rows'  => true,
 			'has_password'   => false,
-			'post__not_in'   => $exclude ?: [ 0 ],
-		];
+			'post__not_in'   => $exclude ?: array( 0 ),
+		);
 
 		$query_args = $this->apply_order( $query_args, $order_by );
 		$posts      = get_posts( $query_args );
@@ -230,14 +230,14 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	}
 
 	private function render_flat( string $pt, array $exclude, bool $show_date, string $order_by, int $limit = 500 ): string {
-		$query_args = [
+		$query_args = array(
 			'post_type'      => $pt,
 			'post_status'    => 'publish',
 			'posts_per_page' => $limit,
 			'no_found_rows'  => true,
 			'has_password'   => false,
-			'post__not_in'   => $exclude ?: [ 0 ],
-		];
+			'post__not_in'   => $exclude ?: array( 0 ),
+		);
 
 		$query_args = $this->apply_order( $query_args, $order_by );
 		$posts      = get_posts( $query_args );
@@ -271,10 +271,10 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		}
 
 		$terms = get_terms(
-			[
+			array(
 				'taxonomy'   => $taxonomy,
 				'hide_empty' => true,
-			]
+			)
 		);
 
 		if ( is_wp_error( $terms ) || ! $terms ) {
@@ -359,10 +359,10 @@ class MM_Sitemap_Widget extends WP_Widget {
 		parent::__construct(
 			'mm_meta_sitemap',
 			__( 'GCM Sitemap', 'metamanager' ),
-			[
+			array(
 				'classname'   => 'mm-sitemap-widget',
 				'description' => __( 'Displays the HTML sitemap in a widget area.', 'metamanager' ),
-			]
+			)
 		);
 	}
 
@@ -374,7 +374,7 @@ class MM_Sitemap_Widget extends WP_Widget {
 				. esc_html( apply_filters( 'widget_title', $instance['title'] ) )
 				. $args['after_title']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		}
-		echo $module->render_shortcode( [] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $module->render_shortcode( array() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
@@ -392,6 +392,6 @@ class MM_Sitemap_Widget extends WP_Widget {
 	}
 
 	public function update( $new_instance, $old_instance ): array {
-		return [ 'title' => sanitize_text_field( $new_instance['title'] ?? '' ) ];
+		return array( 'title' => sanitize_text_field( $new_instance['title'] ?? '' ) );
 	}
 }

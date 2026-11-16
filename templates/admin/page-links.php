@@ -76,11 +76,11 @@ $next_run = wp_next_scheduled( 'mm_meta_check_links' );
 				<td>
 					<select name="<?php echo esc_attr( $opt ); ?>[links][cron_frequency]">
 						<?php
-						foreach ( [
+						foreach ( array(
 							'mm_meta_every6h' => 'Every 6 hours',
 							'twicedaily'      => 'Twice daily',
 							'daily'           => 'Daily',
-						] as $v => $l ) :
+						) as $v => $l ) :
 							?>
 							<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $s->get( 'links.cron_frequency', 'twicedaily' ), $v ); ?>><?php echo esc_html( $l ); ?></option>
 						<?php endforeach; ?>

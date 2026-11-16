@@ -33,7 +33,7 @@ if ( MM_Schema_Post_Types::is_schema_cpt( $pt_slug ) ) {
 // Field definitions for expandable panels (types that need extra structured data).
 $wc_active            = class_exists( 'WooCommerce' ) || function_exists( 'WC' );
 $schema_field_defs    = MM_Schema_Types::get_fields_by_type( $wc_active );
-$stored_schema_fields = $meta['schema_fields'] ?? [];
+$stored_schema_fields = $meta['schema_fields'] ?? array();
 ?>
 <div class="gcm-metabox" id="mm-meta-metabox">
 
@@ -81,13 +81,13 @@ $stored_schema_fields = $meta['schema_fields'] ?? [];
 			</thead>
 			<tbody>
 				<?php
-				$directives = [
-					'noindex'      => [ 'Noindex', 'Don\'t add this page to the search index.' ],
-					'nofollow'     => [ 'Nofollow', 'Don\'t follow links on this page.' ],
-					'noarchive'    => [ 'Noarchive', 'Don\'t show a cached copy of this page.' ],
-					'nosnippet'    => [ 'Nosnippet', 'Don\'t show a description snippet in search results.' ],
-					'noimageindex' => [ 'Noimageindex', 'Don\'t index images on this page.' ],
-				];
+				$directives = array(
+					'noindex'      => array( 'Noindex', 'Don\'t add this page to the search index.' ),
+					'nofollow'     => array( 'Nofollow', 'Don\'t follow links on this page.' ),
+					'noarchive'    => array( 'Noarchive', 'Don\'t show a cached copy of this page.' ),
+					'nosnippet'    => array( 'Nosnippet', 'Don\'t show a description snippet in search results.' ),
+					'noimageindex' => array( 'Noimageindex', 'Don\'t index images on this page.' ),
+				);
 				foreach ( $directives as $field => $info ) :
 					$current = $$field; // e.g. $noindex, $nofollow …
 					?>

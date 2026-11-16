@@ -29,10 +29,10 @@ class MM_Mod_Social extends MM_Mod_Base {
 		if ( $pinterest_verify ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'p:domain_verify',
 					'content' => sanitize_text_field( $pinterest_verify ),
-				]
+				)
 			);
 		}
 	}
@@ -46,13 +46,13 @@ class MM_Mod_Social extends MM_Mod_Base {
 		$title       = $data['title'] ?? '';
 		$description = '';
 		$og_type     = 'website';
-		$url         = home_url( add_query_arg( [] ) );
-		$image       = [
+		$url         = home_url( add_query_arg( array() ) );
+		$image       = array(
 			'url'    => '',
 			'width'  => 0,
 			'height' => 0,
-		];
-		$article     = [];
+		);
+		$article     = array();
 		$author_user = null;
 
 		foreach ( $data['meta'] as $mt ) {
@@ -101,13 +101,13 @@ class MM_Mod_Social extends MM_Mod_Base {
 					$cats = get_the_category( $post->ID );
 					$tags = get_the_tags( $post->ID );
 
-					$article = [
+					$article = array(
 						'published_time' => get_the_date( 'c', $post ),
 						'modified_time'  => get_the_modified_date( 'c', $post ),
 						'author'         => $author_user ? get_author_posts_url( $author_user->ID ) : '',
 						'section'        => $cats ? $cats[0]->name : '',
-						'tags'           => $tags ? wp_list_pluck( $tags, 'name' ) : [],
-					];
+						'tags'           => $tags ? wp_list_pluck( $tags, 'name' ) : array(),
+					);
 				} elseif ( 'product' === $post->post_type ) {
 					// WooCommerce product.
 					$og_type = 'product';
@@ -119,7 +119,7 @@ class MM_Mod_Social extends MM_Mod_Base {
 				// Front page overrides — must be 'website'.
 				if ( $context->is_front_page() ) {
 					$og_type = 'website';
-					$article = [];
+					$article = array();
 					$url     = home_url( '/' );
 				}
 			}
@@ -160,47 +160,47 @@ class MM_Mod_Social extends MM_Mod_Base {
 	private function emit_og( array &$data, array $r, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'property' => 'og:type',
 				'content'  => $r['og_type'],
-			]
+			)
 		);
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'property' => 'og:title',
 				'content'  => $r['title'],
-			]
+			)
 		);
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'property' => 'og:url',
 				'content'  => $r['url'],
-			]
+			)
 		);
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'property' => 'og:locale',
 				'content'  => $settings->get( 'social.og_locale', 'en_US' ),
-			]
+			)
 		);
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'property' => 'og:site_name',
 				'content'  => get_bloginfo( 'name' ),
-			]
+			)
 		);
 
 		if ( $r['description'] ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'property' => 'og:description',
 					'content'  => $r['description'],
-				]
+				)
 			);
 		}
 
@@ -208,35 +208,35 @@ class MM_Mod_Social extends MM_Mod_Base {
 		if ( $r['image']['url'] ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'property' => 'og:image',
 					'content'  => $r['image']['url'],
-				]
+				)
 			);
 			if ( $r['image']['width'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'og:image:width',
 						'content'  => (string) $r['image']['width'],
-					]
+					)
 				);
 			}
 			if ( $r['image']['height'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'og:image:height',
 						'content'  => (string) $r['image']['height'],
-					]
+					)
 				);
 			}
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'property' => 'og:image:type',
 					'content'  => $this->mime_from_url( $r['image']['url'] ),
-				]
+				)
 			);
 		}
 
@@ -250,50 +250,50 @@ class MM_Mod_Social extends MM_Mod_Base {
 					if ( MM_Metadata::is_video_mime( $mime ) ) {
 						$this->add_meta(
 							$data,
-							[
+							array(
 								'property' => 'og:video',
 								'content'  => $url,
-							]
+							)
 						);
 						if ( str_starts_with( $url, 'https://' ) ) {
 							$this->add_meta(
 								$data,
-								[
+								array(
 									'property' => 'og:video:secure_url',
 									'content'  => $url,
-								]
+								)
 							);
 						}
 						$this->add_meta(
 							$data,
-							[
+							array(
 								'property' => 'og:video:type',
 								'content'  => $mime,
-							]
+							)
 						);
 					} elseif ( MM_Metadata::is_audio_mime( $mime ) ) {
 						$this->add_meta(
 							$data,
-							[
+							array(
 								'property' => 'og:audio',
 								'content'  => $url,
-							]
+							)
 						);
 						if ( str_starts_with( $url, 'https://' ) ) {
 							$this->add_meta(
 								$data,
-								[
+								array(
 									'property' => 'og:audio:secure_url',
 									'content'  => $url,
-								]
+								)
 							);
 						}
 						$this->add_meta(
 							$data,
-							[
+							array(
 								'property' => 'og:audio:type',
 								'content'  => $mime,
-							]
+							)
 						);
 					}
 				}
@@ -306,44 +306,44 @@ class MM_Mod_Social extends MM_Mod_Base {
 			if ( $a['published_time'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'article:published_time',
 						'content'  => $a['published_time'],
-					]
+					)
 				);
 			}
 			if ( $a['modified_time'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'article:modified_time',
 						'content'  => $a['modified_time'],
-					]
+					)
 				);
 			}
 			if ( $a['author'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'article:author',
 						'content'  => $a['author'],
-					]
+					)
 				);
 			}
 			if ( $a['section'] ) {
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'property' => 'article:section',
 						'content'  => $a['section'],
-					]
+					)
 				);
 			}
 			foreach ( $a['tags'] as $tag ) {
-				$data['meta'][] = [
+				$data['meta'][] = array(
 					'property' => 'article:tag',
 					'content'  => $tag,
-				];
+				);
 			}
 		}
 
@@ -352,10 +352,10 @@ class MM_Mod_Social extends MM_Mod_Base {
 		if ( $fb_app_id ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'property' => 'fb:app_id',
 					'content'  => $fb_app_id,
-				]
+				)
 			);
 		}
 
@@ -364,10 +364,10 @@ class MM_Mod_Social extends MM_Mod_Base {
 		if ( $fb_page_id ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'property' => 'fb:admins',
 					'content'  => $fb_page_id,
-				]
+				)
 			);
 		}
 	}
@@ -383,36 +383,36 @@ class MM_Mod_Social extends MM_Mod_Base {
 
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'name'    => 'twitter:card',
 				'content' => $card,
-			]
+			)
 		);
 		$this->add_meta(
 			$data,
-			[
+			array(
 				'name'    => 'twitter:title',
 				'content' => $r['title'],
-			]
+			)
 		);
 
 		if ( $r['description'] ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'twitter:description',
 					'content' => $r['description'],
-				]
+				)
 			);
 		}
 
 		if ( $r['image']['url'] ) {
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'twitter:image',
 					'content' => $r['image']['url'],
-				]
+				)
 			);
 		}
 
@@ -421,10 +421,10 @@ class MM_Mod_Social extends MM_Mod_Base {
 			$handle = '@' . ltrim( $site_handle, '@' );
 			$this->add_meta(
 				$data,
-				[
+				array(
 					'name'    => 'twitter:site',
 					'content' => $handle,
-				]
+				)
 			);
 		}
 
@@ -436,10 +436,10 @@ class MM_Mod_Social extends MM_Mod_Base {
 				$handle = '@' . ltrim( $twitter, '@' );
 				$this->add_meta(
 					$data,
-					[
+					array(
 						'name'    => 'twitter:creator',
 						'content' => $handle,
-					]
+					)
 				);
 			}
 		}
@@ -458,22 +458,22 @@ class MM_Mod_Social extends MM_Mod_Base {
 		if ( $url ) {
 			return $this->image_data( 0, $url );
 		}
-		return [
+		return array(
 			'url'    => '',
 			'width'  => 0,
 			'height' => 0,
-		];
+		);
 	}
 
 	private function mime_from_url( string $url ): string {
 		$ext = strtolower( pathinfo( wp_parse_url( $url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
-		$map = [
+		$map = array(
 			'jpg'  => 'image/jpeg',
 			'jpeg' => 'image/jpeg',
 			'png'  => 'image/png',
 			'gif'  => 'image/gif',
 			'webp' => 'image/webp',
-		];
+		);
 		return $map[ $ext ] ?? 'image/jpeg';
 	}
 }
