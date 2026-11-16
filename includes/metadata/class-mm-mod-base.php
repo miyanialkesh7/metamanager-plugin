@@ -39,10 +39,10 @@ abstract class MM_Mod_Base {
 	 * @return array{id: int, name: string, items: array}|null
 	 */
 	public static function get_primary_menu(): ?array {
-		if ( ! function_exists( 'wp_get_nav_menu_locations' ) ) {
+		if ( ! function_exists( 'get_nav_menu_locations' ) ) {
 			return null;
 		}
-		$locations = wp_get_nav_menu_locations();
+		$locations = get_nav_menu_locations();
 		if ( empty( $locations['primary'] ) ) {
 			return null;
 		}
