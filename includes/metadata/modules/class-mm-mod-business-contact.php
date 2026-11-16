@@ -27,8 +27,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	public function register_hooks(): void {
 		add_action( 'init',               [ $this, 'add_rewrite_rules' ] );
-		add_action( 'init',               [ $this, 'register_block' ] );
-		add_filter( 'query_vars',         [ $this, 'add_query_var' ] );
+				add_filter( 'query_vars',         [ $this, 'add_query_var' ] );
 		add_action( 'template_redirect',  [ $this, 'maybe_serve_download' ] );
 		add_action( 'widgets_init',       [ $this, 'register_widget' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
