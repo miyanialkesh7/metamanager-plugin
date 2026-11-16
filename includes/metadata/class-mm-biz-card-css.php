@@ -34,6 +34,7 @@ class MM_Biz_Card_CSS {
 		$btn_radius        = self::shorthand( $s['btn_radius']     ?? '4px' );
 		$btn_padding       = self::shorthand( $s['btn_padding']    ?? '10px 16px' );
 		$btn_font_size     = self::length( $s['btn_font_size']     ?? '14px' );
+		$btn_font_weight   = (string) ( $s['btn_font_weight'] ?? '500' );
 		$name_font_size    = self::length( $s['name_font_size']    ?? '20px' );
 		$body_font_size    = self::length( $s['body_font_size']    ?? '14px' );
 

@@ -115,7 +115,7 @@ class MM_Nav_Menu_Admin {
 	 */
 	public function render_meta_box( $menu = null ): void {
 		// On nav-menus screen, $menu is null. Get current menu from URL.
-		$term_id = is_object( $menu ) ? ( $menu->term_id ?? $menu->ID ?? 0 ) : (int) ( $_GET['menu'] ?? 0 );
+		$term_id = is_object( $menu ) ? ( $menu->term_id ?? $menu->ID ?? 0 ) : (int) ( isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$checked = get_term_meta( $term_id, '_mm_nav_menu_primary', true );
 		wp_nonce_field( 'mm_nav_menu_primary_' . $term_id, '_mm_nav_menu_primary_nonce' );
 		?>
