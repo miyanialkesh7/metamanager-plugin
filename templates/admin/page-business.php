@@ -180,6 +180,39 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 				<p class="description">Controls how the address is presented. Service area businesses show the address as mailing-only with no map link. Brick &amp; mortar locations show the full address with map and directions.</p>
 			</td>
 		</tr>
+		<tr>
+			<th><label>Map Links</label></th>
+			<td>
+				<?php $map_links = $b['map_links'] ?? []; ?>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[map_links][google]" value="1" <?php checked( ! empty( $map_links['google'] ) ); ?>>
+					Google Maps
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[map_links][bing]" value="1" <?php checked( ! empty( $map_links['bing'] ) ); ?>>
+					Bing Maps
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[map_links][apple]" value="1" <?php checked( ! empty( $map_links['apple'] ) ); ?>>
+					Apple Maps
+				</label>
+				<label style="display:block;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[map_links][geo]" value="1" <?php checked( ! empty( $map_links['geo'] ) ); ?>>
+					Geo (device default maps app)
+				</label>
+				<p class="description">Choose which map links appear on Contact and About pages. All enabled by default.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="gcm_google_maps_api_key">Google Maps API Key</label></th>
+			<td>
+				<input type="text" id="gcm_google_maps_api_key" name="<?php echo esc_attr($opt); ?>[google_maps_api_key]" value="<?php echo esc_attr( $b['google_maps_api_key'] ?? '' ); ?>" class="regular-text" placeholder="AIza...">
+				<p class="description">Used to automatically derive coordinates from the business address via the Google Maps Geocoding API. Also used for map embeds.</p>
+				<?php if ( empty( $b['google_maps_api_key'] ) ) : ?>
+				<p><button type="button" class="button" id="gcm-geocode-btn">Derive Coordinates from Address</button></p>
+				<?php endif; ?>
+			</td>
+		</tr>
 	</table>
 
 	<h2>Opening Hours</h2>

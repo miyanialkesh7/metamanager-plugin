@@ -685,20 +685,14 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php endif; ?>
 
 				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
-				<br>
-				<a href="geo:<?php echo esc_attr( $lat ); ?>,<?php echo esc_attr( $lng ); ?>?z=16"
-				   class="gcm-contact-page__map-link"
-				   itemprop="geo"
-				   itemscope itemtype="https://schema.org/GeoCoordinates">
-					<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
-					<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
-					<?php esc_html_e( 'Open in Maps', 'metamanager' ); ?>
-				</a>
+				<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
+				<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
 				<?php endif; ?>
 				<?php if ( $is_service_area ) : ?>
 					<br><span class="gcm-contact-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
 				<?php endif; ?>
 			</address>
+			<?php echo $this->render_map_links( $biz ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php endif; ?>
 
 			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>

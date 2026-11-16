@@ -552,6 +552,13 @@ class MM_Site_Settings {
 			'lat'                  => '',
 			'lng'                  => '',
 			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
+			'google_maps_api_key'  => '',
+			'map_links'            => [
+				'google' => true,
+				'bing'   => true,
+				'apple'  => true,
+				'geo'    => true,
+			],
 			'price_range'          => '',
 			'payment_accepted'     => [],
 			'hours'                => [],

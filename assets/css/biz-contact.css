@@ -371,6 +371,34 @@
 	height: 20px;
 }
 
+.gcm-map-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 12px 0;
+}
+
+.gcm-map-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	color: inherit;
+	opacity: .8;
+	font-size: 14px;
+}
+
+.gcm-map-link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+.gcm-map-link .dashicons {
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+}
+
 /* =========================================================================
    Calendar
    ========================================================================= */
