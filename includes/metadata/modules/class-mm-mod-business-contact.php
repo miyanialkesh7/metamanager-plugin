@@ -1057,9 +1057,17 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	/** Return merged (defaults + saved) sitewide style settings. */
 	public static function get_style_settings(): array {
 		$saved = get_option( self::OPT_STYLE, [] );
+		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
 		// Button styles come from the Button Styles page (listing settings).
 		$listing = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
-		return array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
+		if ( is_array( $listing ) ) {
+			$merged['btn_bg']        = $listing['btn_bg']        ?? $merged['btn_bg'];
+			$merged['btn_text']      = $listing['btn_text_color'] ?? $merged['btn_text'];
+			$merged['btn_radius']    = $listing['btn_radius']    ?? $merged['btn_radius'];
+			$merged['btn_padding']   = $listing['btn_padding']   ?? $merged['btn_padding'];
+			$merged['btn_font_size'] = $listing['btn_font_size']  ?? $merged['btn_font_size'];
+		}
+		return $merged;
 	}
 
 	/** Full set of style defaults. */
