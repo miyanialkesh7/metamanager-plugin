@@ -139,15 +139,24 @@ class MM_Nav_Menu_Admin {
 					$(this).toggle(!val || $(this).data('group') === val);
 				});
 			});
-			// Add to Menu
+			// Add to Menu — use WordPress's native wpNavMenu.addCustomLink
 			$('#mm-add-archives-to-menu').on('click', function() {
-				$('#mm-archives-list .mm-archive-check:checked').each(function() {
-					var title = $(this).data('title');
-					var url   = $(this).data('url');
-					$('#custom-menu-item-name').val(title);
-					$('#custom-menu-item-url').val(url);
-					$('#submit-custom-links').click();
+				var $checked = $('#mm-archives-list .mm-archive-check:checked');
+				if (!$checked.length) return;
+				// Process one at a time to avoid race conditions
+				var items = [];
+				$checked.each(function() {
+					items.push({ title: $(this).data('title'), url: $(this).data('url') });
 					$(this).prop('checked', false);
+				});
+				$.each(items, function(i, item) {
+					$('#custom-menu-item-name').val(item.title);
+					$('#custom-menu-item-url').val(item.url);
+					if (typeof wpNavMenu !== 'undefined' && wpNavMenu.addCustomLink) {
+						wpNavMenu.addCustomLink(wpNavMenu.addMenuItemToBottom);
+					} else {
+						$('#submit-customlinkdiv').trigger('click');
+					}
 				});
 			});
 		});
