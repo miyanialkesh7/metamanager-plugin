@@ -134,6 +134,37 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 		if ( $logo ) { $lines[] = 'PHOTO;VALUE=URI:' . $logo; }
 
+		// Social URLs
+		$accounts = $biz['accounts'] ?? [];
+		$social_urls = [];
+		foreach ( $accounts as $platform => $url ) {
+			if ( ! empty( $url ) ) {
+				$social_urls[] = $url;
+			}
+		}
+		if ( $social_urls ) {
+			foreach ( $social_urls as $surl ) {
+				$lines[] = 'URL;TYPE=WORK:' . $surl;
+			}
+		}
+
+		// Hours
+		$hours = $biz['hours'] ?? [];
+		if ( ! empty( $hours ) && is_array( $hours ) ) {
+			foreach ( $hours as $group ) {
+				if ( empty( $group['days'] ) ) continue;
+				$days = array_map( function( $d ) {
+					return strtoupper( substr( $d, 0, 2 ) );
+				}, (array) $group['days'] );
+				$day_str = implode( ',', $days );
+				$open  = ! empty( $group['closed'] ) ? '' : ( $group['open'] ?? '' );
+				$close = ! empty( $group['closed'] ) ? '' : ( $group['close'] ?? '' );
+				if ( $open && $close ) {
+					$lines[] = 'X-HOURS:' . $day_str . ' ' . $open . '-' . $close;
+				}
+			}
+		}
+
 		$lines[] = 'END:VCARD';
 
 		header( 'Content-Type: text/vcard; charset=UTF-8' );
@@ -167,6 +198,53 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		if ( null !== $lat ) { $data['lat'] = $lat; }
 		if ( null !== $lng ) { $data['lng'] = $lng; }
 
+		// Hours
+		$hours = $biz['hours'] ?? [];
+		if ( ! empty( $hours ) && is_array( $hours ) ) {
+			$data['hours'] = array_map( function( $g ) {
+				return [
+					'days'   => array_values( (array) ( $g['days'] ?? [] ) ),
+					'open'   => $g['open'] ?? '',
+					'close'  => $g['close'] ?? '',
+					'closed' => ! empty( $g['closed'] ),
+				];
+			}, $hours );
+		}
+
+		// Social links
+		$accounts = $biz['accounts'] ?? [];
+		$social = array_filter( $accounts );
+		if ( $social ) {
+			$data['social'] = $social;
+		}
+
+		// Service areas
+		$areas = $biz['service_areas'] ?? [];
+		if ( ! empty( $areas ) ) {
+			$data['service_areas'] = array_values( $areas );
+		}
+
+		// Payment accepted
+		$payment = $biz['payment_accepted'] ?? [];
+		if ( ! empty( $payment ) ) {
+			$data['payment_accepted'] = array_values( $payment );
+		}
+
+		// Price range
+		if ( ! empty( $biz['price_range'] ) ) {
+			$data['price_range'] = $biz['price_range'];
+		}
+
+		// Description
+		if ( ! empty( $biz['description'] ) ) {
+			$data['description'] = wp_strip_all_tags( $biz['description'] );
+		}
+
+		// Location type
+		if ( ! empty( $biz['location_type'] ) ) {
+			$data['location_type'] = $biz['location_type'];
+		}
+
 		header( 'Content-Type: application/json; charset=UTF-8' );
 		header( 'Content-Disposition: attachment; filename="' . $slug . '.json"' );
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -179,7 +257,28 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$addr = $biz['address'] ?? [];
 		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
 
-		$headers = [ 'Name', 'Phone', 'Email', 'Website', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude' ];
+		$accounts = $biz['accounts'] ?? [];
+		$social_str = '';
+		$social_parts = [];
+		foreach ( $accounts as $platform => $url ) {
+			if ( ! empty( $url ) ) { $social_parts[] = "$platform:$url"; }
+		}
+		$social_str = implode( '; ', $social_parts );
+
+		$hours = $biz['hours'] ?? [];
+		$hours_str = '';
+		$hours_parts = [];
+		if ( ! empty( $hours ) && is_array( $hours ) ) {
+			foreach ( $hours as $g ) {
+				if ( empty( $g['days'] ) ) continue;
+				$days_label = implode( ',', (array) $g['days'] );
+				$time_label = ( ! empty( $g['closed'] ) || ( ( $g['open'] ?? '' ) === '00:00' && ( $g['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $g['open'] ?? '' ) . '-' . ( $g['close'] ?? '' );
+				$hours_parts[] = "$days_label $time_label";
+			}
+		}
+		$hours_str = implode( '; ', $hours_parts );
+
+		$headers = [ 'Name', 'Phone', 'Email', 'Website', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude', 'Hours', 'Social', 'Description', 'Price Range', 'Service Areas' ];
 		$row     = [
 			$name,
 			sanitize_text_field( $biz['phone'] ?? '' ),
@@ -192,6 +291,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			sanitize_text_field( $addr['country'] ?? '' ),
 			isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : '',
 			isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : '',
+			$hours_str,
+			$social_str,
+			wp_strip_all_tags( $biz['description'] ?? '' ),
+			sanitize_text_field( $biz['price_range'] ?? '' ),
+			implode( ', ', (array) ( $biz['service_areas'] ?? [] ) ),
 		];
 
 		header( 'Content-Type: text/csv; charset=UTF-8' );
@@ -612,6 +716,53 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			</div>
 			<?php endif; ?>
 
+			<?php
+			$areas   = $biz['service_areas'] ?? [];
+			$payment = $biz['payment_accepted'] ?? [];
+			$accounts = $biz['accounts'] ?? [];
+			?>
+			<?php if ( ! empty( $areas ) ) : ?>
+			<div class="gcm-contact-page__areas">
+				<h3>Service Areas</h3>
+				<p><?php echo esc_html( implode( ', ', $areas ) ); ?></p>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $payment ) ) : ?>
+			<div class="gcm-contact-page__payment">
+				<h3>Payment Accepted</h3>
+				<p><?php echo esc_html( implode( ', ', $payment ) ); ?></p>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $accounts ) ) : ?>
+			<div class="gcm-contact-page__social">
+				<h3>Connect With Us</h3>
+				<div class="gcm-contact-page__social-links">
+					<?php
+					$icons = [
+						'facebook'  => 'dashicons-facebook',
+						'instagram' => 'dashicons-instagram',
+						'twitter'   => 'dashicons-twitter',
+						'linkedin'  => 'dashicons-linkedin',
+						'youtube'   => 'dashicons-youtube',
+						'pinterest' => 'dashicons-pinterest',
+					];
+					foreach ( $accounts as $platform => $surl ) :
+						if ( empty( $surl ) ) continue;
+						$icon = $icons[ $platform ] ?? 'dashicons-share';
+						$label = ucfirst( $platform );
+					?>
+					<a href="<?php echo esc_url( $surl ); ?>" class="gcm-contact-page__social-link" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $label ); ?>">
+						<span class="dashicons <?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+						<span class="gcm-contact-page__social-label"><?php echo esc_html( $label ); ?></span>
+					</a>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
+
 			<div class="gcm-contact-page__actions">
 
 				<?php if ( $show_phone ) : ?>
@@ -691,20 +842,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			return '';
 		}
 
-		$name     = $biz['name'];
-		$desc     = $biz['description'] ?? '';
-		$phone    = $biz['phone'] ?? '';
-		$email    = sanitize_email( $biz['email'] ?? '' );
-		$addr     = $biz['address'] ?? [];
-		$lat      = $biz['lat'] ?? '';
-		$lng      = $biz['lng'] ?? '';
-		$hours    = $biz['hours'] ?? [];
-		$founding = $biz['founding_date'] ?? '';
+		$name      = $biz['name'];
+		$desc      = $biz['description'] ?? '';
+		$founding  = $biz['founding_date'] ?? '';
 		$employees = $biz['number_of_employees'] ?? '';
-		$areas    = $biz['service_areas'] ?? [];
-		$accounts = $biz['accounts'] ?? [];
-		$payment  = $biz['payment_accepted'] ?? [];
-		$price    = $biz['price_range'] ?? '';
 
 		ob_start();
 		?>
@@ -725,7 +866,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			</div>
 			<?php endif; ?>
 
-			<?php if ( $founding || $employees || $price ) : ?>
+			<?php if ( $founding || $employees ) : ?>
 			<div class="gcm-about-page__details">
 				<?php if ( $founding ) : ?>
 				<div class="gcm-about-page__founding">
@@ -737,109 +878,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 					<strong>Employees:</strong> <?php echo esc_html( $employees ); ?>
 				</div>
 				<?php endif; ?>
-				<?php if ( $price ) : ?>
-				<div class="gcm-about-page__price">
-					<strong>Price Range:</strong> <?php echo esc_html( $price ); ?>
-				</div>
-				<?php endif; ?>
-			</div>
-			<?php endif; ?>
-
-			<?php $is_service_area = ( ( $biz['location_type'] ?? 'brick_and_mortar' ) === 'service_area' ); ?>
-			<address class="gcm-about-page__address">
-				<?php if ( $is_service_area ) : ?>
-					<span class="gcm-about-page__mailing-label"><?php esc_html_e( 'Mailing Address', 'metamanager' ); ?></span><br>
-				<?php endif; ?>
-				<?php if ( ! empty( $addr['street'] ) ) : ?>
-					<span><?php echo esc_html( $addr['street'] ); ?></span><br>
-				<?php endif; ?>
-				<?php
-				$city  = $addr['city']  ?? '';
-				$state = $addr['state'] ?? '';
-				$zip   = $addr['zip']   ?? '';
-				if ( $city || $state || $zip ) :
-				?>
-					<span><?php echo esc_html( $city ); ?><?php echo ( $city && $state ) ? ', ' : ''; ?><?php echo esc_html( $state ); ?><?php echo $zip ? ' ' . esc_html( $zip ) : ''; ?></span>
-				<?php endif; ?>
-				<?php if ( ! empty( $addr['country'] ) ) : ?>
-					<br><span><?php echo esc_html( $addr['country'] ); ?></span>
-				<?php endif; ?>
-				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
-				<br>
-				<a href="geo:<?php echo esc_attr( $lat ); ?>,<?php echo esc_attr( $lng ); ?>?z=16"
-				   class="gcm-about-page__map-link">
-					<?php esc_html_e( 'Open in Maps', 'metamanager' ); ?>
-				</a>
-				<?php endif; ?>
-				<?php if ( $is_service_area ) : ?>
-					<br><span class="gcm-about-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
-				<?php endif; ?>
-			</address>
-
-			<?php if ( $phone || $email ) : ?>
-			<div class="gcm-about-page__contact">
-				<?php if ( $phone ) : ?>
-				<a href="tel:<?php echo esc_attr( $phone ); ?>" class="gcm-about-page__link">
-					<span class="dashicons dashicons-phone" aria-hidden="true"></span>
-					<span><?php echo esc_html( $phone ); ?></span>
-				</a>
-				<?php endif; ?>
-				<?php if ( $email ) : ?>
-				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
-				<a href="mailto:<?php echo esc_attr( $email ); ?>" class="gcm-about-page__link">
-					<span class="dashicons dashicons-email" aria-hidden="true"></span>
-					<span><?php echo esc_html( $email ); ?></span>
-				</a>
-				<?php endif; ?>
-			</div>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
-			<div class="gcm-about-page__hours">
-				<h3>Hours</h3>
-				<?php foreach ( $hours as $group ) :
-					if ( empty( $group['days'] ) ) continue;
-					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
-					?>
-					<div class="gcm-about-page__hours-row">
-						<span class="gcm-about-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
-						<span class="gcm-about-page__hours-time"><?php echo esc_html( $time_label ); ?></span>
-					</div>
-				<?php endforeach; ?>
-			</div>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $areas ) ) : ?>
-			<div class="gcm-about-page__areas">
-				<h3>Service Areas</h3>
-				<p><?php echo esc_html( implode( ', ', $areas ) ); ?></p>
-			</div>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $payment ) ) : ?>
-			<div class="gcm-about-page__payment">
-				<h3>Payment Accepted</h3>
-				<p><?php echo esc_html( implode( ', ', $payment ) ); ?></p>
-			</div>
-			<?php endif; ?>
-
-			<div class="gcm-about-page__cta">
-				<a href="<?php echo esc_url( home_url( '/contact/' ) ); ?>" class="gcm-about-page__cta-btn">
-					<?php esc_html_e( 'Contact Us', 'metamanager' ); ?>
-				</a>
-			</div>
-
-			<?php if ( ! empty( $accounts ) ) : ?>
-			<div class="gcm-about-page__social">
-				<h3>Connect With Us</h3>
-				<?php foreach ( $accounts as $platform => $url ) : ?>
-					<?php if ( ! empty( $url ) ) : ?>
-					<a href="<?php echo esc_url( $url ); ?>" class="gcm-about-page__social-link" target="_blank" rel="noopener noreferrer">
-						<?php echo esc_html( ucfirst( $platform ) ); ?>
-					</a>
-					<?php endif; ?>
-				<?php endforeach; ?>
 			</div>
 			<?php endif; ?>
 
