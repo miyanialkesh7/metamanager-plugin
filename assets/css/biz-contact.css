@@ -509,3 +509,150 @@
 		font-size: 11px;
 	}
 }
+
+
+/* Contact page responsive layout */
+.gcm-contact-page {
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+.gcm-contact-page__name {
+	font-size: 28px;
+	font-weight: 700;
+	margin: 0 0 16px;
+}
+
+.gcm-contact-page__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.gcm-contact-page__btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 10px 16px;
+	border-radius: 4px;
+	text-decoration: none;
+	font-size: 14px;
+	font-weight: 500;
+	transition: opacity .2s;
+}
+
+.gcm-contact-page__btn:hover {
+	opacity: .85;
+	text-decoration: none;
+}
+
+.gcm-contact-page__social {
+	margin-bottom: 20px;
+}
+
+.gcm-contact-page__social h3 {
+	margin: 0 0 8px;
+	font-size: 16px;
+}
+
+.gcm-contact-page__social-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.gcm-contact-page__social-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	color: inherit;
+	opacity: .8;
+	font-size: 14px;
+}
+
+.gcm-contact-page__social-link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+.gcm-contact-page__address {
+	margin-bottom: 20px;
+	font-style: normal;
+	line-height: 1.6;
+}
+
+.gcm-contact-page__hours {
+	margin-bottom: 20px;
+}
+
+.gcm-contact-page__hours-row {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 4px;
+	font-size: 14px;
+}
+
+.gcm-contact-page__hours-day {
+	min-width: 180px;
+	font-weight: 500;
+}
+
+.gcm-contact-page__areas,
+.gcm-contact-page__payment {
+	margin-bottom: 16px;
+}
+
+.gcm-contact-page__areas h3,
+.gcm-contact-page__payment h3 {
+	margin: 0 0 6px;
+	font-size: 16px;
+}
+
+.gcm-map-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin: 12px 0;
+}
+
+.gcm-map-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	color: inherit;
+	opacity: .8;
+	font-size: 14px;
+}
+
+.gcm-map-link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+@media (max-width: 600px) {
+	.gcm-contact-page {
+		max-width: 100%;
+	}
+	.gcm-contact-page__name {
+		font-size: 22px;
+	}
+	.gcm-contact-page__actions {
+		flex-direction: column;
+	}
+	.gcm-contact-page__btn {
+		justify-content: center;
+	}
+	.gcm-contact-page__hours-row {
+		flex-direction: column;
+		gap: 2px;
+	}
+	.gcm-contact-page__hours-day {
+		min-width: auto;
+	}
+	.gcm-map-links {
+		flex-direction: column;
+	}
+}

@@ -208,65 +208,15 @@ $opt = MM_Mod_Business_Contact::OPT_STYLE;
 	</table>
 
 	<?php /* ------------------------------------------------------------------ */ ?>
-	<?php /* Section: Button Appearance */ ?>
+	<?php /* Button styles now on Button Styles page */ ?>
 	<?php /* ------------------------------------------------------------------ */ ?>
 
-	<h3><?php esc_html_e( 'Button Appearance', 'metamanager' ); ?></h3>
-
-	<table class="form-table gcm-form-table">
-		<tr>
-			<th><label for="gcm_btn_bg"><?php esc_html_e( 'Button Background', 'metamanager' ); ?></label></th>
-			<td>
-				<div class="gcm-color-field">
-					<input type="color" id="gcm_btn_bg_picker" value="<?php echo esc_attr( $s['btn_bg'] ); ?>"
-					       oninput="document.getElementById('gcm_btn_bg').value=this.value">
-					<input type="text" id="gcm_btn_bg" name="<?php echo esc_attr( $opt ); ?>[btn_bg]"
-					       value="<?php echo esc_attr( $s['btn_bg'] ); ?>" class="small-text"
-					       oninput="document.getElementById('gcm_btn_bg_picker').value=this.value">
-				</div>
-			</td>
-		</tr>
-		<tr>
-			<th><label for="gcm_btn_text"><?php esc_html_e( 'Button Text Color', 'metamanager' ); ?></label></th>
-			<td>
-				<div class="gcm-color-field">
-					<input type="color" id="gcm_btn_text_picker" value="<?php echo esc_attr( $s['btn_text'] ); ?>"
-					       oninput="document.getElementById('gcm_btn_text').value=this.value">
-					<input type="text" id="gcm_btn_text" name="<?php echo esc_attr( $opt ); ?>[btn_text]"
-					       value="<?php echo esc_attr( $s['btn_text'] ); ?>" class="small-text"
-					       oninput="document.getElementById('gcm_btn_text_picker').value=this.value">
-				</div>
-			</td>
-		</tr>
-		<tr>
-			<th><label for="gcm_btn_radius"><?php esc_html_e( 'Button Corner Radius', 'metamanager' ); ?></label></th>
-			<td>
-				<input type="text" id="gcm_btn_radius"
-				       name="<?php echo esc_attr( $opt ); ?>[btn_radius]"
-				       value="<?php echo esc_attr( $s['btn_radius'] ); ?>"
-				       class="small-text" placeholder="4px">
-			</td>
-		</tr>
-		<tr>
-			<th><label for="gcm_btn_padding"><?php esc_html_e( 'Button Padding', 'metamanager' ); ?></label></th>
-			<td>
-				<input type="text" id="gcm_btn_padding"
-				       name="<?php echo esc_attr( $opt ); ?>[btn_padding]"
-				       value="<?php echo esc_attr( $s['btn_padding'] ); ?>"
-				       class="small-text" placeholder="10px 16px">
-				<p class="description"><?php esc_html_e( 'CSS padding shorthand, e.g. 10px 16px.', 'metamanager' ); ?></p>
-			</td>
-		</tr>
-		<tr>
-			<th><label for="gcm_btn_font_size"><?php esc_html_e( 'Button Font Size', 'metamanager' ); ?></label></th>
-			<td>
-				<input type="text" id="gcm_btn_font_size"
-				       name="<?php echo esc_attr( $opt ); ?>[btn_font_size]"
-				       value="<?php echo esc_attr( $s['btn_font_size'] ); ?>"
-				       class="small-text" placeholder="14px">
-			</td>
-		</tr>
-	</table>
+	<h3><?php esc_html_e( 'Button Styles', 'metamanager' ); ?></h3>
+	<p class="description">
+		<?php esc_html_e( 'Button appearance (colors, radius, padding, font) is now configured on the', 'metamanager' ); ?>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mm-meta-listing' ) ); ?>"><?php esc_html_e( 'Button Styles', 'metamanager' ); ?></a>
+		<?php esc_html_e( 'page. Those settings apply to all buttons site-wide including these action buttons.', 'metamanager' ); ?>
+	</p>
 
 	<?php /* ------------------------------------------------------------------ */ ?>
 	<?php /* Section: Typography */ ?>

@@ -39,7 +39,7 @@ private array $pages = [
 'mm-meta-links'    => [ 'label' => 'Links',      'option_group' => 'mm_meta_links_group',     'section' => 'links',   'template' => 'links',     'inner_form' => true  ],
 'mm-meta-tools'    => [ 'label' => 'Tools',      'option_group' => null,                      'section' => null,      'template' => 'tools',     'inner_form' => true  ],
 'mm-meta-contact'  => [ 'label' => 'Contact Card', 'option_group' => 'mm_meta_contact_group', 'section' => null, 'template' => 'contact', 'inner_form' => false ],
-'mm-meta-listing'  => [ 'label' => 'Listing Cards', 'option_group' => 'mm_meta_listing_group',  'section' => 'listing', 'template' => 'listing',  'inner_form' => false ],
+'mm-meta-listing'  => [ 'label' => 'Button Styles', 'option_group' => 'mm_meta_listing_group',  'section' => 'listing', 'template' => 'listing',  'inner_form' => false ],
 ];
 
 public function __construct( MM_Site_Settings $settings ) {
@@ -73,7 +73,7 @@ add_submenu_page( 'metamanager', 'RSS Feed — Metamanager',   'RSS Feed',   'ma
 add_submenu_page( 'metamanager', 'Links — Metamanager',      'Links',      'manage_options', 'mm-meta-links',    fn() => $this->render( 'mm-meta-links' ) );
 add_submenu_page( 'metamanager', 'Tools — Metamanager',      'Tools',      'manage_options', 'mm-meta-tools',    fn() => $this->render( 'mm-meta-tools' ) );
 add_submenu_page( 'metamanager', 'Contact Card — Metamanager', 'Contact Card', 'manage_options', 'mm-meta-contact', fn() => $this->render( 'mm-meta-contact' ) );
-add_submenu_page( 'metamanager', 'Listing Cards — Metamanager', 'Listing Cards', 'manage_options', 'mm-meta-listing', fn() => $this->render( 'mm-meta-listing' ) );
+add_submenu_page( 'metamanager', 'Button Styles — Metamanager', 'Button Styles', 'manage_options', 'mm-meta-listing', fn() => $this->render( 'mm-meta-listing' ) );
 }
 
 // -------------------------------------------------------------------------
