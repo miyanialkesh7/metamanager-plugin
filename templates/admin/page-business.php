@@ -159,11 +159,13 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 			<td><input type="text" id="gcm_addr_country" name="<?php echo esc_attr($opt); ?>[address][country]" value="<?php echo esc_attr($a['country']??'US'); ?>" class="small-text" placeholder="US"></td>
 		</tr>
 		<tr>
-			<th><label>Geo Coordinates</label></th>
+			<th><label for="gcm_google_maps_api_key">Google Maps API Key</label></th>
 			<td>
-				<input type="text" name="<?php echo esc_attr($opt); ?>[lat]" value="<?php echo esc_attr($b['lat']??''); ?>" class="small-text" placeholder="Latitude">
-				<input type="text" name="<?php echo esc_attr($opt); ?>[lng]" value="<?php echo esc_attr($b['lng']??''); ?>" class="small-text" placeholder="Longitude" style="margin-left:8px">
-				<p class="description">Optional. Used in <code>GeoCoordinates</code> schema node.</p>
+				<input type="text" id="gcm_google_maps_api_key" name="<?php echo esc_attr($opt); ?>[google_maps_api_key]" value="<?php echo esc_attr( $b['google_maps_api_key'] ?? '' ); ?>" class="regular-text" placeholder="AIza...">
+				<p class="description">Coordinates are derived automatically from the business address using the Google Maps Geocoding API.</p>
+				<?php if ( ! empty( $b['lat'] ) && ! empty( $b['lng'] ) ) : ?>
+				<p class="description">Current coordinates: <code><?php echo esc_html( $b['lat'] . ', ' . $b['lng'] ); ?></code></p>
+				<?php endif; ?>
 			</td>
 		</tr>
 		<tr>
@@ -212,16 +214,7 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 				</label>
 			</td>
 		</tr>
-		<tr>
-			<th><label for="gcm_google_maps_api_key">Google Maps API Key</label></th>
-			<td>
-				<input type="text" id="gcm_google_maps_api_key" name="<?php echo esc_attr($opt); ?>[google_maps_api_key]" value="<?php echo esc_attr( $b['google_maps_api_key'] ?? '' ); ?>" class="regular-text" placeholder="AIza...">
-				<p class="description">Used to automatically derive coordinates from the business address via the Google Maps Geocoding API. Also used for map embeds.</p>
-				<?php if ( empty( $b['google_maps_api_key'] ) ) : ?>
-				<p><button type="button" class="button" id="gcm-geocode-btn">Derive Coordinates from Address</button></p>
-				<?php endif; ?>
-			</td>
-		</tr>
+
 	</table>
 
 	<h2>Opening Hours</h2>

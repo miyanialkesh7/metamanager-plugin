@@ -728,7 +728,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		?>
 		<div class="gcm-map-links">
 			<?php foreach ( $links as $link ) : ?>
-			<a href="<?php echo esc_url( $link['url'], [ 'geo', 'https', 'http' ] ); ?>"
+			<a href="<?php echo esc_attr( $link['url'] ); ?>"
 			   class="gcm-map-link <?php echo esc_attr( $link['class'] ); ?>"
 			   target="_blank" rel="noopener noreferrer">
 				<span class="dashicons dashicons-location" aria-hidden="true"></span>
