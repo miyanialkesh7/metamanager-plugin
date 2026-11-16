@@ -204,6 +204,15 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 			</td>
 		</tr>
 		<tr>
+			<th><label for="gcm_show_sms">SMS Link</label></th>
+			<td>
+				<label>
+					<input type="checkbox" id="gcm_show_sms" name="<?php echo esc_attr($opt); ?>[show_sms]" value="1" <?php checked( ! empty( $b['show_sms'] ) ); ?>>
+					Show SMS link on Contact page
+				</label>
+			</td>
+		</tr>
+		<tr>
 			<th><label for="gcm_google_maps_api_key">Google Maps API Key</label></th>
 			<td>
 				<input type="text" id="gcm_google_maps_api_key" name="<?php echo esc_attr($opt); ?>[google_maps_api_key]" value="<?php echo esc_attr( $b['google_maps_api_key'] ?? '' ); ?>" class="regular-text" placeholder="AIza...">

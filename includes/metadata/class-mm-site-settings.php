@@ -553,6 +553,7 @@ class MM_Site_Settings {
 			'lng'                  => '',
 			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
 			'google_maps_api_key'  => '',
+			'show_sms'             => true,
 			'map_links'            => [
 				'google' => true,
 				'bing'   => true,
