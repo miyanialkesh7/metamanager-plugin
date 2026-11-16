@@ -22,21 +22,21 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// render_card()
+	// render_contact_page()
 	// ------------------------------------------------------------------
 
-	public function test_render_card_empty_when_no_business_name(): void {
+	public function test_render_contact_page_empty_when_no_business_name(): void {
 		update_option( MM_META_OPT_BUSINESS, [] );
 		MM_Site_Settings::reset_instance();
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertSame( '', $output );
 	}
 
-	public function test_render_card_contains_business_name(): void {
+	public function test_render_contact_page_contains_business_name(): void {
 		update_option( MM_META_OPT_BUSINESS, [
 			'name'  => 'Test Business',
 			'phone' => '+1-555-0100',
@@ -45,12 +45,12 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringContainsString( 'Test Business', $output );
 	}
 
-	public function test_render_card_contains_schema_json_ld(): void {
+	public function test_render_contact_page_contains_schema_json_ld(): void {
 		update_option( MM_META_OPT_BUSINESS, [
 			'name'  => 'Schema Business',
 			'phone' => '+1-555-0100',
@@ -59,13 +59,13 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringContainsString( 'application/ld+json', $output );
 		$this->assertStringContainsString( 'LocalBusiness', $output );
 	}
 
-	public function test_render_card_contains_phone_link(): void {
+	public function test_render_contact_page_contains_phone_link(): void {
 		update_option( MM_META_OPT_BUSINESS, [
 			'name'  => 'Phone Business',
 			'phone' => '+1-555-0100',
@@ -77,14 +77,14 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringContainsString( 'tel:+1-555-0100', $output );
 
 		delete_option( MM_Mod_Business_Contact::OPT_STYLE );
 	}
 
-	public function test_render_card_hides_phone_when_disabled(): void {
+	public function test_render_contact_page_hides_phone_when_disabled(): void {
 		update_option( MM_META_OPT_BUSINESS, [
 			'name'  => 'No Phone Business',
 			'phone' => '+1-555-0100',
@@ -96,7 +96,7 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringNotContainsString( 'tel:', $output );
 
@@ -104,7 +104,7 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// build_schema() — via render_card()
+	// build_schema() — via render_contact_page()
 	// ------------------------------------------------------------------
 
 	public function test_schema_includes_address_when_present(): void {
@@ -122,7 +122,7 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringContainsString( '123 Main St', $output );
 		$this->assertStringContainsString( 'Portland', $output );
@@ -138,7 +138,7 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$this->settings = MM_Site_Settings::get_instance();
 
 		$module = new MM_Mod_Business_Contact( $this->settings );
-		$output = $module->render_card();
+		$output = $module->render_contact_page();
 
 		$this->assertStringContainsString( 'GeoCoordinates', $output );
 	}
