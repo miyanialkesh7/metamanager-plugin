@@ -117,9 +117,72 @@ class MM_Site_Settings {
 	}
 
 	public function save_business( array $data ): void {
+		// Auto-derive coordinates via Google Maps Geocoding API when:
+		// - API key is set
+		// - Address has a street
+		// - Coordinates are missing OR address changed
+		$old = get_option( MM_META_OPT_BUSINESS, [] );
+		$key = sanitize_text_field( $data['google_maps_api_key'] ?? '' );
+		$has_addr = ! empty( $data['address']['street'] ?? '' );
+		$coords_missing = empty( $data['lat'] ) || empty( $data['lng'] );
+		$addr_changed = ( $old['address']['street'] ?? '' ) !== ( $data['address']['street'] ?? '' )
+			|| ( $old['address']['city'] ?? '' ) !== ( $data['address']['city'] ?? '' )
+			|| ( $old['address']['state'] ?? '' ) !== ( $data['address']['state'] ?? '' )
+			|| ( $old['address']['zip'] ?? '' ) !== ( $data['address']['zip'] ?? '' );
+
+		if ( $key && $has_addr && ( $coords_missing || $addr_changed ) ) {
+			$geo = self::geocode_with_key( $key, $data['address'] );
+			if ( $geo ) {
+				$data['lat'] = (string) $geo['lat'];
+				$data['lng'] = (string) $geo['lng'];
+				do_action( 'mm_geocode_success', $geo, $data['address'] );
+			} else {
+				do_action( 'mm_geocode_failed', $data['address'] );
+			}
+		}
+
 		update_option( MM_META_OPT_BUSINESS, $data, false );
 		$this->business_data = null;
 		do_action( 'mm_business_profile_saved', $data );
+	}
+
+	/**
+	 * Derive coordinates from address using Google Maps Geocoding API.
+	 *
+	 * @param string $key  Google Maps API key.
+	 * @param array  $addr Address array with street/city/state/zip/country.
+	 * @return array|false ['lat' => float, 'lng' => float] or false.
+	 */
+	public static function geocode_with_key( string $key, array $addr ): array|false {
+		$parts = array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+			$addr['country'] ?? 'US',
+		] );
+		if ( empty( $parts ) ) {
+			return false;
+		}
+		$address = implode( ', ', $parts );
+		$url = add_query_arg( [
+			'address' => rawurlencode( $address ),
+			'key'     => $key,
+		], 'https://maps.googleapis.com/maps/api/geocode/json' );
+
+		$response = wp_remote_get( $url, [ 'timeout' => 15 ] );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body['results'][0]['geometry']['location'] ) ) {
+			return false;
+		}
+		$loc = $body['results'][0]['geometry']['location'];
+		return [
+			'lat' => (float) $loc['lat'],
+			'lng' => (float) $loc['lng'],
+		];
 	}
 
 	// -------------------------------------------------------------------------
@@ -553,6 +616,7 @@ class MM_Site_Settings {
 			'lng'                  => '',
 			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
 			'google_maps_api_key'  => '',
+			'show_sms'             => true,
 			'map_links'            => [
 				'google' => true,
 				'bing'   => true,

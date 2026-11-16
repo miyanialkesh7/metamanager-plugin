@@ -506,7 +506,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 		$has_address = ! empty( $addr['street'] );
 		$show_phone  = ! empty( $style['show_phone'] ) && $phone;
-		$show_sms    = ! empty( $style['show_sms'] )   && $phone;
+		$show_sms    = ! empty( $biz['show_sms'] ?? $style['show_sms'] )   && $phone;
 		$show_email  = ! empty( $style['show_email'] ) && $email;
 		$show_vcard  = ! empty( $style['show_vcard'] );
 		$show_json   = ! empty( $style['show_json'] );
@@ -728,7 +728,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		?>
 		<div class="gcm-map-links">
 			<?php foreach ( $links as $link ) : ?>
-			<a href="<?php echo esc_url( $link['url'] ); ?>"
+			<a href="<?php echo esc_attr( $link['url'] ); ?>"
 			   class="gcm-map-link <?php echo esc_attr( $link['class'] ); ?>"
 			   target="_blank" rel="noopener noreferrer">
 				<span class="dashicons dashicons-location" aria-hidden="true"></span>
@@ -760,7 +760,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 		$has_address = ! empty( $addr['street'] );
 		$show_phone  = ! empty( $style['show_phone'] ) && $phone;
-		$show_sms    = ! empty( $style['show_sms'] )   && $phone;
+		$show_sms    = ! empty( $biz['show_sms'] ?? $style['show_sms'] )   && $phone;
 		$show_email  = ! empty( $style['show_email'] ) && $email;
 		$show_vcard  = ! empty( $style['show_vcard'] );
 		$show_json   = ! empty( $style['show_json'] );

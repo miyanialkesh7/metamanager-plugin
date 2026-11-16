@@ -10,6 +10,12 @@ defined( 'ABSPATH' ) || exit;
 
 abstract class MM_Mod_Base {
 
+	/**
+	 * Track which nav menus were rendered during this request.
+	 * Populated by MM_Metadata_Loader::track_rendered_menu().
+	 */
+	public static array $rendered_menus = [];
+
 	protected MM_Site_Settings $settings;
 
 	public function __construct( MM_Site_Settings $settings ) {
@@ -37,6 +43,46 @@ abstract class MM_Mod_Base {
 	 * @return array{id: int, name: string, items: array}|null
 	 */
 	public static function get_primary_menu(): ?array {
+		// First: check if a menu is designated for schema via the nav menu checkbox
+		// (stored as _mm_nav_menu_primary term meta on the nav_menu term).
+		static $designated = null;
+		if ( null === $designated ) {
+			$designated = get_terms( [
+				'taxonomy'   => 'nav_menu',
+				'meta_query' => [
+					[
+						'key'   => '_mm_nav_menu_primary',
+						'value' => '1',
+					],
+				],
+				'number'     => 1,
+				'hide_empty' => false,
+			] );
+		}
+		if ( ! is_wp_error( $designated ) && ! empty( $designated ) ) {
+			$schema_menu_id = (int) $designated[0]->term_id;
+			$menu_items = wp_get_nav_menu_items( $schema_menu_id );
+			if ( ! empty( $menu_items ) ) {
+				$items = [];
+				$position = 1;
+				foreach ( $menu_items as $item ) {
+					if ( $item->url && $item->title ) {
+						$items[] = [
+							'name'     => $item->title,
+							'url'      => $item->url,
+							'position' => $position++,
+						];
+					}
+				}
+				return [
+					'id'    => $schema_menu_id,
+					'name'  => $designated[0]->name,
+					'items' => $items,
+				];
+			}
+		}
+
+		// Fallback: first assigned theme menu location (WordPress core).
 		if ( ! function_exists( 'wp_get_nav_menu_locations' ) ) {
 			return null;
 		}
