@@ -1216,12 +1216,17 @@ class MM_Schema_Post_Types {
 					if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
 						$detail_items = [];
 						$field_defs = MM_Schema_Types::get_fields_by_type()[ MM_Schema_Post_Types::slug_to_type( $slug ) ] ?? [];
+						// Build label map from field definitions.
+						$label_map = [];
 						foreach ( $field_defs as $fdef ) {
-							$fkey = $fdef['key'] ?? '';
-							$fval = trim( (string) ( $saved_fields[ $fkey ] ?? '' ) );
-							if ( '' !== $fval ) {
-								$detail_items[] = [ 'label' => $fdef['label'] ?? $fkey, 'value' => $fval ];
-							}
+							$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
+						}
+						// Show all non-empty saved fields (matches field defs or generic keys).
+						foreach ( $saved_fields as $fkey => $fval ) {
+							$fval = trim( (string) $fval );
+							if ( '' === $fval ) continue;
+							$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
+							$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
 						}
 						if ( $detail_items ) : ?>
 					<div class="mm-archive-card__details">

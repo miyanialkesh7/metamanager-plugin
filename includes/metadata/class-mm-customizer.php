@@ -31,9 +31,9 @@ class MM_Customizer {
 	 * Register the Schema section and per-CPT layout controls.
 	 */
 	public static function customize_register( \WP_Customize_Manager $wp_customize ): void {
-		// Root-level Schema section.
-		$wp_customize->add_section( 'mm_schema', [
-			'title'    => __( 'Schema', 'metamanager' ),
+		// Root-level MM Archives section.
+		$wp_customize->add_section( 'mm_archives', [
+			'title'    => __( 'MM Archives', 'metamanager' ),
 			'priority' => 35,
 		] );
 
@@ -49,9 +49,9 @@ class MM_Customizer {
 				'sanitize_callback' => [ __CLASS__, 'sanitize_layout' ],
 			] );
 
-			$wp_customize->add_control( "mm_archive_layout_{$slug}", [
+			$wp_customize->add_control( "mm_archives_layout_{$slug}", [
 				'label'       => sprintf( __( '%s Archive Layout', 'metamanager' ), $label ),
-				'section'     => 'mm_schema',
+				'section'     => 'mm_archives',
 				'setting'     => "mm_meta_settings[schema][archive_layouts][{$slug}]",
 				'type'        => 'select',
 				'choices'     => self::LAYOUTS,
