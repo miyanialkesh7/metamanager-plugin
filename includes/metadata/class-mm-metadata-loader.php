@@ -50,10 +50,12 @@ class MM_Metadata_Loader {
 		// metamanager.php — registering it here (plugins_loaded) is too
 		// late for the Abilities API init and silently never fires.
 
+		// Customizer hooks fire on admin pages only — register unconditionally.
+		MM_Customizer::register();
+
 		// --- Admin ---------------------------------------------------------------
 		if ( is_admin() ) {
 			( new MM_Metadata_Admin( $this->settings ) )->register_hooks();
-			MM_Customizer::register();
 			( new MM_Post_Meta_Panel( $this->settings ) )->register_hooks();
 			( new MM_Term_Meta_Panel( $this->settings ) )->register_hooks();
 			( new MM_User_Meta_Panel( $this->settings ) )->register_hooks();
