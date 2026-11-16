@@ -35,6 +35,15 @@ class MM_Biz_Card_CSS {
 		$btn_padding       = self::shorthand( $s['btn_padding']    ?? '10px 16px' );
 		$btn_font_size     = self::length( $s['btn_font_size']     ?? '14px' );
 		$btn_font_weight   = (string) ( $s['btn_font_weight'] ?? '500' );
+		$btn_border_t     = self::shorthand( $s['btn_border_thickness'] ?? '0px' );
+		$btn_border_c     = self::color( $s['btn_border_color']       ?? '#0073aa' );
+		$btn_shadow_on    = ! empty( $s['btn_box_shadow'] );
+		$btn_shadow_color = (string) ( $s['btn_box_shadow_color'] ?? 'rgba(0,0,0,0.3)' );
+		$btn_shadow_x     = self::shorthand( $s['btn_box_shadow_x']     ?? '0px' );
+		$btn_shadow_y     = self::shorthand( $s['btn_box_shadow_y']     ?? '2px' );
+		$btn_shadow_blur  = self::shorthand( $s['btn_box_shadow_blur']  ?? '4px' );
+		$btn_shadow_spread = self::shorthand( $s['btn_box_shadow_spread'] ?? '0px' );
+		$btn_shadow_css   = $btn_shadow_on ? "box-shadow:{$btn_shadow_x} {$btn_shadow_y} {$btn_shadow_blur} {$btn_shadow_spread} {$btn_shadow_color};" : '';
 		$name_font_size    = self::length( $s['name_font_size']    ?? '20px' );
 		$body_font_size    = self::length( $s['body_font_size']    ?? '14px' );
 
@@ -60,6 +69,7 @@ class MM_Biz_Card_CSS {
 		$css .= "{$btn_selectors}{display:inline-flex;align-items:center;gap:8px;text-decoration:none;";
 		$css .= "background:{$btn_bg};color:{$btn_text} !important;padding:{$btn_padding};";
 		$css .= "border-radius:{$btn_radius};font-size:{$btn_font_size};font-weight:{$btn_font_weight};";
+		$css .= "border:{$btn_border_t} solid {$btn_border_c};{$btn_shadow_css}";
 		$css .= "cursor:pointer;border:none;line-height:1.4;}\n";
 
 		$css .= "{$btn_selectors}:hover,{$btn_selectors}:focus{opacity:.88;text-decoration:none;color:{$btn_text} !important;}\n";
