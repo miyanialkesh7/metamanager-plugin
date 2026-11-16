@@ -315,16 +315,45 @@ class MM_Site_Settings {
 			if ( is_array( $default_val ) && is_array( $val ) ) {
 				$is_list = empty( $default_val ) || ( array_keys( $default_val ) === range( 0, count( $default_val ) - 1 ) );
 				if ( $is_list ) {
-					$first_default = reset( $default_val );
-					$out[ $key ] = array_values( array_map(
-						function ( $item ) use ( $first_default ) {
-							if ( is_array( $item ) && is_array( $first_default ) ) {
-								return self::deep_sanitize_section( $item, $first_default );
-							}
-							return sanitize_text_field( (string) $item );
-						},
-						$val
-					) );
+					// Detect if items are arrays (repeater rows with nested structure).
+					$items_are_arrays = ! empty( $val ) && is_array( reset( $val ) );
+					if ( $items_are_arrays ) {
+						// Sanitize each row as an associative array, preserving structure.
+						$out[ $key ] = array_values( array_map(
+							function ( $item ) {
+								if ( ! is_array( $item ) ) {
+									return sanitize_text_field( (string) $item );
+								}
+								$clean = [];
+								foreach ( $item as $ik => $iv ) {
+									if ( is_array( $iv ) ) {
+										$clean[ $ik ] = array_map( function( $v ) {
+											return sanitize_text_field( (string) $v );
+										}, $iv );
+									} elseif ( is_bool( $iv ) ) {
+										$clean[ $ik ] = (bool) $iv;
+									} elseif ( is_int( $iv ) ) {
+										$clean[ $ik ] = (int) $iv;
+									} else {
+										$clean[ $ik ] = sanitize_text_field( (string) $iv );
+									}
+								}
+								return $clean;
+							},
+							$val
+						) );
+					} else {
+						$first_default = reset( $default_val );
+						$out[ $key ] = array_values( array_map(
+							function ( $item ) use ( $first_default ) {
+								if ( is_array( $item ) && is_array( $first_default ) ) {
+									return self::deep_sanitize_section( $item, $first_default );
+								}
+								return sanitize_text_field( (string) $item );
+							},
+							$val
+						) );
+					}
 				} else {
 					$out[ $key ] = self::deep_sanitize_section( $val, $default_val );
 				}
