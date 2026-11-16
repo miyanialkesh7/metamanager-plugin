@@ -78,14 +78,14 @@ class MM_Biz_Card_CSS {
 		// Apply button styles to ALL button/link classes across the site.
 		$btn_selectors = '.gcm-biz-card__btn,.gcm-contact-page__btn,.gcm-about-page__link,.gcm-about-page__cta-btn,.mm-person__phone-btn,.mm-person__email-btn,.mm-archive-card__link';
 
-		$css .= "{$btn_selectors}{display:inline-flex;align-items:center;gap:8px;text-decoration:none;";
+		$css .= "{$btn_selectors}{display:inline-flex;align-items:center;gap:8px;text-decoration:none;transition:background 0.2s ease,color 0.2s ease;";
 		$css .= "background:{$btn_bg};color:{$btn_text} !important;padding:{$btn_padding};";
 		$css .= "border-radius:{$btn_radius};font-size:{$btn_font_size};font-weight:{$btn_font_weight};";
 		$css .= "border:{$btn_border_t} solid {$btn_border_c};{$btn_shadow_css}";
 		$css .= "cursor:pointer;border:none;line-height:1.4;}\n";
 
-		$css .= "{$btn_selectors}:hover,{$btn_selectors}:focus{{$hover_css}text-decoration:none;\n";
-		$css .= "{$btn_selectors}:focus{outline:2px solid {$btn_bg};outline-offset:2px;}\n";
+		$css .= "{$btn_selectors}:hover{{$hover_css}text-decoration:none;}\n";
+		$css .= "{$btn_selectors}:focus{outline:none;}\n";
 
 		$css .= "{$btn_selectors} .dashicons{font-size:{$btn_font_size};width:auto;height:auto;flex-shrink:0;vertical-align:middle;}\n";
 
