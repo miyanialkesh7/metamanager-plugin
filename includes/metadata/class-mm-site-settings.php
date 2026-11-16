@@ -665,6 +665,10 @@ class MM_Site_Settings {
 			'btn_box_shadow_y' => '2px',
 			'btn_box_shadow_blur' => '4px',
 			'btn_box_shadow_spread' => '0px',
+			'btn_hover_enabled' => true,
+			'btn_hover_bg' => '',
+			'btn_hover_text' => '',
+			'btn_hover_opacity' => '0.88',
 				'btn_display'   => 'inline-block',
 			],
 

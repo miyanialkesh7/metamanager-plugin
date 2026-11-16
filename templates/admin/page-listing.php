@@ -155,6 +155,47 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 		</tr>
 	</table>
 
+	<h3><?php esc_html_e( 'Hover Effect', 'metamanager' ); ?></h3>
+	<table class="form-table gcm-form-table">
+		<tr>
+			<th><label><?php esc_html_e( 'Enable Hover Effect', 'metamanager' ); ?></label></th>
+			<td>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr( $opt ); ?>[btn_hover_enabled]" value="1" <?php checked( ! empty( $s['btn_hover_enabled'] ?? true ) ); ?>>
+					<?php esc_html_e( 'Apply hover effect to buttons', 'metamanager' ); ?>
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_bg"><?php esc_html_e( 'Hover Background', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_hover_bg"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_bg]"
+					value="<?php echo esc_attr( $s['btn_hover_bg'] ?? '' ); ?>">
+				<p class="description"><?php esc_html_e( 'Leave empty to use opacity instead.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_text"><?php esc_html_e( 'Hover Text Color', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="color" id="listing-btn_hover_text"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_text]"
+					value="<?php echo esc_attr( $s['btn_hover_text'] ?? '' ); ?>">
+				<p class="description"><?php esc_html_e( 'Leave empty to keep default text color.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="listing-btn_hover_opacity"><?php esc_html_e( 'Hover Opacity', 'metamanager' ); ?></label></th>
+			<td>
+				<input type="text" id="listing-btn_hover_opacity"
+					name="<?php echo esc_attr( $opt ); ?>[btn_hover_opacity]"
+					value="<?php echo esc_attr( $s['btn_hover_opacity'] ?? '0.88' ); ?>"
+					class="small-text" placeholder="0.88">
+				<p class="description"><?php esc_html_e( '0 to 1. Only used when hover background is empty.', 'metamanager' ); ?></p>
+			</td>
+		</tr>
+	</table>
+
 	<h3><?php esc_html_e( 'Preview', 'metamanager' ); ?></h3>
 	<div style="background:#f0f0f1;padding:20px;border-radius:4px;">
 		<a id="listing-preview-btn" style="
