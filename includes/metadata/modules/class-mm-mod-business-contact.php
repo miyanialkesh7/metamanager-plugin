@@ -770,111 +770,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		?>
 		<div class="gcm-contact-page" itemscope itemtype="https://schema.org/<?php echo esc_attr( $type ); ?>">
 
-			<?php if ( ! empty( $biz['logo_url'] ) ) : ?>
-			<div class="gcm-contact-page__logo">
-				<img src="<?php echo esc_url( $biz['logo_url'] ); ?>"
-				     alt="<?php echo esc_attr( $name ); ?>"
-				     itemprop="logo">
-			</div>
-			<?php endif; ?>
-
 			<div class="gcm-contact-page__name" itemprop="name"><?php echo esc_html( $name ); ?></div>
-
-			<?php if ( $has_address ) : ?>
-			<?php $is_service_area = ( ( $biz['location_type'] ?? 'brick_and_mortar' ) === 'service_area' ); ?>
-			<address class="gcm-contact-page__address"
-			         itemprop="address"
-			         itemscope itemtype="https://schema.org/PostalAddress">
-				<?php if ( $is_service_area ) : ?>
-					<span class="gcm-contact-page__mailing-label"><?php esc_html_e( 'Mailing Address', 'metamanager' ); ?></span><br>
-				<?php endif; ?>
-				<?php if ( ! empty( $addr['street'] ) ) : ?>
-					<span itemprop="streetAddress"><?php echo esc_html( $addr['street'] ); ?></span><br>
-				<?php endif; ?>
-				<?php
-				$city  = $addr['city']  ?? '';
-				$state = $addr['state'] ?? '';
-				$zip   = $addr['zip']   ?? '';
-				if ( $city || $state || $zip ) :
-				?>
-					<span itemprop="addressLocality"><?php echo esc_html( $city ); ?></span><?php echo ( $city && $state ) ? ', ' : ''; ?><span itemprop="addressRegion"><?php echo esc_html( $state ); ?></span><?php echo $zip ? ' ' . esc_html( $zip ) : ''; ?>
-				<?php endif; ?>
-				<?php if ( ! empty( $addr['country'] ) ) : ?>
-					<br><span itemprop="addressCountry"><?php echo esc_html( $addr['country'] ); ?></span>
-				<?php endif; ?>
-
-				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
-				<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
-				<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
-				<?php endif; ?>
-				<?php if ( $is_service_area ) : ?>
-					<br><span class="gcm-contact-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
-				<?php endif; ?>
-			</address>
-			<?php echo $this->render_map_links( $biz ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
-			<div class="gcm-contact-page__hours" itemprop="openingHoursSpecification">
-				<?php foreach ( $hours as $group ) :
-					if ( empty( $group['days'] ) ) continue;
-					$days_label = implode( ', ', (array) $group['days'] );
-					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
-					?>
-					<div class="gcm-contact-page__hours-row">
-						<span class="gcm-contact-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
-						<span class="gcm-contact-page__hours-time"><?php echo esc_html( $time_label ); ?></span>
-					</div>
-				<?php endforeach; ?>
-			</div>
-			<?php endif; ?>
-
-			<?php
-			$areas   = $biz['service_areas'] ?? [];
-			$payment = $biz['payment_accepted'] ?? [];
-			$accounts = $biz['accounts'] ?? [];
-			?>
-			<?php if ( ! empty( $areas ) ) : ?>
-			<div class="gcm-contact-page__areas">
-				<h3>Service Areas</h3>
-				<p><?php echo esc_html( implode( ', ', $areas ) ); ?></p>
-			</div>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $payment ) ) : ?>
-			<div class="gcm-contact-page__payment">
-				<h3>Payment Accepted</h3>
-				<p><?php echo esc_html( implode( ', ', $payment ) ); ?></p>
-			</div>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $accounts ) ) : ?>
-			<div class="gcm-contact-page__social">
-				<h3>Connect With Us</h3>
-				<div class="gcm-contact-page__social-links">
-					<?php
-					$icons = [
-						'facebook'  => 'dashicons-facebook',
-						'instagram' => 'dashicons-instagram',
-						'twitter'   => 'dashicons-twitter',
-						'linkedin'  => 'dashicons-linkedin',
-						'youtube'   => 'dashicons-youtube',
-						'pinterest' => 'dashicons-pinterest',
-					];
-					foreach ( $accounts as $platform => $surl ) :
-						if ( empty( $surl ) ) continue;
-						$icon = $icons[ $platform ] ?? 'dashicons-share';
-						$label = ucfirst( $platform );
-					?>
-					<a href="<?php echo esc_url( $surl ); ?>" class="gcm-contact-page__social-link" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $label ); ?>">
-						<span class="dashicons <?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
-						<span class="gcm-contact-page__social-label"><?php echo esc_html( $label ); ?></span>
-					</a>
-					<?php endforeach; ?>
-				</div>
-			</div>
-			<?php endif; ?>
-
 
 			<div class="gcm-contact-page__actions">
 
@@ -932,6 +828,104 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php endif; ?>
 
 			</div>
+
+			<?php
+			$accounts = $biz['accounts'] ?? [];
+			?>
+			<?php if ( ! empty( $accounts ) ) : ?>
+			<div class="gcm-contact-page__social">
+				<h3>Connect With Us</h3>
+				<div class="gcm-contact-page__social-links">
+					<?php
+					$icons = [
+						'facebook'  => 'dashicons-facebook',
+						'instagram' => 'dashicons-instagram',
+						'twitter'   => 'dashicons-twitter',
+						'linkedin'  => 'dashicons-linkedin',
+						'youtube'   => 'dashicons-youtube',
+						'pinterest' => 'dashicons-pinterest',
+					];
+					foreach ( $accounts as $platform => $surl ) :
+						if ( empty( $surl ) ) continue;
+						$icon = $icons[ $platform ] ?? 'dashicons-share';
+						$label = ucfirst( $platform );
+					?>
+					<a href="<?php echo esc_url( $surl ); ?>" class="gcm-contact-page__social-link" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $label ); ?>">
+						<span class="dashicons <?php echo esc_attr( $icon ); ?>" aria-hidden="true"></span>
+						<span class="gcm-contact-page__social-label"><?php echo esc_html( $label ); ?></span>
+					</a>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( $has_address ) : ?>
+			<?php $is_service_area = ( ( $biz['location_type'] ?? 'brick_and_mortar' ) === 'service_area' ); ?>
+			<address class="gcm-contact-page__address"
+			         itemprop="address"
+			         itemscope itemtype="https://schema.org/PostalAddress">
+				<?php if ( $is_service_area ) : ?>
+					<span class="gcm-contact-page__mailing-label"><?php esc_html_e( 'Mailing Address', 'metamanager' ); ?></span><br>
+				<?php endif; ?>
+				<?php if ( ! empty( $addr['street'] ) ) : ?>
+					<span itemprop="streetAddress"><?php echo esc_html( $addr['street'] ); ?></span><br>
+				<?php endif; ?>
+				<?php
+				$city  = $addr['city']  ?? '';
+				$state = $addr['state'] ?? '';
+				$zip   = $addr['zip']   ?? '';
+				if ( $city || $state || $zip ) :
+				?>
+					<span itemprop="addressLocality"><?php echo esc_html( $city ); ?></span><?php echo ( $city && $state ) ? ', ' : ''; ?><span itemprop="addressRegion"><?php echo esc_html( $state ); ?></span><?php echo $zip ? ' ' . esc_html( $zip ) : ''; ?>
+				<?php endif; ?>
+				<?php if ( ! empty( $addr['country'] ) ) : ?>
+					<br><span itemprop="addressCountry"><?php echo esc_html( $addr['country'] ); ?></span>
+				<?php endif; ?>
+
+				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
+				<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
+				<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
+				<?php endif; ?>
+				<?php if ( $is_service_area ) : ?>
+					<br><span class="gcm-contact-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
+				<?php endif; ?>
+			</address>
+			<?php echo $this->render_map_links( $biz ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
+			<div class="gcm-contact-page__hours" itemprop="openingHoursSpecification">
+				<?php foreach ( $hours as $group ) :
+					if ( empty( $group['days'] ) ) continue;
+					$days_label = implode( ', ', (array) $group['days'] );
+					$time_label = ( ! empty( $group['closed'] ) || ( ( $group['open'] ?? '' ) === '00:00' && ( $group['close'] ?? '' ) === '00:00' ) ) ? 'Closed' : ( $group['open'] ?? '' ) . ' – ' . ( $group['close'] ?? '' );
+					?>
+					<div class="gcm-contact-page__hours-row">
+						<span class="gcm-contact-page__hours-day"><?php echo esc_html( $days_label ); ?></span>
+						<span class="gcm-contact-page__hours-time"><?php echo esc_html( $time_label ); ?></span>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php
+			$areas   = $biz['service_areas'] ?? [];
+			$payment = $biz['payment_accepted'] ?? [];
+			?>
+			<?php if ( ! empty( $areas ) ) : ?>
+			<div class="gcm-contact-page__areas">
+				<h3>Service Areas</h3>
+				<p><?php echo esc_html( implode( ', ', $areas ) ); ?></p>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $payment ) ) : ?>
+			<div class="gcm-contact-page__payment">
+				<h3>Payment Accepted</h3>
+				<p><?php echo esc_html( implode( ', ', $payment ) ); ?></p>
+			</div>
+			<?php endif; ?>
+
 		</div>
 		<?php
 		return ob_get_clean();

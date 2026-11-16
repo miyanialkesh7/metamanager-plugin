@@ -1,9 +1,9 @@
 <?php
 /**
- * Admin page — Listing Cards Style.
+ * Admin page — Button Styles.
  *
- * Sitewide style for the "Learn more" buttons on archive/parent listing
- * pages (Services, Events, Trips, etc.).
+ * Sitewide button/link styles for listing cards, contact card buttons,
+ * and Person widget clickable elements.
  *
  * @var MM_Site_Settings $settings
  */
@@ -11,24 +11,20 @@ defined( 'ABSPATH' ) || exit;
 
 $s   = $settings->get( 'listing' );
 $opt = 'listing';
+$biz_style = MM_Mod_Business_Contact::get_style_settings();
 ?>
 
 <div class="mm-meta-panel" id="page-listing">
 
-	<h2><?php esc_html_e( 'Listing Cards', 'metamanager' ); ?></h2>
+	<h2><?php esc_html_e( 'Button Styles', 'metamanager' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'Controls the appearance of the "Learn more" link buttons on listing pages (Services, Events, Trips, Courses, etc.). These are the archive/parent pages that list all items of a schema type.', 'metamanager' ); ?>
+		<?php esc_html_e( 'Sitewide button and link styles used by listing cards, contact card action buttons, and Person widget phone/links. These settings control the appearance of all clickable buttons across the site.', 'metamanager' ); ?>
 	</p>
 
-	<?php /* ------------------------------------------------------------------ */ ?>
-	<?php /* Section: Button Text */ ?>
-	<?php /* ------------------------------------------------------------------ */ ?>
-
-	<h3><?php esc_html_e( 'Button Text', 'metamanager' ); ?></h3>
-
+	<h3><?php esc_html_e( 'Link Card Button Text', 'metamanager' ); ?></h3>
 	<table class="form-table gcm-form-table">
 		<tr>
-			<th><label for="listing-btn_text"><?php esc_html_e( 'Link Text', 'metamanager' ); ?></label></th>
+			<th><label for="listing-btn_text"><?php esc_html_e( 'Button Text', 'metamanager' ); ?></label></th>
 			<td>
 				<input type="text" id="listing-btn_text"
 					name="<?php echo esc_attr( $opt ); ?>[btn_text]"
@@ -39,12 +35,7 @@ $opt = 'listing';
 		</tr>
 	</table>
 
-	<?php /* ------------------------------------------------------------------ */ ?>
-	<?php /* Section: Button Appearance */ ?>
-	<?php /* ------------------------------------------------------------------ */ ?>
-
 	<h3><?php esc_html_e( 'Button Appearance', 'metamanager' ); ?></h3>
-
 	<table class="form-table gcm-form-table">
 		<tr>
 			<th><label for="listing-btn_bg"><?php esc_html_e( 'Background Color', 'metamanager' ); ?></label></th>
