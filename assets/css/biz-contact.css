@@ -306,6 +306,71 @@
 	opacity: .7;
 }
 
+.gcm-contact-page__areas,
+.gcm-contact-page__payment,
+.gcm-contact-page__social {
+	margin-bottom: 16px;
+}
+
+.gcm-contact-page__areas h3,
+.gcm-contact-page__payment h3,
+.gcm-contact-page__social h3 {
+	margin: 0 0 8px;
+	font-size: 16px;
+}
+
+.gcm-contact-page__social-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.gcm-contact-page__social-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	color: inherit;
+	opacity: .8;
+}
+
+.gcm-contact-page__social-link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+.gcm-contact-page__social-link .dashicons {
+	font-size: 20px;
+	width: 20px;
+	height: 20px;
+}
+
+.gcm-about-page__social-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+}
+
+.gcm-about-page__social-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	text-decoration: none;
+	color: inherit;
+	opacity: .8;
+}
+
+.gcm-about-page__social-link:hover {
+	opacity: 1;
+	text-decoration: none;
+}
+
+.gcm-about-page__social-link .dashicons {
+	font-size: 20px;
+	width: 20px;
+	height: 20px;
+}
+
 /* =========================================================================
    Calendar
    ========================================================================= */
