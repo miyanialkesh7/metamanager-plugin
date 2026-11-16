@@ -160,6 +160,25 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['sameAs'] = $same_as;
 		}
 
+		// Booking link → ReserveAction potentialAction.
+		if ( ! empty( $biz['booking_link'] ) ) {
+			$node['potentialAction'] = [
+				'@type'     => 'ReserveAction',
+				'target'    => [
+					'@type'       => 'EntryPoint',
+					'urlTemplate' => esc_url_raw( $biz['booking_link'] ),
+					'actionPlatform' => [
+						'http://schema.org/DesktopWebPlatform',
+						'http://schema.org/MobileWebPlatform',
+					],
+				],
+				'reservationFor' => [
+					'@type' => 'Service',
+					'name'  => sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' ),
+				],
+			];
+		}
+
 		$this->add_node( $data, $node );
 
 		// Multiple locations — each as a separate node.
