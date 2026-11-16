@@ -25,7 +25,36 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	public function register_hooks(): void {
 		if ( $this->settings->get( 'sitemap.html_sitemap.enabled', true ) ) {
 			add_shortcode( 'mm_sitemap', [ $this, 'render_shortcode' ] );
+			add_action( 'init', [ $this, 'register_block' ] );
+			add_action( 'widgets_init', [ $this, 'register_widget' ] );
 		}
+	}
+
+	public function register_block(): void {
+		if ( ! function_exists( 'register_block_type' ) ) {
+			return;
+		}
+		wp_register_script(
+			'mm-block-sitemap',
+			MM_META_URL . 'assets/js/block-sitemap.js',
+			[ 'wp-blocks', 'wp-element', 'wp-i18n', 'wp-block-editor', 'wp-components', 'wp-server-side-render' ],
+			MM_META_VERSION,
+			true
+		);
+		register_block_type( 'metamanager/sitemap', [
+			'editor_script'   => 'mm-block-sitemap',
+			'render_callback' => [ $this, 'render_shortcode' ],
+			'attributes'      => [
+				'columns'   => [ 'type' => 'number', 'default' => 1 ],
+				'orderBy'   => [ 'type' => 'string', 'default' => 'menu_order' ],
+				'depth'     => [ 'type' => 'number', 'default' => 3 ],
+				'showDate'  => [ 'type' => 'boolean', 'default' => false ],
+			],
+		] );
+	}
+
+	public function register_widget(): void {
+		register_widget( 'MM_Sitemap_Widget' );
 	}
 
 	// -------------------------------------------------------------------------
@@ -291,5 +320,51 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 				break;
 		}
 		return $args;
+	}
+}
+
+/**
+ * Sitemap Widget — renders the HTML sitemap in a sidebar/widget area.
+ */
+class MM_Sitemap_Widget extends WP_Widget {
+
+	public function __construct() {
+		parent::__construct(
+			'mm_meta_sitemap',
+			__( 'GCM Sitemap', 'metamanager' ),
+			[
+				'classname'   => 'mm-sitemap-widget',
+				'description' => __( 'Displays the HTML sitemap in a widget area.', 'metamanager' ),
+			]
+		);
+	}
+
+	public function widget( $args, $instance ): void {
+		$module = new MM_Mod_Html_Sitemap( MM_Site_Settings::get_instance() );
+		echo $args['before_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		if ( ! empty( $instance['title'] ) ) {
+			echo $args['before_title'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			     . esc_html( apply_filters( 'widget_title', $instance['title'] ) )
+			     . $args['after_title']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+		echo $module->render_shortcode( [] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	public function form( $instance ): void {
+		$title = ! empty( $instance['title'] ) ? $instance['title'] : '';
+		?>
+		<p>
+			<label for="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>">Title (optional):</label>
+			<input class="widefat" id="<?php echo esc_attr( $this->get_field_id( 'title' ) ); ?>"
+			       name="<?php echo esc_attr( $this->get_field_name( 'title' ) ); ?>"
+			       type="text" value="<?php echo esc_attr( $title ); ?>">
+		</p>
+		<p class="description">Sitemap content is configured in Metamanager → Sitemaps settings.</p>
+		<?php
+	}
+
+	public function update( $new_instance, $old_instance ): array {
+		return [ 'title' => sanitize_text_field( $new_instance['title'] ?? '' ) ];
 	}
 }
