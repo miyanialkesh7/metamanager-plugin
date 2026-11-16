@@ -1059,7 +1059,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$saved = get_option( self::OPT_STYLE, [] );
 		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : [] );
 		// Button styles come from the Button Styles page (listing settings).
-		$listing = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
+		static $listing_cache = null;
+		if ( null === $listing_cache ) {
+			$listing_cache = get_option( 'mm_meta_settings', [] )['listing'] ?? [];
+		}
+		$listing = $listing_cache;
 		if ( is_array( $listing ) ) {
 			$merged['btn_bg']        = $listing['btn_bg']        ?? $merged['btn_bg'];
 			$merged['btn_text']      = $listing['btn_text_color'] ?? $merged['btn_text'];
