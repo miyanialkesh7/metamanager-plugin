@@ -671,6 +671,19 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				</a>
 				<?php endif; ?>
 
+				<?php
+				$booking_link  = $biz['booking_link'] ?? '';
+				$booking_label = sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' );
+				if ( ! empty( $booking_link ) ) :
+				?>
+				<a href="<?php echo esc_url( $booking_link ); ?>"
+				   class="gcm-contact-page__btn gcm-contact-page__btn--booking"
+				   target="_blank" rel="noopener noreferrer">
+					<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
+					<span><?php echo esc_html( $booking_label ); ?></span>
+				</a>
+				<?php endif; ?>
+
 			</div>
 
 			<?php

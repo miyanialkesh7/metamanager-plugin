@@ -697,6 +697,8 @@ class MM_Site_Settings {
 			'show_vcard'           => true,
 			'show_json'            => true,
 			'show_csv'             => true,
+			'booking_link'         => '',
+			'booking_link_label'   => 'Book Now',
 			'map_links'            => [
 				'google' => true,
 				'bing'   => true,

@@ -235,6 +235,20 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 				<p class="description">Choose which action buttons appear on the Contact page template.</p>
 			</td>
 		</tr>
+		<tr>
+			<th><label for="gcm_booking_link">Booking Link</label></th>
+			<td>
+				<input type="url" id="gcm_booking_link" name="<?php echo esc_attr($opt); ?>[booking_link]" value="<?php echo esc_attr( $b['booking_link'] ?? '' ); ?>" class="regular-text" placeholder="https://...">
+				<p class="description">Optional. External booking/scheduling URL (Vagaro, Square, Acuity, etc.). If set, a booking button appears on the Contact page.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="gcm_booking_link_label">Booking Button Label</label></th>
+			<td>
+				<input type="text" id="gcm_booking_link_label" name="<?php echo esc_attr($opt); ?>[booking_link_label]" value="<?php echo esc_attr( $b['booking_link_label'] ?? 'Book Now' ); ?>" class="regular-text">
+				<p class="description">Text displayed on the booking button. Default: Book Now</p>
+			</td>
+		</tr>
 
 	</table>
 
