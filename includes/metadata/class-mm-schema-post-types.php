@@ -1210,12 +1210,35 @@ class MM_Schema_Post_Types {
 							<?php the_post_thumbnail( 'medium_large', [ 'loading' => 'lazy' ] ); ?>
 						</a>
 					<?php endif; ?>
+					<?php
+					// Schema field details (price, etc.) between image and text.
+					$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
+					if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
+						$detail_items = [];
+						$field_defs = MM_Schema_Types::get_fields_by_type()[ MM_Schema_Post_Types::slug_to_type( $slug ) ] ?? [];
+						foreach ( $field_defs as $fdef ) {
+							$fkey = $fdef['key'] ?? '';
+							$fval = trim( (string) ( $saved_fields[ $fkey ] ?? '' ) );
+							if ( '' !== $fval ) {
+								$detail_items[] = [ 'label' => $fdef['label'] ?? $fkey, 'value' => $fval ];
+							}
+						}
+						if ( $detail_items ) : ?>
+					<div class="mm-archive-card__details">
+						<?php foreach ( $detail_items as $d ) : ?>
+						<div class="mm-archive-card__detail-row">
+							<span class="mm-archive-card__detail-label"><?php echo esc_html( $d['label'] ); ?></span>
+							<span class="mm-archive-card__detail-value"><?php echo esc_html( $d['value'] ); ?></span>
+						</div>
+						<?php endforeach; ?>
+					</div>
+						<?php endif; } ?>
 					<div class="mm-archive-card__body">
 						<h2 class="mm-archive-card__title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h2>
 						<?php if ( has_excerpt() ) : ?>
-							<div class="mm-archive-card__details"><?php the_excerpt(); ?></div>
+							<div class="mm-archive-card__excerpt"><?php the_excerpt(); ?></div>
 						<?php endif; ?>
 						<a class="mm-archive-card__link" href="<?php the_permalink(); ?>"><?php echo esc_html( MM_Listing_Card_CSS::get_button_text() ); ?></a>
 					</div>
