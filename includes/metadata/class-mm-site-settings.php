@@ -130,8 +130,15 @@ class MM_Site_Settings {
 			|| ( $old['address']['state'] ?? '' ) !== ( $data['address']['state'] ?? '' )
 			|| ( $old['address']['zip'] ?? '' ) !== ( $data['address']['zip'] ?? '' );
 
-		if ( $key && $has_addr && ( $coords_missing || $addr_changed ) ) {
-			$geo = self::geocode_with_key( $key, $data['address'] );
+		if ( $has_addr && ( $coords_missing || $addr_changed ) ) {
+			$geo = false;
+			// Try Google first (if key is set), then Nominatim fallback.
+			if ( $key ) {
+				$geo = self::geocode_with_key( $key, $data['address'] );
+			}
+			if ( ! $geo ) {
+				$geo = self::geocode_nominatim( $data['address'] );
+			}
 			if ( $geo ) {
 				$data['lat'] = (string) $geo['lat'];
 				$data['lng'] = (string) $geo['lng'];
@@ -185,6 +192,42 @@ class MM_Site_Settings {
 		return [
 			'lat' => (float) $loc['lat'],
 			'lng' => (float) $loc['lng'],
+		];
+	}
+
+	/**
+	 * Fallback geocoding using OpenStreetMap Nominatim (no API key required).
+	 *
+	 * @param array $addr Address array.
+	 * @return array|false ['lat' => float, 'lng' => float] or false.
+	 */
+	public static function geocode_nominatim( array $addr ): array|false {
+		$parts = array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+			$addr['country'] ?? 'US',
+		] );
+		if ( empty( $parts ) ) {
+			return false;
+		}
+		$address = implode( ', ', $parts );
+		$url = 'https://nominatim.openstreetmap.org/search?q=' . rawurlencode( $address ) . '&format=json&limit=1';
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'User-Agent' => 'MetaManager/1.0 (WordPress plugin)' ],
+		] );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body[0]['lat'] ) || empty( $body[0]['lon'] ) ) {
+			return false;
+		}
+		return [
+			'lat' => (float) $body[0]['lat'],
+			'lng' => (float) $body[0]['lon'],
 		];
 	}
 
