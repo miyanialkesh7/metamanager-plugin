@@ -81,15 +81,12 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'tel:+1-555-0100', $output );
 
-		delete_option( MM_Mod_Business_Contact::OPT_STYLE );
 	}
 
 	public function test_render_contact_page_hides_phone_when_disabled(): void {
 		update_option( MM_META_OPT_BUSINESS, [
-			'name'  => 'No Phone Business',
-			'phone' => '+1-555-0100',
-		] );
-		update_option( MM_Mod_Business_Contact::OPT_STYLE, [
+			'name'       => 'No Phone Business',
+			'phone'      => '+1-555-0100',
 			'show_phone' => false,
 		] );
 		MM_Site_Settings::reset_instance();
@@ -100,7 +97,6 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'gcm-contact-page__btn--call', $output );
 
-		delete_option( MM_Mod_Business_Contact::OPT_STYLE );
 	}
 
 	// ------------------------------------------------------------------
@@ -130,9 +126,10 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 
 	public function test_schema_includes_geo_when_coordinates_present(): void {
 		update_option( MM_META_OPT_BUSINESS, [
-			'name' => 'Geo Business',
-			'lat'  => '45.5152',
-			'lng'  => '-122.6784',
+			'name'    => 'Geo Business',
+			'address' => [ 'street' => '123 Main St', 'city' => 'Portland', 'state' => 'OR', 'zip' => '97201' ],
+			'lat'     => '45.5152',
+			'lng'     => '-122.6784',
 		] );
 		MM_Site_Settings::reset_instance();
 		$this->settings = MM_Site_Settings::get_instance();
