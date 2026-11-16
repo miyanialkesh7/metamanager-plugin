@@ -184,16 +184,7 @@ $biz_style = MM_Mod_Business_Contact::get_style_settings();
 				<p class="description"><?php esc_html_e( 'Leave empty to keep default text color.', 'metamanager' ); ?></p>
 			</td>
 		</tr>
-		<tr>
-			<th><label for="listing-btn_hover_opacity"><?php esc_html_e( 'Hover Opacity', 'metamanager' ); ?></label></th>
-			<td>
-				<input type="text" id="listing-btn_hover_opacity"
-					name="<?php echo esc_attr( $opt ); ?>[btn_hover_opacity]"
-					value="<?php echo esc_attr( $s['btn_hover_opacity'] ?? '0.88' ); ?>"
-					class="small-text" placeholder="0.88">
-				<p class="description"><?php esc_html_e( '0 to 1. Only used when hover background is empty.', 'metamanager' ); ?></p>
-			</td>
-		</tr>
+
 	</table>
 
 	<h3><?php esc_html_e( 'Preview', 'metamanager' ); ?></h3>

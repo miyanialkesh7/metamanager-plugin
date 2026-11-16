@@ -49,13 +49,12 @@ class MM_Biz_Card_CSS {
 		$raw_hover_text   = trim( (string) ( $s['btn_hover_text'] ?? '' ) );
 		$btn_hover_bg     = $raw_hover_bg ? self::color( $raw_hover_bg ) : '';
 		$btn_hover_text   = $raw_hover_text ? self::color( $raw_hover_text ) : '';
-		$btn_hover_opacity = (string) ( $s['btn_hover_opacity'] ?? '0.88' );
 		$hover_css        = '';
 		if ( $btn_hover_on ) {
 			$hover_parts = [];
 			if ( $btn_hover_bg )   $hover_parts[] = "background:{$btn_hover_bg}";
 			if ( $btn_hover_text ) $hover_parts[] = "color:{$btn_hover_text} !important";
-			if ( ! $btn_hover_bg && ! $btn_hover_text ) $hover_parts[] = "opacity:{$btn_hover_opacity}";
+			if ( ! $btn_hover_bg && ! $btn_hover_text ) $hover_parts[] = "opacity:0.88";
 			$hover_css = implode(';', $hover_parts) . ';';
 		}
 		$name_font_size    = self::length( $s['name_font_size']    ?? '20px' );

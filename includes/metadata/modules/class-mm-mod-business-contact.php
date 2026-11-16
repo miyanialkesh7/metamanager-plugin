@@ -1082,7 +1082,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$merged['btn_hover_enabled'] = $listing['btn_hover_enabled'] ?? $merged['btn_hover_enabled'];
 			$merged['btn_hover_bg'] = $listing['btn_hover_bg'] ?? $merged['btn_hover_bg'];
 			$merged['btn_hover_text'] = $listing['btn_hover_text'] ?? $merged['btn_hover_text'];
-			$merged['btn_hover_opacity'] = $listing['btn_hover_opacity'] ?? $merged['btn_hover_opacity'];
 		}
 		return $merged;
 	}
@@ -1124,7 +1123,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'btn_hover_enabled' => true,
 			'btn_hover_bg' => '',
 			'btn_hover_text' => '',
-			'btn_hover_opacity' => '0.88',
 			// Typography
 			'name_font_size' => '20px',
 			'body_font_size' => '14px',
