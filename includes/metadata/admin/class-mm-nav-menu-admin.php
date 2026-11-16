@@ -15,14 +15,14 @@ defined( 'ABSPATH' ) || exit;
 class MM_Nav_Menu_Admin {
 
 	public function register_hooks(): void {
-		add_action( 'admin_init', [ $this, 'add_meta_boxes' ] );
+		add_action( 'admin_head-nav-menus.php', [ $this, 'register_nav_meta_boxes' ] );
 		add_action( 'wp_update_nav_menu', [ $this, 'save_schema_checkbox' ], 10, 2 );
 	}
 
 	/**
 	 * Register meta boxes on the nav-menus screen (WordPress codex: add_meta_box).
 	 */
-	public function add_meta_boxes(): void {
+	public function register_nav_meta_boxes(): void {
 		add_meta_box(
 			'mm-archives',
 			__( 'Archives', 'metamanager' ),
