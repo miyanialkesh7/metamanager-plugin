@@ -170,7 +170,10 @@ class MM_Site_Settings {
 			'key'     => $key,
 		], 'https://maps.googleapis.com/maps/api/geocode/json' );
 
-		$response = wp_remote_get( $url, [ 'timeout' => 15 ] );
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'Referer' => home_url( '/' ) ],
+		] );
 		if ( is_wp_error( $response ) ) {
 			return false;
 		}
