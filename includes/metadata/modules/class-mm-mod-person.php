@@ -216,7 +216,7 @@ class MM_Mod_Person extends MM_Mod_Base {
 				<?php endif; ?>
 			</div>
 		</div>
-		<script type="application/ld+json"><?php echo esc_js( $schema_json ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — JSON-LD. ?></script>
+		<script type="application/ld+json"><?php echo $schema_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-LD. ?></script>
 		<?php
 		return ob_get_clean();
 	}
