@@ -120,6 +120,18 @@ class MM_Mod_Person extends MM_Mod_Base {
 			[],
 			MM_META_VERSION
 		);
+
+		// Inject Button Styles from settings so Person buttons match sitewide styles.
+		$s = MM_Site_Settings::get_instance();
+		$btn = $s->get( 'listing', [] );
+		$bg = esc_attr( $btn['btn_bg'] ?? '#0073aa' );
+		$color = esc_attr( $btn['btn_text_color'] ?? '#ffffff' );
+		$radius = esc_attr( $btn['btn_radius'] ?? '4px' );
+		$padding = esc_attr( $btn['btn_padding'] ?? '10px 16px' );
+		$font_size = esc_attr( $btn['btn_font_size'] ?? '14px' );
+		$font_weight = esc_attr( $btn['btn_font_weight'] ?? '500' );
+		$css = ".mm-person__phone-btn,.mm-person__email-btn{background:{$bg};color:{$color} !important;border-radius:{$radius};padding:{$padding};font-size:{$font_size};font-weight:{$font_weight};}";
+		wp_add_inline_style( 'mm-meta-person', $css );
 	}
 
 	// -------------------------------------------------------------------------
@@ -207,10 +219,16 @@ class MM_Mod_Person extends MM_Mod_Base {
 				<?php if ( $phone || $email ) : ?>
 				<div class="mm-person__contact">
 					<?php if ( $phone ) : ?>
-					<span class="mm-person__phone"><?php echo esc_html( $phone ); ?></span>
+					<a href="tel:<?php echo esc_attr( $phone ); ?>" class="mm-person__phone-btn">
+						<span class="dashicons dashicons-phone" aria-hidden="true"></span>
+						<span><?php echo esc_html( $phone ); ?></span>
+					</a>
 					<?php endif; ?>
 					<?php if ( $email ) : ?>
-					<span class="mm-person__email"><?php echo esc_html( $email ); ?></span>
+					<a href="mailto:<?php echo esc_attr( $email ); ?>" class="mm-person__email-btn">
+						<span class="dashicons dashicons-email" aria-hidden="true"></span>
+						<span><?php echo esc_html( $email ); ?></span>
+					</a>
 					<?php endif; ?>
 				</div>
 				<?php endif; ?>

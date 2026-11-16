@@ -206,12 +206,33 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 			</td>
 		</tr>
 		<tr>
-			<th><label for="gcm_show_sms">SMS Link</label></th>
+			<th><label>Contact Page Actions</label></th>
 			<td>
-				<label>
-					<input type="checkbox" id="gcm_show_sms" name="<?php echo esc_attr($opt); ?>[show_sms]" value="1" <?php checked( ! empty( $b['show_sms'] ) ); ?>>
-					Show SMS link on Contact page
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_phone]" value="1" <?php checked( ! empty( $b['show_phone'] ?? true ) ); ?>>
+					Show phone / click-to-call button
 				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_sms]" value="1" <?php checked( ! empty( $b['show_sms'] ) ); ?>>
+					Show SMS / text button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_email]" value="1" <?php checked( ! empty( $b['show_email'] ?? true ) ); ?>>
+					Show email button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_vcard]" value="1" <?php checked( ! empty( $b['show_vcard'] ?? true ) ); ?>>
+					Show vCard (.vcf) download button
+				</label>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_json]" value="1" <?php checked( ! empty( $b['show_json'] ?? true ) ); ?>>
+					Show JSON contact download button
+				</label>
+				<label style="display:block;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_csv]" value="1" <?php checked( ! empty( $b['show_csv'] ?? true ) ); ?>>
+					Show CSV contact download button
+				</label>
+				<p class="description">Choose which action buttons appear on the Contact page template.</p>
 			</td>
 		</tr>
 

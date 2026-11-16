@@ -73,8 +73,8 @@ $stored_schema_fields = $meta['schema_fields'] ?? [];
 				<tr>
 					<th>Directive</th>
 					<th>Default</th>
-					<th>Force ON</th>
-					<th>Force OFF</th>
+					<th>On</th>
+					<th>Off</th>
 					<th class="gcm-robots-help">Effect</th>
 				</tr>
 			</thead>
@@ -97,7 +97,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? [];
 								<input type="radio"
 									   name="mm_meta_<?php echo esc_attr($field); ?>"
 									   value=""
-									   <?php checked( $current, null ); ?>>
+									   <?php checked( $current === null ); ?>>
 								Default
 							</label>
 						</td>
@@ -106,7 +106,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? [];
 								<input type="radio"
 									   name="mm_meta_<?php echo esc_attr($field); ?>"
 									   value="1"
-									   <?php checked( $current, true ); ?>>
+									   <?php checked( $current === true ); ?>>
 								On
 							</label>
 						</td>
@@ -115,7 +115,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? [];
 								<input type="radio"
 									   name="mm_meta_<?php echo esc_attr($field); ?>"
 									   value="0"
-									   <?php checked( $current, false ); ?>>
+									   <?php checked( $current === false ); ?>>
 								Off
 							</label>
 						</td>
