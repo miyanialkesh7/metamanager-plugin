@@ -8,7 +8,6 @@
 defined( 'ABSPATH' ) || exit;
 
 class MM_Nav_Menu_Admin {
-
 	public function register_hooks(): void {
 		add_action( 'admin_head-nav-menus.php', [ $this, 'add_meta_box' ] );
 		add_action( 'admin_head-nav-menus.php', [ $this, 'add_cpt_archives_box' ] );

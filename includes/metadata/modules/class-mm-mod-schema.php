@@ -114,6 +114,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			return;
 		}
 
+		// Only emit nav schema if the designated menu was actually rendered on this page.
+		if ( ! in_array( $menu['id'], MM_Mod_Base::$rendered_menus, true ) ) {
+			return;
+		}
+
 		$nav_items = array_map( function ( $item ) {
 			return [
 				'@type'    => 'SiteNavigationElement',
@@ -227,6 +232,25 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			if ( ( $mt['name'] ?? '' ) === 'description' ) {
 				$node['description'] = $mt['content'];
 				break;
+			}
+		}
+
+		// CollectionPage: link to events in the collection.
+		if ( 'CollectionPage' === $type && $context->is_singular() ) {
+			$post = $context->get_post();
+			if ( $post ) {
+				$events = get_posts( [
+					'post_type'      => 'mm_event',
+					'post_status'    => 'publish',
+					'posts_per_page' => 50,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+				] );
+				if ( ! empty( $events ) ) {
+					$node['hasPart'] = array_map( function( $e ) {
+						return [ '@id' => get_permalink( $e->ID ) . '#event' ];
+					}, $events );
+				}
 			}
 		}
 
