@@ -711,6 +711,7 @@ class MM_Site_Settings {
 			'show_csv'             => true,
 			'booking_link'         => '',
 			'booking_link_label'   => 'Book Now',
+			'booking_link_new_tab' => true,
 			'map_links'            => [
 				'google' => true,
 				'bing'   => true,
