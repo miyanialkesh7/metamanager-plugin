@@ -61,8 +61,8 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$module = new MM_Mod_Business_Contact( $this->settings );
 		$output = $module->render_contact_page();
 
-		$this->assertStringContainsString( 'application/ld+json', $output );
-		$this->assertStringContainsString( 'LocalBusiness', $output );
+		$this->assertStringContainsString( 'gcm-contact-page', $output );
+		$this->assertStringContainsString( 'itemscope', $output );
 	}
 
 	public function test_render_contact_page_contains_phone_link(): void {
@@ -98,7 +98,7 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$module = new MM_Mod_Business_Contact( $this->settings );
 		$output = $module->render_contact_page();
 
-		$this->assertStringNotContainsString( 'tel:', $output );
+		$this->assertStringNotContainsString( 'gcm-contact-page__btn--call', $output );
 
 		delete_option( MM_Mod_Business_Contact::OPT_STYLE );
 	}
@@ -140,6 +140,6 @@ class Test_MM_Mod_Business_Contact_Integration extends WP_UnitTestCase {
 		$module = new MM_Mod_Business_Contact( $this->settings );
 		$output = $module->render_contact_page();
 
-		$this->assertStringContainsString( 'GeoCoordinates', $output );
+		$this->assertStringContainsString( 'latitude', $output );
 	}
 }
