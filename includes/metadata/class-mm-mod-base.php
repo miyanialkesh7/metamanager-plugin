@@ -45,17 +45,20 @@ abstract class MM_Mod_Base {
 	public static function get_primary_menu(): ?array {
 		// First: check if a menu is designated for schema via the nav menu checkbox
 		// (stored as _mm_nav_menu_primary term meta on the nav_menu term).
-		$designated = get_terms( [
-			'taxonomy'   => 'nav_menu',
-			'meta_query' => [
-				[
-					'key'   => '_mm_nav_menu_primary',
-					'value' => '1',
+		static $designated = null;
+		if ( null === $designated ) {
+			$designated = get_terms( [
+				'taxonomy'   => 'nav_menu',
+				'meta_query' => [
+					[
+						'key'   => '_mm_nav_menu_primary',
+						'value' => '1',
+					],
 				],
-			],
-			'number'     => 1,
-			'hide_empty' => false,
-		] );
+				'number'     => 1,
+				'hide_empty' => false,
+			] );
+		}
 		if ( ! is_wp_error( $designated ) && ! empty( $designated ) ) {
 			$schema_menu_id = (int) $designated[0]->term_id;
 			$menu_items = wp_get_nav_menu_items( $schema_menu_id );
