@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 class MM_Nav_Menu_Admin {
 
 	public function register_hooks(): void {
-		add_action( 'admin_head-nav-menus.php', [ $this, 'register_nav_meta_boxes' ] );
+		add_action( 'admin_init', [ $this, 'register_nav_meta_boxes' ] );
 		add_action( 'wp_update_nav_menu', [ $this, 'save_schema_checkbox' ], 10, 2 );
 	}
 
