@@ -376,7 +376,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '1', // checked
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1', // checked
+				'person_schema_posts'  => '1', // checked
+				'person_schema_pages'  => '1', // checked
+				'person_schema_archives' => '1', // checked
 				'profile_social_fields'=> '1', // checked
 			],
 		] );
@@ -385,7 +387,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 
 		$this->assertFalse( $s->get( 'authors.enabled' ) );
 		$this->assertTrue( $s->get( 'authors.noindex_default' ) );
-		$this->assertTrue( $s->get( 'authors.person_schema' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_archives' ) );
 		$this->assertTrue( $s->get( 'authors.profile_social_fields' ) );
 
 		// Other sections preserved.
@@ -404,7 +408,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '',
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1',
+				'person_schema_posts'  => '1',
+				'person_schema_pages'  => '',
+				'person_schema_archives' => '1',
 				'profile_social_fields'=> '1',
 			],
 		] );
@@ -421,8 +427,16 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 		$this->assertEmpty( ob_get_clean(), 'noindex_default unchecked → checked() empty' );
 
 		ob_start();
-		checked( $s->get( 'authors.person_schema', true ) );
-		$this->assertNotEmpty( ob_get_clean(), 'person_schema checked → checked() not empty' );
+		checked( $s->get( 'authors.person_schema_posts', true ) );
+		$this->assertNotEmpty( ob_get_clean(), 'person_schema_posts checked → checked() not empty' );
+
+		ob_start();
+		checked( $s->get( 'authors.person_schema_pages', true ) );
+		$this->assertEmpty( ob_get_clean(), 'person_schema_pages unchecked → checked() empty' );
+
+		ob_start();
+		checked( $s->get( 'authors.person_schema_archives', true ) );
+		$this->assertNotEmpty( ob_get_clean(), 'person_schema_archives checked → checked() not empty' );
 
 		ob_start();
 		checked( $s->get( 'authors.profile_social_fields', true ) );
@@ -587,7 +601,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 			'noindex_default'       => '',
 			'title_template'        => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 			'description_template'  => '%%author_bio%%',
-			'person_schema'         => '1',
+			'person_schema_posts'   => '1',
+			'person_schema_pages'   => '1',
+			'person_schema_archives' => '1',
 			'profile_social_fields' => '1',
 		];
 
@@ -619,7 +635,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '',
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1',
+				'person_schema_posts'  => '1',
+				'person_schema_pages'  => '1',
+				'person_schema_archives' => '1',
 				'profile_social_fields'=> '1',
 			],
 		] );
@@ -651,8 +669,12 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 		$this->assertFalse( $s->get( 'authors.enabled' ) );
 		$this->assertIsBool( $s->get( 'authors.noindex_default' ) );
 		$this->assertFalse( $s->get( 'authors.noindex_default' ) );
-		$this->assertIsBool( $s->get( 'authors.person_schema' ) );
-		$this->assertFalse( $s->get( 'authors.person_schema' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_archives' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_archives' ) );
 		$this->assertIsBool( $s->get( 'authors.profile_social_fields' ) );
 		$this->assertFalse( $s->get( 'authors.profile_social_fields' ) );
 	}

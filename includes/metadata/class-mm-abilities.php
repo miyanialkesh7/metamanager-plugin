@@ -530,7 +530,7 @@ class MM_Abilities {
 	private function register_get_navigation(): void {
 		wp_register_ability( 'metamanager/get-navigation', [
 			'label'       => 'Get Navigation Menu',
-			'description' => 'Retrieve the primary navigation menu items designated for schema. Returns the menu name and ordered items with URLs.',
+			'description' => 'Retrieve the primary navigation menu items from the theme\'s primary menu location. Returns the menu name and ordered items with URLs.',
 			'category'    => 'site',
 			'input_schema'  => [
 				'type'       => 'object',

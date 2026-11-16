@@ -114,11 +114,6 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			return;
 		}
 
-		// Only emit nav schema if the designated menu was actually rendered on this page.
-		if ( ! in_array( $menu['id'], MM_Mod_Base::$rendered_menus, true ) ) {
-			return;
-		}
-
 		$nav_items = array_map( function ( $item ) {
 			return [
 				'@type'    => 'SiteNavigationElement',
@@ -435,7 +430,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		// Author — link to Person node (added by Author module or built inline).
 		if ( in_array( $type, [ 'BlogPosting', 'Article' ], true ) ) {
 			$author = get_userdata( (int) $post->post_author );
-			if ( $author && $settings->get( 'authors.person_schema', true ) ) {
+			if ( $author && $settings->get( 'authors.person_schema_posts', true ) ) {
 				$node['author']    = [ '@id' => get_author_posts_url( $author->ID ) . '#person' ];
 				$node['publisher'] = [ '@id' => $this->site_id( 'organization' ) ];
 			}

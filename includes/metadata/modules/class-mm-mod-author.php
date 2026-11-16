@@ -12,25 +12,33 @@ defined( 'ABSPATH' ) || exit;
 class MM_Mod_Author extends MM_Mod_Base {
 
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
-		if ( ! $settings->get( 'authors.enabled', true ) || ! $settings->get( 'authors.person_schema', true ) ) {
+		if ( ! $settings->get( 'authors.enabled', true ) ) {
 			return;
 		}
 
-		// Build Person node on author archive pages.
-		if ( $context->is_author() ) {
+		// Author archive Person node — controlled by its own setting.
+		if ( $context->is_author() && $settings->get( 'authors.person_schema_archives', true ) ) {
 			$author = $context->get_author();
 			if ( $author ) {
 				$this->add_node( $data, $this->build_person_node( $author, $settings ) );
 			}
 		}
 
-		// Build Person node for singular posts (author of post, not archive visitor).
-		// Skip template pages (About, Contact, Calendar) — business pages, not authored content.
+		// Singular Person node (author of the post). Posts and pages have
+		// separate settings. Template pages (About, Contact, Calendar) are
+		// business pages, not authored content — always skipped.
 		if ( $context->is_singular() ) {
 			$post = $context->get_post();
 			if ( $post && 'page' === $post->post_type ) {
 				$template = MM_Schema_Post_Types::get_post_template( $post );
 				if ( $template ) {
+					return;
+				}
+				if ( ! $settings->get( 'authors.person_schema_pages', true ) ) {
+					return;
+				}
+			} elseif ( $post && 'post' === $post->post_type ) {
+				if ( ! $settings->get( 'authors.person_schema_posts', true ) ) {
 					return;
 				}
 			}

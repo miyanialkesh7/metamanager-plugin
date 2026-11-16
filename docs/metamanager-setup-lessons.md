@@ -107,3 +107,90 @@ Response prefix `)]}'` must be stripped (`tail -c +5`).
 - Configure link checking schedule
 - Run one-time image compression pass
 - Consider AboutPage/ContactPage template types for remaining pages
+
+---
+
+# Content Restoration & Backup Discovery — Lessons from Hair Studio
+
+**Date:** 2026-11-16
+**Site:** Destin Hair Studio (hairstudio.salon) — 25 service CPTs, content restored from backups.
+
+---
+
+## Backup locations — ALWAYS check both
+
+Two backup sources exist for each site:
+
+| Location | Format | Contents |
+|---|---|---|
+| `/media/richard/320GBWD/wpbkup/<Site>/` | `wordpress.sql` + `wordpress.tar.gz` | Published pages only |
+| `/media/richard/320GBWD/gcmbkup/<Site>/` | `wordpress.sql` + `wordpress.tar` + `.meta.json` + `.sha256` | Published + draft pages |
+
+**gcmbkup is more recent** (rolling daily backups) and contains **draft pages** that wpbkup misses. On Hair Studio, 8 services appeared "empty" on the live site — the content was in gcmbkup as draft pages (diamond-glow, dermaplaning, body-contouring, hydrafacial, led-light-therapy) and as a combined page (eyelashes-eyebrows containing lash-brow-lifts-tints, eyelash-extensions, eyebrow-lamination).
+
+**Rule:** When a CPT has empty content, check gcmbkup FIRST, then wpbkup. The content is usually there — you're looking at the wrong backup.
+
+## Draft pages are the source
+
+Services that appear "empty" on the live site often have draft pages in the backup. These drafts were never published but contain full content. Extract them with:
+
+```sql
+SELECT post_content FROM wp_posts WHERE post_name='<slug>' AND post_type='page' AND post_status='draft' LIMIT 1;
+```
+
+## Combined pages contain multiple services
+
+Some backup pages bundle multiple services (e.g., `eyelashes-eyebrows` = Lash Lift + Eyelash Extensions + Tinting + Eyebrow Lamination). Push the full combined content to each individual CPT — do not split or extract sections. The CPT titles already identify the specific service.
+
+## wp_insert_post sanitizes content — use $wpdb->update()
+
+`wp_insert_post()` strips/sanitizes content (small byte differences: 20866→20854, 27483→27459). For byte-exact restoration, use `$wpdb->update()` directly:
+
+```php
+$wpdb->update($wpdb->posts, ['post_content' => $content], ['ID' => $post_id]);
+```
+
+Never use `wp_update_post()` for content restoration — it sanitizes and corrupts SiteOrigin data.
+
+## SiteOrigin panels_data is PHP serialized, not JSON
+
+`panels_data` in `wp_postmeta` is PHP `serialize()` output, not JSON. Use `unserialize()` not `json_decode()`:
+
+```php
+$panels = $wpdb->get_var("SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id={$id} AND meta_key='panels_data'");
+$data = unserialize($panels);  // NOT json_decode()
+```
+
+## Handmade schema can hide in post_content
+
+Schema may be embedded in `post_content` as escaped `siteorigin_widget` shortcodes (not just in panels_data). The pattern is:
+
+```
+[siteorigin_widget class="WP_Widget_Custom_HTML"]<input type="hidden" value="{&quot;instance&quot;:{&quot;content&quot;:&quot;&lt;script type=&quot;application/ld+json&quot;&gt;...&quot;}" />[/siteorigin_widget]
+```
+
+Remove with regex: `/\[siteorigin_widget[^\]]*WP_Widget_Custom_HTML[^\]]*\].*?\[\/siteorigin_widget\]/is`
+
+## mysql -N -r adds trailing newline
+
+Extracted content is always +1 byte from the backup SQL `LENGTH(post_content)`. This is expected — `mysql -N -r` appends a newline. The content is exact.
+
+## wp eval-file does not pass argv
+
+`wp eval-file script.php arg1 arg2` — `$argv` is empty inside the script. Hardcode values in the PHP file instead.
+
+## PHP version on fleet servers
+
+Some servers run PHP without `??` (null coalescing) support. Use ternary: `$x !== null ? $x : $default` instead of `$x ?? $default`.
+
+## Content restoration workflow
+
+1. Find the service in gcmbkup (draft or published) → extract `post_content` with `mysql -N -r`
+2. Extract `panels_data` from `wp_postmeta` (PHP serialized)
+3. Push content via `$wpdb->update()` (not `wp_update_post`)
+4. Push panels_data via `$wpdb->update()` or `$wpdb->insert()`
+5. Verify byte count matches backup SQL `LENGTH(post_content)` (+1 for newline)
+
+## Verification
+
+Compare live `LENGTH(post_content)` to backup `LENGTH(post_content)`. The live value should be exactly +1 (newline from `mysql -N -r`). Any larger difference indicates corruption.
