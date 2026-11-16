@@ -621,6 +621,125 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	 *
 	 * @return string HTML content for the ContactPage.
 	 */
+	/**
+	 * Derive coordinates from business address using Google Maps Geocoding API.
+	 */
+	public static function geocode_address(): array|false {
+		$s  = MM_Site_Settings::get_instance();
+		$biz = $s->all_business();
+		$key = sanitize_text_field( $biz['google_maps_api_key'] ?? '' );
+		$addr = $biz['address'] ?? [];
+
+		if ( empty( $key ) || empty( $addr['street'] ) ) {
+			return false;
+		}
+
+		$parts = array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+			$addr['country'] ?? 'US',
+		] );
+		$address = implode( ', ', $parts );
+
+		$url = add_query_arg( [
+			'address' => rawurlencode( $address ),
+			'key'     => $key,
+		], 'https://maps.googleapis.com/maps/api/geocode/json' );
+
+		$response = wp_remote_get( $url, [ 'timeout' => 15 ] );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body['results'][0]['geometry']['location'] ) ) {
+			return false;
+		}
+
+		$loc = $body['results'][0]['geometry']['location'];
+		return [
+			'lat' => (float) $loc['lat'],
+			'lng' => (float) $loc['lng'],
+		];
+	}
+
+	/**
+	 * Build map links HTML based on enabled map_links settings.
+	 */
+	public function render_map_links( array $biz ): string {
+		$lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
+		$lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
+		$addr = $biz['address'] ?? [];
+		$addr_str = trim( implode( ' ', array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+		] ) ) );
+		$map_links = $biz['map_links'] ?? [];
+		$location_type = $biz['location_type'] ?? 'brick_and_mortar';
+
+		if ( 'service_area' === $location_type ) {
+			return '';
+		}
+
+		if ( null === $lat || null === $lng ) {
+			return '';
+		}
+
+		$links = [];
+
+		if ( ! empty( $map_links['google'] ) ) {
+			$links[] = [
+				'class' => 'gcm-map-link--google',
+				'label' => 'Google Maps',
+				'url'   => 'https://www.google.com/maps/search/?api=1&query=' . $lat . ',' . $lng,
+			];
+		}
+		if ( ! empty( $map_links['bing'] ) ) {
+			$links[] = [
+				'class' => 'gcm-map-link--bing',
+				'label' => 'Bing Maps',
+				'url'   => 'https://www.bing.com/maps?cp=' . $lat . '~' . $lng . '&lvl=17',
+			];
+		}
+		if ( ! empty( $map_links['apple'] ) ) {
+			$links[] = [
+				'class' => 'gcm-map-link--apple',
+				'label' => 'Apple Maps',
+				'url'   => 'https://maps.apple.com/?q=' . rawurlencode( $addr_str ) . '&ll=' . $lat . ',' . $lng . '&z=17',
+			];
+		}
+		if ( ! empty( $map_links['geo'] ) ) {
+			$links[] = [
+				'class' => 'gcm-map-link--geo',
+				'label' => 'Open in Maps',
+				'url'   => 'geo:' . $lat . ',' . $lng . '?z=17',
+			];
+		}
+
+		if ( empty( $links ) ) {
+			return '';
+		}
+
+		ob_start();
+		?>
+		<div class="gcm-map-links">
+			<?php foreach ( $links as $link ) : ?>
+			<a href="<?php echo esc_url( $link['url'] ); ?>"
+			   class="gcm-map-link <?php echo esc_attr( $link['class'] ); ?>"
+			   target="_blank" rel="noopener noreferrer">
+				<span class="dashicons dashicons-location" aria-hidden="true"></span>
+				<span><?php echo esc_html( $link['label'] ); ?></span>
+			</a>
+			<?php endforeach; ?>
+		</div>
+		<?php
+		return ob_get_clean();
+	}
+
 	public function render_contact_page(): string {
 		$biz   = $this->settings->all_business();
 		$style = self::get_style_settings();
@@ -685,20 +804,14 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				<?php endif; ?>
 
 				<?php if ( $lat && $lng && ! $is_service_area ) : ?>
-				<br>
-				<a href="geo:<?php echo esc_attr( $lat ); ?>,<?php echo esc_attr( $lng ); ?>?z=16"
-				   class="gcm-contact-page__map-link"
-				   itemprop="geo"
-				   itemscope itemtype="https://schema.org/GeoCoordinates">
-					<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
-					<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
-					<?php esc_html_e( 'Open in Maps', 'metamanager' ); ?>
-				</a>
+				<meta itemprop="latitude" content="<?php echo esc_attr( $lat ); ?>">
+				<meta itemprop="longitude" content="<?php echo esc_attr( $lng ); ?>">
 				<?php endif; ?>
 				<?php if ( $is_service_area ) : ?>
 					<br><span class="gcm-contact-page__mailing-note"><?php esc_html_e( 'This is a mailing address only. We come to you.', 'metamanager' ); ?></span>
 				<?php endif; ?>
 			</address>
+			<?php echo $this->render_map_links( $biz ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php endif; ?>
 
 			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
