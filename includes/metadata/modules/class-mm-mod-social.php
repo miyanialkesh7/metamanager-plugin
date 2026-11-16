@@ -5,8 +5,8 @@
  * Both tag sets are derived from the same resolved data object so they
  * cannot diverge.  Always emits og:image dimensions when available.
  * Correctly handles: articles, products, author pages, local business homepage.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

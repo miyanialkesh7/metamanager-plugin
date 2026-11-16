@@ -5,8 +5,8 @@
  * Per-page robots attributes (noindex, nofollow, noarchive, nosnippet,
  * noimageindex) flow:
  *   per-post meta override  >  per-type global default  >  built-in fallback
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -195,7 +195,7 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 				// Per-post meta, else configured source (default: excerpt only).
 				$source = $settings->get( "titles.post_types.{$post->post_type}.description_source", 'excerpt' );
 				$desc   = $this->auto_description( $post, $source );
-				return $desc ?: get_bloginfo( 'description' );
+				return $desc ? $desc : get_bloginfo( 'description' );
 			}
 		}
 
@@ -275,7 +275,8 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		}
 
 		if ( $context->is_post_type_archive() ) {
-			return get_post_type_archive_link( $context->get_post_type() ) ?: '';
+			$mm_value = get_post_type_archive_link( $context->get_post_type() );
+			return $mm_value ? $mm_value : '';
 		}
 
 		if ( $context->is_search() ) {
@@ -363,7 +364,7 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	 * @param bool   $default Default value.
 	 */
 	private function resolve_flag( array $meta, string $key, bool $default ): bool {
-		if ( array_key_exists( $key, $meta ) && $meta[ $key ] !== null && $meta[ $key ] !== '' ) {
+		if ( array_key_exists( $key, $meta ) && null !== $meta[ $key ] && '' !== $meta[ $key ] ) {
 			return (bool) $meta[ $key ];
 		}
 		return $default;

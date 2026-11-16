@@ -293,7 +293,10 @@ class MM_Status {
 			);
 		}
 
-		$meta = wp_get_attachment_metadata( $attachment_id ) ?: array();
+		$meta = wp_get_attachment_metadata( $attachment_id );
+		if ( ! $meta ) {
+			$meta = array();
+		}
 		$file = get_attached_file( $attachment_id );
 
 		$all_compressed = true;

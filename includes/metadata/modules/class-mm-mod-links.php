@@ -7,8 +7,8 @@
  * and records the HTTP status code.
  *
  * Admin AJAX endpoints expose table data and per-link re-check.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -301,7 +301,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 			}
 
 			$code   = $this->head_request( $url, $timeout );
-			$broken = ( $code === 0 || ( $code >= 400 && $code !== 429 ) ) ? 1 : 0;
+			$broken = ( 0 === $code || ( $code >= 400 && 429 !== $code ) ) ? 1 : 0;
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$wpdb->update(
@@ -474,7 +474,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		$code   = $this->head_request( $row['url'], 10 );
-		$broken = ( $code === 0 || ( $code >= 400 && $code !== 429 ) ) ? 1 : 0;
+		$broken = ( 0 === $code || ( $code >= 400 && 429 !== $code ) ) ? 1 : 0;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->update(

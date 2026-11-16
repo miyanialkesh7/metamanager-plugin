@@ -4,8 +4,8 @@
  *
  * Removes meta/link tags that add noise, expose WP version, or are
  * not useful for content-marketing sites.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

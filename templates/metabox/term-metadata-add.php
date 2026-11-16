@@ -6,8 +6,8 @@
  *
  *   @var string           $taxonomy
  *   @var MM_Site_Settings $settings  (not used yet but available)
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

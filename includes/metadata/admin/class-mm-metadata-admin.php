@@ -7,8 +7,8 @@
  * mm_meta_settings option.  The sanitize callback loads the current full
  * option and merges only the submitted section so other sections are never
  * overwritten on a partial save.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -36,8 +36,8 @@ class MM_Metadata_Admin {
 	 *   'template'     => Suffix of templates/admin/page-{suffix}.php.
 	 *   'inner_form'   => Template manages its own <form> tag (no outer wrapper).
 	 * ]
-	  *
-	  * @var array
+	 *
+	 * @var array
 	 */
 	private array $pages = array(
 		'metamanager-business' => array(

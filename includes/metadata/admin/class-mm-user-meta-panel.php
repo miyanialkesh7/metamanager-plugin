@@ -7,8 +7,8 @@
  * Person schema override.
  *
  * Stores data under user-meta key MM_META_KEY.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

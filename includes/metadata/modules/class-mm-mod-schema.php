@@ -5,8 +5,8 @@
  * Emits a single <script type="application/ld+json"> block per page.
  * Nodes are added by this module and by MM_Mod_Local and MM_Mod_Author.
  * All nodes share a consistent @id convention: {site_url}#{fragment}.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -404,9 +404,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				}
 			}
 		} elseif ( $context->is_post_type_archive() ) {
-			$pt      = $context->get_post_type();
-			$name    = get_post_type_object( $pt ) ? get_post_type_object( $pt )->labels->name : $pt;
-			$url     = get_post_type_archive_link( $pt ) ?: '';
+			$pt   = $context->get_post_type();
+			$name = get_post_type_object( $pt ) ? get_post_type_object( $pt )->labels->name : $pt;
+			$url  = get_post_type_archive_link( $pt );
+			if ( ! $url ) {
+				$url = '';
+			}
 			$items[] = $this->crumb( $pos++, $name, $url );
 		} elseif ( $context->is_author() ) {
 			$author  = $context->get_author();
@@ -614,7 +617,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		if ( $context->is_post_type_archive() ) {
 			$pt   = $context->get_post_type();
 			$name = get_post_type_object( $pt ) ? get_post_type_object( $pt )->labels->name : $pt;
-			$url  = get_post_type_archive_link( $pt ) ?: '';
+			$url  = get_post_type_archive_link( $pt );
+			if ( ! $url ) {
+				$url = '';
+			}
 		} else {
 			$term = $context->get_term();
 			if ( ! $term ) {
@@ -1092,7 +1098,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			}
 		} else {
 			// Minimal schema from HTML only.
-			$node['name'] = $item['alt'] ?: basename( wp_parse_url( $item['url'], PHP_URL_PATH ) );
+			$node['name'] = $item['alt'] ? $item['alt'] : basename( wp_parse_url( $item['url'], PHP_URL_PATH ) );
 		}
 
 		$this->add_node( $data, $node );

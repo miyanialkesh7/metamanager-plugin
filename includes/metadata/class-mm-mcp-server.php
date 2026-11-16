@@ -5,8 +5,8 @@
  *
  * Requires the WordPress MCP Adapter plugin (https://github.com/WordPress/mcp-adapter).
  * Gracefully degrades if the adapter is not active.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

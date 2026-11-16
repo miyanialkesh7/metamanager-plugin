@@ -560,7 +560,7 @@ class MM_Settings {
 	 */
 	public static function get_notify_email(): string {
 		$email = sanitize_email( (string) get_option( self::OPTION_NOTIFY_EMAIL, '' ) );
-		return $email ?: (string) get_option( 'admin_email', '' );
+		return $email ? $email : (string) get_option( 'admin_email', '' );
 	}
 
 	/**
@@ -590,7 +590,7 @@ class MM_Settings {
 		}
 		// Split on newlines or commas, trim each entry.
 		$items = preg_split( '/[\r\n,]+/', $raw );
-		$items = array_map( 'trim', $items ?: array() );
+		$items = array_map( 'trim', $items ? $items : array() );
 		$items = array_filter( $items );
 		return array_values( $items );
 	}

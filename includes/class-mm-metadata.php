@@ -1057,7 +1057,7 @@ class MM_Metadata {
 
 		if ( '' === trim( $post->post_excerpt ) ) {
 			$v = self::pick_embedded_value( $embedded, $field_map['Caption'] ?? array() );
-			if ( '' !== $v && $v !== ( $native_updates['post_content'] ?? '' ) ) {
+			if ( '' !== $v && ( $native_updates['post_content'] ?? '' ) !== $v ) {
 				$native_updates['post_excerpt'] = sanitize_text_field( $v );
 			}
 		}

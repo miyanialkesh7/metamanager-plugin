@@ -482,16 +482,16 @@ class MM_Schema_Post_Types {
 		echo '<h4>Current Business Info</h4>';
 		echo '<table class="form-table"><tbody>';
 
-		printf( '<tr><th>Name</th><td>%s</td></tr>', esc_html( $name ?: '<em>Not set</em>' ) );
-		printf( '<tr><th>Phone</th><td>%s</td></tr>', esc_html( $phone ?: '<em>Not set</em>' ) );
-		printf( '<tr><th>Email</th><td>%s</td></tr>', esc_html( $email ?: '<em>Not set</em>' ) );
+		printf( '<tr><th>Name</th><td>%s</td></tr>', esc_html( $name ? $name : '<em>Not set</em>' ) );
+		printf( '<tr><th>Phone</th><td>%s</td></tr>', esc_html( $phone ? $phone : '<em>Not set</em>' ) );
+		printf( '<tr><th>Email</th><td>%s</td></tr>', esc_html( $email ? $email : '<em>Not set</em>' ) );
 
 		$street    = $addr['street'] ?? '';
 		$city      = $addr['city'] ?? '';
 		$state     = $addr['state'] ?? '';
 		$zip       = $addr['zip'] ?? '';
 		$full_addr = trim( "$street, $city, $state $zip", ', ' );
-		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ?: '<em>Not set</em>' ) );
+		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ? $full_addr : '<em>Not set</em>' ) );
 
 		if ( $lat && $lng ) {
 			printf( '<tr><th>Coordinates</th><td>%s, %s</td></tr>', esc_html( $lat ), esc_html( $lng ) );
@@ -499,7 +499,7 @@ class MM_Schema_Post_Types {
 
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			$hours_str = implode( ', ', array_filter( $hours ) );
-			printf( '<tr><th>Hours</th><td>%s</td></tr>', esc_html( $hours_str ?: '<em>Not set</em>' ) );
+			printf( '<tr><th>Hours</th><td>%s</td></tr>', esc_html( $hours_str ? $hours_str : '<em>Not set</em>' ) );
 		}
 
 		echo '</tbody></table>';
@@ -535,8 +535,8 @@ class MM_Schema_Post_Types {
 		echo '<h4>Current Business Info</h4>';
 		echo '<table class="form-table"><tbody>';
 
-		printf( '<tr><th>Name</th><td>%s</td></tr>', esc_html( $name ?: '<em>Not set</em>' ) );
-		printf( '<tr><th>Description</th><td>%s</td></tr>', esc_html( $desc ?: '<em>Not set</em>' ) );
+		printf( '<tr><th>Name</th><td>%s</td></tr>', esc_html( $name ? $name : '<em>Not set</em>' ) );
+		printf( '<tr><th>Description</th><td>%s</td></tr>', esc_html( $desc ? $desc : '<em>Not set</em>' ) );
 
 		if ( $founding ) {
 			printf( '<tr><th>Founded</th><td>%s</td></tr>', esc_html( date_i18n( get_option( 'date_format' ), strtotime( $founding ) ) ) );
@@ -550,7 +550,7 @@ class MM_Schema_Post_Types {
 		$state     = $addr['state'] ?? '';
 		$zip       = $addr['zip'] ?? '';
 		$full_addr = trim( "$street, $city, $state $zip", ', ' );
-		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ?: '<em>Not set</em>' ) );
+		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ? $full_addr : '<em>Not set</em>' ) );
 
 		if ( ! empty( $areas ) ) {
 			printf( '<tr><th>Service Areas</th><td>%s</td></tr>', esc_html( implode( ', ', $areas ) ) );
@@ -593,7 +593,7 @@ class MM_Schema_Post_Types {
 				esc_url( get_permalink( $event->ID ) ),
 				esc_html( get_the_title( $event ) ),
 				esc_html( $start ? date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $start ) ) : '—' ),
-				esc_html( $loc ?: '—' )
+				esc_html( $loc ? $loc : '—' )
 			);
 		}
 		echo '</tbody></table>';
@@ -926,7 +926,7 @@ class MM_Schema_Post_Types {
 		?>
 		<div class="mm-wc-product-linking" style="background:#f0f0f1;padding:15px;margin-bottom:20px;border-radius:4px;">
 			<h3 style="margin-top:0;">WooCommerce Product</h3>
-			<p class="description">Link this <?php echo esc_html( strtolower( $slug === 'mm_event' ? 'Event' : 'Service' ) ); ?> to a WooCommerce product for purchasing.</p>
+			<p class="description">Link this <?php echo esc_html( strtolower( 'mm_event' === $slug ? 'Event' : 'Service' ) ); ?> to a WooCommerce product for purchasing.</p>
 			<table class="form-table">
 				<tbody>
 					<tr>

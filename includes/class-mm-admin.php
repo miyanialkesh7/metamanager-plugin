@@ -551,7 +551,7 @@ class MM_Admin {
 		$installed_ver = $updater['installed_version'] ?? null;
 		$plugin_ver    = $updater['plugin_version'] ?? ( defined( 'MM_VERSION' ) ? MM_VERSION : 'unknown' );
 
-		$daemon_ok = ( $installed_ver !== null );
+		$daemon_ok = ( null !== $installed_ver );
 
 		$daemon_icon = $daemon_ok
 			? '<span class="dashicons dashicons-yes-alt" style="color:#00a32a;font-size:18px;width:18px;height:18px;"></span>'
@@ -1156,7 +1156,10 @@ class MM_Admin {
 			return array();
 		}
 		$key   = 'mm_queue_notices_' . $user_id;
-		$items = get_transient( $key ) ?: array();
+		$items = get_transient( $key );
+		if ( ! $items ) {
+			$items = array();
+		}
 		if ( ! empty( $items ) ) {
 			delete_transient( $key );
 		}
@@ -1260,7 +1263,10 @@ class MM_Admin {
 			}
 
 			// Images: existing per-size logic.
-			$meta   = wp_get_attachment_metadata( $id ) ?: array();
+			$meta = wp_get_attachment_metadata( $id );
+			if ( ! $meta ) {
+				$meta = array();
+			}
 			$file   = get_attached_file( $id );
 			$queued = false;
 
@@ -2175,7 +2181,10 @@ class MM_Admin {
 			wp_send_json_error( __( 'Invalid or unsupported attachment.', 'metamanager' ) );
 		}
 
-		$meta = wp_get_attachment_metadata( $id ) ?: array();
+		$meta = wp_get_attachment_metadata( $id );
+		if ( ! $meta ) {
+			$meta = array();
+		}
 
 		if ( MM_Metadata::is_video_mime( $mime ) ) {
 			$file = get_attached_file( $id );
@@ -2225,7 +2234,7 @@ class MM_Admin {
 		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$fields = array();
 		foreach ( $allowed_fields as $key ) {
-			if ( isset( $raw_fields[ $key ] ) && $raw_fields[ $key ] !== '' ) {
+			if ( isset( $raw_fields[ $key ] ) && '' !== $raw_fields[ $key ] ) {
 				if ( MM_Metadata::META_RATING === $key ) {
 					$fields[ $key ] = min( 5, max( 0, (int) $raw_fields[ $key ] ) );
 				} else {
@@ -2354,7 +2363,7 @@ class MM_Admin {
 		$window = 1; // pages each side of current.
 		$pages  = array();
 		for ( $i = 1; $i <= $total_pages; $i++ ) {
-			if ( $i === 1 || $i === $total_pages || abs( $i - $paged ) <= $window ) {
+			if ( 1 === $i || $i === $total_pages || abs( $i - $paged ) <= $window ) {
 				$pages[] = $i;
 			}
 		}
@@ -2390,7 +2399,7 @@ class MM_Admin {
 
 		$prev_shown = null;
 		foreach ( $pages as $i ) {
-			if ( $prev_shown !== null && $i - $prev_shown > 1 ) {
+			if ( null !== $prev_shown && $i - $prev_shown > 1 ) {
 				echo '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">…</span>';
 			}
 			echo $btn( $i, $i === $paged ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -2748,7 +2757,7 @@ class MM_Admin {
 					<input type="text"
 							class="mm-apply-field"
 							data-key="<?php echo esc_attr( $key ); ?>"
-							placeholder="<?php echo esc_attr( $cfg['placeholder'] ?: $cfg['label'] ); ?>"
+							placeholder="<?php echo esc_attr( $cfg['placeholder'] ? $cfg['placeholder'] : $cfg['label'] ); ?>"
 							value=""
 							style="width:100%;box-sizing:border-box;">
 				</div>
@@ -2831,7 +2840,7 @@ class MM_Admin {
 								$is_video  = str_starts_with( $mime, 'video/' );
 								$is_audio  = str_starts_with( $mime, 'audio/' );
 								$is_pdf    = 'application/pdf' === $mime;
-								$src       = $is_image ? ( wp_get_attachment_image_url( $id, 'thumbnail' ) ?: '' ) : '';
+								$src       = $is_image ? (string) wp_get_attachment_image_url( $id, 'thumbnail' ) : '';
 								$title     = get_the_title( $id );
 								$edit_url  = get_edit_post_link( $id );
 								$creator   = (string) get_post_meta( $id, MM_Metadata::META_CREATOR, true );

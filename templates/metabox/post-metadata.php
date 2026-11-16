@@ -7,8 +7,8 @@
  *   @var WP_Post         $post
  *   @var array           $meta     Current _mm_meta values (decoded JSON)
  *   @var MM_Site_Settings $settings
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -101,7 +101,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? array();
 								<input type="radio"
 										name="mm_meta_<?php echo esc_attr( $field ); ?>"
 										value=""
-										<?php checked( $current === null ); ?>>
+										<?php checked( null === $current ); ?>>
 								Default
 							</label>
 						</td>
@@ -110,7 +110,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? array();
 								<input type="radio"
 										name="mm_meta_<?php echo esc_attr( $field ); ?>"
 										value="1"
-										<?php checked( $current === true ); ?>>
+										<?php checked( true === $current ); ?>>
 								On
 							</label>
 						</td>
@@ -119,7 +119,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? array();
 								<input type="radio"
 										name="mm_meta_<?php echo esc_attr( $field ); ?>"
 										value="0"
-										<?php checked( $current === false ); ?>>
+										<?php checked( false === $current ); ?>>
 								Off
 							</label>
 						</td>

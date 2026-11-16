@@ -13,8 +13,8 @@
  *   'links'  => [ ['rel'=>..., 'href'=>...], ... ],
  *   'schema' => array  (will be JSON-encoded as @graph),
  * ]
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -6,8 +6,8 @@
  * and Person widget clickable elements.
  *
  * @var MM_Site_Settings $settings
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

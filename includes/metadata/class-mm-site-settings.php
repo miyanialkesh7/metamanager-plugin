@@ -4,8 +4,8 @@
  *
  * All reads are from a deep-merged in-memory copy (defaults + saved).
  * Dot-notation keys: e.g. get('titles.separator'), get('social.og_locale').
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -28,13 +28,13 @@ class MM_Site_Settings {
 	 *
 	 * @var ?array
 	 */
-	private ?array $settings_data  = null;
+	private ?array $settings_data = null;
 	/**
 	 * Business data.
 	 *
 	 * @var ?array
 	 */
-	private ?array $business_data  = null;
+	private ?array $business_data = null;
 
 	/**
 	 * Constructor.

@@ -13,8 +13,8 @@
  *   ping            Ping Google + Bing with the sitemap URL
  *   flush-rewrites  Flush WordPress rewrite rules
  *   schema-test     Fetch a URL and print the JSON-LD found in <head>
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

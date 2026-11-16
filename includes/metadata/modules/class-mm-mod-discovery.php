@@ -7,8 +7,8 @@
  *  - /.well-known/api-catalog — RFC 9727 linkset catalog
  *
  * All output is cached as transients and regenerated on settings save.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -185,7 +185,7 @@ class MM_Mod_Discovery {
 				$url  = get_permalink( $post );
 				$line = "- [{$post->post_title}]({$url})";
 				if ( $full ) {
-					$excerpt = $post->post_excerpt ?: wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
+					$excerpt = $post->post_excerpt ? $post->post_excerpt : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
 					$line   .= ': ' . $excerpt;
 				}
 				$lines[] = $line;

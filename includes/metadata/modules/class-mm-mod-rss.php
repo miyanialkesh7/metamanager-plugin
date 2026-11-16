@@ -21,8 +21,8 @@
  *  - Serve only the excerpt rather than full post content (feed.use_excerpt).
  *  - Override the feed channel title (feed.feed_title).
  *  - Add a copyright notice to the channel (feed.feed_copyright).
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -68,13 +68,13 @@ class MM_Mod_Rss extends MM_Mod_Base {
 
 		// Override the feed channel title.
 		$title = trim( (string) $this->settings->get( 'feed.feed_title', '' ) );
-		if ( $title !== '' ) {
+		if ( '' !== $title ) {
 			add_filter( 'wp_title_rss', fn() => esc_html( $title ) );
 		}
 
 		// Append a <copyright> element to the channel.
 		$copyright = trim( (string) $this->settings->get( 'feed.feed_copyright', '' ) );
-		if ( $copyright !== '' ) {
+		if ( '' !== $copyright ) {
 			add_action(
 				'rss2_head',
 				function () use ( $copyright ): void {

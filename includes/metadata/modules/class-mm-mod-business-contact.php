@@ -10,8 +10,8 @@
  *   - Inline schema.org JSON-LD scoped to each rendered card instance
  *
  * Style and visibility settings are sitewide, managed at SEO → Contact Card.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -135,7 +135,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$lat   = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$lng   = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
 		$logo  = esc_url_raw( $biz['logo_url'] ?? '' );
-		$slug  = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
+		$slug  = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) );
+		if ( ! $slug ) {
+			$slug = 'business';
+		}
 
 		$lines = array(
 			'BEGIN:VCARD',
@@ -161,7 +164,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				. sanitize_text_field( $addr['country'] ?? 'US' );
 		}
 
-		if ( $lat !== null && $lng !== null ) {
+		if ( null !== $lat && null !== $lng ) {
 			$lines[] = 'GEO:' . $lat . ';' . $lng;
 		}
 
@@ -221,7 +224,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	private function serve_json( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
 		$addr = $biz['address'] ?? array();
-		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
+		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) );
+		if ( ! $slug ) {
+			$slug = 'business';
+		}
 
 		$lat = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
 		$lng = isset( $biz['lng'] ) && is_numeric( $biz['lng'] ) ? (float) $biz['lng'] : null;
@@ -311,7 +317,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	private function serve_csv( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
 		$addr = $biz['address'] ?? array();
-		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) ) ?: 'business';
+		$slug = sanitize_file_name( strtolower( str_replace( ' ', '-', $name ) ) );
+		if ( ! $slug ) {
+			$slug = 'business';
+		}
 
 		$accounts     = $biz['accounts'] ?? array();
 		$social_str   = '';
@@ -399,7 +408,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$url      = get_permalink( $post->ID );
 		$uid      = 'event-' . $post->ID . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
 		$now      = gmdate( 'Ymd\THis\Z' );
-		$slug     = sanitize_file_name( strtolower( str_replace( ' ', '-', get_the_title( $post ) ) ) ) ?: 'event';
+		$slug     = sanitize_file_name( strtolower( str_replace( ' ', '-', get_the_title( $post ) ) ) );
+		if ( ! $slug ) {
+			$slug = 'event';
+		}
 
 		// Format dates for iCal (DTSTART/DTEND).
 		$dtstart = $this->format_ical_date( $start );
@@ -692,7 +704,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$lng    = $biz['lng'] ?? '';
 		$hours  = $biz['hours'] ?? array();
 		$type   = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
-		$schema = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
+		$schema = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		if ( ! $schema ) {
+			$schema = '{}';
+		}
 
 		$has_address = ! empty( $addr['street'] );
 		$show_phone  = ! empty( $biz['show_phone'] ?? true ) && $phone;
@@ -1021,7 +1036,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 							if ( ( 0 === $row && $col < $first_day_of_week ) || $day > $days_in_month ) {
 								echo '<td class="gcm-calendar__cell gcm-calendar__cell--empty"></td>';
 							} else {
-								$is_today   = ( $day === (int) current_time( 'j' ) && $month === (int) current_time( 'n' ) && $year === (int) current_time( 'Y' ) );
+								$is_today   = ( (int) current_time( 'j' ) === $day && (int) current_time( 'n' ) === $month && (int) current_time( 'Y' ) === $year );
 								$has_events = ! empty( $day_events[ $day ] );
 								$class      = 'gcm-calendar__cell';
 								if ( $is_today ) {

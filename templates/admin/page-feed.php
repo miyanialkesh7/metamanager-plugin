@@ -4,8 +4,8 @@
  * Controls what WordPress includes in its RSS 2.0 feed output.
  *
  * @var MM_Site_Settings $settings
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

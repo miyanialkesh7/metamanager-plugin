@@ -10,8 +10,8 @@
  *   @var string             $current_page   current sub-page slug
  *   @var string|null        $opt_group      option group for settings_fields()
  *   @var bool               $has_inner_form template handles its own <form>
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -4,8 +4,8 @@
  *
  * Each concrete module extends this class and implements populate(), which
  * writes its output into the shared $data array rather than echoing directly.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,8 +20,8 @@ abstract class MM_Mod_Base {
 	/**
 	 * Track which nav menus were rendered during this request.
 	 * Populated by MM_Metadata_Loader::track_rendered_menu().
-	  *
-	  * @var array
+	 *
+	 * @var array
 	 */
 	public static array $rendered_menus = array();
 

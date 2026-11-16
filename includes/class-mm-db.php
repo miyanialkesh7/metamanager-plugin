@@ -17,8 +17,8 @@ class MM_DB {
 
 	/**
 	 * Prevents the one-time dedup migration from running more than once per request.
-	  *
-	  * @var bool
+	 *
+	 * @var bool
 	 */
 	private static bool $dedup_done = false;
 
@@ -268,7 +268,7 @@ class MM_DB {
 		// phpcs:enable
 
 		return array(
-			'jobs'  => $jobs ?: array(),
+			'jobs'  => $jobs ? $jobs : array(),
 			'total' => $total,
 		);
 	}

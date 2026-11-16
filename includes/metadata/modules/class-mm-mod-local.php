@@ -7,8 +7,8 @@
  * business:contact_data:* tags for Facebook's business card format.
  *
  * Supports 45 schema.org LocalBusiness subtypes grouped by industry.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -51,7 +51,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 			return;
 		}
 
-		$type = $biz['type'] ?: 'LocalBusiness';
+		$type = $biz['type'] ? $biz['type'] : 'LocalBusiness';
 
 		// Validate against known schema.org types — silently fall back to
 		// LocalBusiness if the stored type is not in the recognised list.

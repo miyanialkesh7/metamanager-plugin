@@ -6,8 +6,8 @@
  *   Canonical URL override        noindex / nofollow / noarchive / nosnippet / noimageindex
  *   Schema type override          Breadcrumb label
  *   Exclude from sitemap
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -160,7 +160,7 @@ class MM_Post_Meta_Panel {
 			foreach ( $raw_schema_fields as $sf_key => $sf_val ) {
 				$sf_key = sanitize_key( $sf_key );
 				$sf_val = sanitize_text_field( wp_unslash( $sf_val ) );
-				if ( $sf_key !== '' && $sf_val !== '' ) {
+				if ( '' !== $sf_key && '' !== $sf_val ) {
 					$clean_schema_fields[ $sf_key ] = $sf_val;
 				}
 			}
@@ -173,7 +173,7 @@ class MM_Post_Meta_Panel {
 		// Strip empty fields to save space; keep null tristates.
 		$clean = array();
 		foreach ( $new as $k => $v ) {
-			if ( $v === '' || $v === 0 || $v === false ) {
+			if ( '' === $v || 0 === $v || false === $v ) {
 				// Only store if it differs from the default (unset = use global default).
 				continue;
 			}
@@ -182,7 +182,7 @@ class MM_Post_Meta_Panel {
 
 		// Always persist tristate values even when null (to handle explicit default).
 		foreach ( array( 'noindex', 'nofollow', 'noarchive', 'nosnippet', 'noimageindex' ) as $f ) {
-			if ( $new[ $f ] !== null ) {
+			if ( null !== $new[ $f ] ) {
 				$clean[ $f ] = $new[ $f ];
 			} elseif ( isset( $existing[ $f ] ) ) {
 				// User cleared to "default" — remove stored override.
@@ -252,7 +252,7 @@ class MM_Post_Meta_Panel {
 	 * @param mixed $value Value.
 	 */
 	private function sanitize_tristate( $value ): ?bool {
-		if ( $value === '' || $value === null ) {
+		if ( '' === $value || null === $value ) {
 			return null;
 		}
 		return (bool) (int) $value;

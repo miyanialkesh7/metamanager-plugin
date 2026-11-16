@@ -150,7 +150,7 @@ class MM_Job_Queue {
 		$job = array_merge(
 			array(
 				'attachment_id'  => $attachment_id,
-				'image_name'     => pathinfo( get_attached_file( $attachment_id ) ?: '', PATHINFO_FILENAME ),
+				'image_name'     => pathinfo( (string) get_attached_file( $attachment_id ), PATHINFO_FILENAME ),
 				'job_type'       => $type,
 				'file_path'      => $file_path,
 				'size'           => $size,
@@ -212,7 +212,10 @@ class MM_Job_Queue {
 		$post  = get_post( $attachment_id );
 		$name  = $post ? $post->post_title : '#' . $attachment_id;
 		$key   = 'mm_queue_notices_' . $user_id;
-		$items = get_transient( $key ) ?: array();
+		$items = get_transient( $key );
+		if ( ! $items ) {
+			$items = array();
+		}
 
 		// One entry per attachment_id+job_type+status combination.
 		// If the same attachment already has a notice of this kind, just add the size.
@@ -266,7 +269,10 @@ class MM_Job_Queue {
 		}
 
 		if ( ! $meta ) {
-			$meta = wp_get_attachment_metadata( $attachment_id ) ?: array();
+			$meta = wp_get_attachment_metadata( $attachment_id );
+			if ( ! $meta ) {
+				$meta = array();
+			}
 		}
 
 		$queue_types = match ( $types ) {

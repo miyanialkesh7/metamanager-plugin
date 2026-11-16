@@ -13,8 +13,8 @@
  *   show_date   (yes|no, default: no)
  *   order_by    (menu_order|title|date, default: menu_order)
  *   limit       (int, default: 500, max posts per flat query)
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -254,7 +254,7 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 			'posts_per_page' => $limit,
 			'no_found_rows'  => true,
 			'has_password'   => false,
-			'post__not_in'   => $exclude ?: array( 0 ),
+			'post__not_in'   => $exclude ? $exclude : array( 0 ),
 		);
 
 		$query_args = $this->apply_order( $query_args, $order_by );
@@ -298,7 +298,7 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 			'posts_per_page' => $limit,
 			'no_found_rows'  => true,
 			'has_password'   => false,
-			'post__not_in'   => $exclude ?: array( 0 ),
+			'post__not_in'   => $exclude ? $exclude : array( 0 ),
 		);
 
 		$query_args = $this->apply_order( $query_args, $order_by );

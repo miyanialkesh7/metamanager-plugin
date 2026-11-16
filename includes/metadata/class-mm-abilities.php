@@ -4,8 +4,8 @@
  * Abilities API so they are discoverable by the MCP Adapter and AI agents.
  *
  * Requires WordPress 6.9+ (Abilities API). Gracefully degrades if unavailable.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -567,7 +567,10 @@ class MM_Abilities {
 		$emitter  = new MM_Head_Emitter( $context, $settings );
 
 		// Parse the URL path to set up the context.
-		$path                   = wp_parse_url( $url, PHP_URL_PATH ) ?: '/';
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! $path ) {
+			$path = '/';
+		}
 		$_SERVER['REQUEST_URI'] = $path;
 
 		// Force a fresh context parse.
@@ -682,7 +685,7 @@ class MM_Abilities {
 		return array_filter(
 			$profile,
 			function ( $v ) {
-				return is_array( $v ) || $v !== '';
+				return is_array( $v ) || '' !== $v;
 			}
 		);
 	}

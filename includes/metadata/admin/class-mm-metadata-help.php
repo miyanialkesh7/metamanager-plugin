@@ -3,8 +3,8 @@
  * MM_Metadata_Help — contextual help tab content for every Metamanager admin screen.
  *
  * All methods are static; no instance state is required.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

@@ -4,8 +4,8 @@
  *
  * WordPress intercepts /robots.txt requests via do_robots() which fires
  * the robots_txt filter.  We replace the content entirely when enabled.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -63,7 +63,7 @@ class MM_Mod_Robots extends MM_Mod_Base {
 		}
 
 		$delay = $s->get( 'robots.crawl_delay', '' );
-		if ( $delay !== '' && is_numeric( $delay ) ) {
+		if ( '' !== $delay && is_numeric( $delay ) ) {
 			$lines[] = 'Crawl-delay: ' . (int) $delay;
 		}
 

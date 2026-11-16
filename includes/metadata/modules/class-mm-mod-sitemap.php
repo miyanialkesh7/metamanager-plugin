@@ -10,8 +10,8 @@
  *   /sitemap-media.xml        — media attachment pages with image:image and video:video
  *
  * On post publish, pings Google and Bing (async via cron, once per event).
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -482,8 +482,14 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 			}
 		}
 
-		$title       = $meta( MM_Metadata::META_HEADLINE ) ?: trim( $att->post_title ) ?: basename( $url );
-		$description = wp_strip_all_tags( $att->post_excerpt ?: '' );
+		$title = $meta( MM_Metadata::META_HEADLINE );
+		if ( ! $title ) {
+			$title = trim( $att->post_title );
+		}
+		if ( ! $title ) {
+			$title = basename( $url );
+		}
+		$description = wp_strip_all_tags( $att->post_excerpt ? $att->post_excerpt : '' );
 
 		$record = array(
 			'thumbnail'       => $thumbnail,

@@ -3,8 +3,8 @@
  * Admin tab — Titles & Meta.
  *
  * @var MM_Site_Settings $settings
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

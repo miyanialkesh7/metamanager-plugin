@@ -6,8 +6,8 @@
  *   - The narrowed list of schema types relevant to GCM clients
  *   - Per-type field definitions for the admin UI (metabox + settings tab)
  *   - A builder that converts flat stored overrides into nested JSON-LD properties
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -951,10 +951,13 @@ class MM_Schema_Types {
 		// Build an Offer node from price/currency fields (key prefix passed in).
 		$make_offer = function ( string $price_key, string $currency_key ) use ( $str ): ?array {
 			$price = $str( $price_key );
-			if ( $price === '' ) {
+			if ( '' === $price ) {
 				return null;
 			}
-			$currency = $str( $currency_key ) ?: 'USD';
+			$currency = $str( $currency_key );
+			if ( ! $currency ) {
+				$currency = 'USD';
+			}
 			return array(
 				'@type'         => 'Offer',
 				'price'         => $price,
@@ -1079,7 +1082,7 @@ class MM_Schema_Types {
 			if ( $cost_amount ) {
 				$out['estimatedCost'] = array(
 					'@type'    => 'MonetaryAmount',
-					'currency' => $str( 'howto_cost_currency' ) ?: 'USD',
+					'currency' => $str( 'howto_cost_currency' ) ? $str( 'howto_cost_currency' ) : 'USD',
 					'value'    => $cost_amount,
 				);
 			}

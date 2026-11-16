@@ -178,8 +178,8 @@ class MM_Media_Detector {
 			}
 			$meta = wp_get_attachment_metadata( $attachment_id );
 			if ( $meta ) {
-				$width  = $width ?: (int) ( $meta['width'] ?? 0 );
-				$height = $height ?: (int) ( $meta['height'] ?? 0 );
+				$width  = $width ? $width : (int) ( $meta['width'] ?? 0 );
+				$height = $height ? $height : (int) ( $meta['height'] ?? 0 );
 			}
 		}
 

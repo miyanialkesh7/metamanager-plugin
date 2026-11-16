@@ -5,8 +5,8 @@
  * Adds Person nodes on author archive pages.  On BlogPosting nodes
  * built by the Schema module, the author Person @id is referenced
  * by URL so this module can be loaded in any order.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

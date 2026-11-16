@@ -4,8 +4,8 @@
  *
  * Called once per request, cached internally.  All modules receive the
  * same context object so page-type conditionals are evaluated once.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

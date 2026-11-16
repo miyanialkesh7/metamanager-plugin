@@ -1,8 +1,8 @@
 <?php
 /**
  * MM_Metadata_Loader — wires every module and admin class to WordPress hooks.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -107,6 +107,6 @@ class MM_Metadata_Loader {
 			'schema' => array(),
 		);
 		( new MM_Mod_Head_Meta( $this->settings ) )->populate( $data, $this->context, $this->settings );
-		return $data['title'] ?: $title;
+		return $data['title'] ? $data['title'] : $title;
 	}
 }

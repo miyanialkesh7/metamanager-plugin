@@ -195,7 +195,7 @@ class MM_Upload_Notify {
 				foreach ( $ids as $id ) {
 					$title         = html_entity_decode( (string) get_the_title( $id ), ENT_QUOTES );
 					$url           = wp_get_attachment_url( $id );
-					$intro_lines[] = '  • ' . ( $title ?: '#' . $id ) . ( $url ? ' — ' . $url : '' );
+					$intro_lines[] = '  • ' . ( $title ? $title : '#' . $id ) . ( $url ? ' — ' . $url : '' );
 				}
 				$intro_lines[] = '';
 			}
@@ -233,7 +233,7 @@ class MM_Upload_Notify {
 			foreach ( $all_ids as $id ) {
 				$title        = html_entity_decode( (string) get_the_title( $id ), ENT_QUOTES );
 				$url          = wp_get_attachment_url( $id );
-				$body_lines[] = '  • ' . ( $title ?: '#' . $id ) . ( $url ? ' — ' . $url : '' );
+				$body_lines[] = '  • ' . ( $title ? $title : '#' . $id ) . ( $url ? ' — ' . $url : '' );
 			}
 			$body_lines[] = '';
 			$body_lines[] = __( 'View Media Library:', 'metamanager' ) . ' ' . $admin_url;
@@ -508,7 +508,7 @@ class MM_Upload_Notify {
 		foreach ( $ids as $id ) {
 			$title   = html_entity_decode( (string) get_the_title( $id ), ENT_QUOTES );
 			$url     = wp_get_attachment_url( $id );
-			$lines[] = '  • ' . ( $title ?: '#' . $id ) . ( $url ? ' — ' . $url : '' );
+			$lines[] = '  • ' . ( $title ? $title : '#' . $id ) . ( $url ? ' — ' . $url : '' );
 		}
 		$lines[] = '';
 		$lines[] = __( 'View your Media Library:', 'metamanager' ) . ' ' . $admin_url;

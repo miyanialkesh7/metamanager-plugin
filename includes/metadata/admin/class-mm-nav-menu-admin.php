@@ -8,8 +8,8 @@
  *
  * LEFT SIDEBAR (below Archives):
  *   - Navigation Schema meta box: checkbox to designate menu for SiteNavigationElement
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

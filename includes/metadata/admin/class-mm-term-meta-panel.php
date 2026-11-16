@@ -4,8 +4,8 @@
  *
  * Adds SEO fields to taxonomy term edit screens.
  * Stores data under term-meta key MM_META_KEY.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -159,7 +159,7 @@ class MM_Term_Meta_Panel {
 	 * @return bool|null Return value.
 	 */
 	private function sanitize_tristate( $value ): ?bool {
-		if ( $value === '' || $value === null ) {
+		if ( '' === $value || null === $value ) {
 			return null;
 		}
 		return (bool) (int) $value;

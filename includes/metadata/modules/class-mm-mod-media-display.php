@@ -3,8 +3,8 @@
  * MM_Mod_Media_Display — Frontend media display features.
  *
  * Handles featured image citation and other media display enhancements.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;

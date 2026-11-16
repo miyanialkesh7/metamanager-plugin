@@ -4,8 +4,8 @@
  *
  * All values are sanitized before being written into the CSS string to prevent
  * injection. Only characters valid in CSS values are permitted per type.
-  *
-  * @package Metamanager
+ *
+ * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -121,7 +121,7 @@ class MM_Biz_Card_CSS {
 		$v = trim( $v );
 		// Allow: a-z A-Z 0-9 # % ( ) , . space.
 		$sanitized = preg_replace( '/[^a-zA-Z0-9#%(),.\s]/', '', $v );
-		return $sanitized ?: '#000000';
+		return $sanitized ? $sanitized : '#000000';
 	}
 
 	/**
@@ -132,7 +132,7 @@ class MM_Biz_Card_CSS {
 	private static function length( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9.%]/', '', $v );
-		return $sanitized ?: '0';
+		return $sanitized ? $sanitized : '0';
 	}
 
 	/**
@@ -143,7 +143,7 @@ class MM_Biz_Card_CSS {
 	private static function shorthand( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9.% ]/', '', $v );
-		return $sanitized ?: '0';
+		return $sanitized ? $sanitized : '0';
 	}
 
 	/**
@@ -154,6 +154,6 @@ class MM_Biz_Card_CSS {
 	private static function shadow( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9#%(),.\s\-]/', '', $v );
-		return $sanitized ?: 'none';
+		return $sanitized ? $sanitized : 'none';
 	}
 }

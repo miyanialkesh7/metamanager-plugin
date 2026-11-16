@@ -149,7 +149,7 @@ add_filter(
 	'wp_revisions_to_keep',
 	function ( $num, $post ) {
 		$max = MM_Settings::get_max_revisions();
-		if ( $max === 0 ) {
+		if ( 0 === $max ) {
 			return $num; // Unlimited.
 		}
 		$post_type = get_post_type( $post );
@@ -205,7 +205,7 @@ function mm_activate_single_site(): void {
 	);
 	foreach ( $migrations as $old_key => $new_key ) {
 		$old_value = get_option( $old_key, null );
-		if ( $old_value !== null && get_option( $new_key, null ) === null ) {
+		if ( null !== $old_value && get_option( $new_key, null ) === null ) {
 			update_option( $new_key, $old_value, false );
 			delete_option( $old_key );
 		}

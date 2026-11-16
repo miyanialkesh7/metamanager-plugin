@@ -113,7 +113,10 @@ class MM_CLI extends \WP_CLI_Command {
 				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', array( 'trigger' => 'cli' ) );
 			} else {
 				// Image: queue all registered sizes.
-				$meta = wp_get_attachment_metadata( $id ) ?: array();
+				$meta = wp_get_attachment_metadata( $id );
+				if ( ! $meta ) {
+					$meta = array();
+				}
 				MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', array( 'trigger' => 'cli' ) );
 			}
 
