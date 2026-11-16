@@ -45,8 +45,10 @@ class MM_Biz_Card_CSS {
 		$btn_shadow_spread = self::shorthand( $s['btn_box_shadow_spread'] ?? '0px' );
 		$btn_shadow_css   = $btn_shadow_on ? "box-shadow:{$btn_shadow_x} {$btn_shadow_y} {$btn_shadow_blur} {$btn_shadow_spread} {$btn_shadow_color};" : '';
 		$btn_hover_on     = $s['btn_hover_enabled'] ?? true;
-		$btn_hover_bg     = self::color( $s['btn_hover_bg'] ?? '' );
-		$btn_hover_text   = self::color( $s['btn_hover_text'] ?? '' );
+		$raw_hover_bg     = trim( (string) ( $s['btn_hover_bg'] ?? '' ) );
+		$raw_hover_text   = trim( (string) ( $s['btn_hover_text'] ?? '' ) );
+		$btn_hover_bg     = $raw_hover_bg ? self::color( $raw_hover_bg ) : '';
+		$btn_hover_text   = $raw_hover_text ? self::color( $raw_hover_text ) : '';
 		$btn_hover_opacity = (string) ( $s['btn_hover_opacity'] ?? '0.88' );
 		$hover_css        = '';
 		if ( $btn_hover_on ) {
