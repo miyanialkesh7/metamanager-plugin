@@ -102,8 +102,8 @@ class MM_Nav_Menu_Admin {
 
 	public function render_schema_box(): void {
 		$current_menu = 0;
-		if ( isset( $_GET['menu'] ) ) {
-			$current_menu = (int) sanitize_text_field( wp_unslash( $_GET['menu'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['menu'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$current_menu = (int) sanitize_text_field( wp_unslash( $_GET['menu'] ) );
 		}
 		$checked = $current_menu ? get_term_meta( $current_menu, '_mm_nav_menu_primary', true ) : '';
 		?>
