@@ -616,73 +616,41 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<div class="gcm-contact-page__name" itemprop="name"><?php echo esc_html( $name ); ?></div>
 
 			<div class="gcm-contact-page__actions">
-
 				<?php if ( $show_phone ) : ?>
 				<meta itemprop="telephone" content="<?php echo esc_attr( $phone ); ?>">
-				<a href="tel:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--call">
+				<a href="tel:<?php echo esc_attr( $phone ); ?>" class="gcm-contact-page__btn gcm-contact-page__btn--call">
 					<span class="dashicons dashicons-phone" aria-hidden="true"></span>
 					<span><?php echo esc_html( $phone ); ?></span>
 				</a>
 				<?php endif; ?>
-
-				<?php if ( $show_sms ) : ?>
-				<a href="sms:<?php echo esc_attr( $phone ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--sms">
-					<span class="dashicons dashicons-smartphone" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Send SMS', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_email ) : ?>
-				<meta itemprop="email" content="<?php echo esc_attr( $email ); ?>">
-				<a href="mailto:<?php echo esc_attr( $email ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--email">
-					<span class="dashicons dashicons-email" aria-hidden="true"></span>
-					<span><?php echo esc_html( $email ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_vcard ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/vcard/' ) ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--vcard"
-				   download>
-					<span class="dashicons dashicons-id-alt" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Save Contact', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_json ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/json/' ) ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--json"
-				   download>
-					<span class="dashicons dashicons-download" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Download JSON', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
-				<?php if ( $show_csv ) : ?>
-				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/csv/' ) ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--csv"
-				   download>
-					<span class="dashicons dashicons-media-spreadsheet" aria-hidden="true"></span>
-					<span><?php esc_html_e( 'Download CSV', 'metamanager' ); ?></span>
-				</a>
-				<?php endif; ?>
-
 				<?php
 				$booking_link  = $biz['booking_link'] ?? '';
 				$booking_label = sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' );
 				if ( ! empty( $booking_link ) ) :
 				?>
-				<a href="<?php echo esc_url( $booking_link ); ?>"
-				   class="gcm-contact-page__btn gcm-contact-page__btn--booking"
-				   target="_blank" rel="noopener noreferrer">
+				<a href="<?php echo esc_url( $booking_link ); ?>" class="gcm-contact-page__btn gcm-contact-page__btn--booking" target="_blank" rel="noopener noreferrer">
 					<span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span>
 					<span><?php echo esc_html( $booking_label ); ?></span>
 				</a>
 				<?php endif; ?>
+			</div>
 
+			<div class="gcm-contact-page__downloads">
+				<?php if ( $show_vcard ) : ?>
+				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/vcard/' ) ); ?>" class="gcm-contact-page__download" download>
+					<span class="dashicons dashicons-id-alt" aria-hidden="true"></span> <?php esc_html_e( 'Save Contact', 'metamanager' ); ?>
+				</a>
+				<?php endif; ?>
+				<?php if ( $show_json ) : ?>
+				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/json/' ) ); ?>" class="gcm-contact-page__download" download>
+					<span class="dashicons dashicons-download" aria-hidden="true"></span> <?php esc_html_e( 'Download JSON', 'metamanager' ); ?>
+				</a>
+				<?php endif; ?>
+				<?php if ( $show_csv ) : ?>
+				<a href="<?php echo esc_url( home_url( '/gcm-biz-export/csv/' ) ); ?>" class="gcm-contact-page__download" download>
+					<span class="dashicons dashicons-media-spreadsheet" aria-hidden="true"></span> <?php esc_html_e( 'Download CSV', 'metamanager' ); ?>
+				</a>
+				<?php endif; ?>
 			</div>
 
 			<?php
