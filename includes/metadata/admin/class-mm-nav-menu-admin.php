@@ -111,7 +111,7 @@ class MM_Nav_Menu_Admin {
 				+ '<input type="checkbox" name="_mm_nav_menu_primary" value="1" <?php echo $checked === '1' ? 'checked' : ''; ?>>'
 				+ '<strong>Use for navigation schema</strong>'
 				+ '</label>'
-				+ '<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo $nonce; ?>">'
+				+ '<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo esc_attr( $nonce ); ?>">'
 				+ '<p class="description" style="margin:4px 0 0 22px;">When checked, this menu is emitted as <code>SiteNavigationElement</code> JSON-LD. Only one menu can be designated. Schema outputs only when this menu is rendered on the page.</p>'
 				+ '</div>';
 			$('.menu-settings').first().append(html);
