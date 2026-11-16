@@ -27,7 +27,7 @@ class MM_Nav_Menu_Admin {
 			'mm-archives',
 			__( 'Archives', 'metamanager' ),
 			[ $this, 'render_archives_box' ],
-			'nav_menu',
+			'nav-menus',
 			'side',
 			'default'
 		);
@@ -35,7 +35,7 @@ class MM_Nav_Menu_Admin {
 			'mm-schema-nav',
 			__( 'Navigation Schema', 'metamanager' ),
 			[ $this, 'render_schema_box' ],
-			'nav_menu',
+			'nav-menus',
 			'side',
 			'low'
 		);
@@ -196,7 +196,7 @@ class MM_Nav_Menu_Admin {
 
 		if ( $is_primary ) {
 			$old = get_terms( [
-				'taxonomy'   => 'nav_menu',
+				'taxonomy'   => 'nav-menus',
 				'meta_query' => [ [ 'key' => '_mm_nav_menu_primary', 'value' => '1' ] ],
 				'number'     => 0,
 				'hide_empty' => false,
