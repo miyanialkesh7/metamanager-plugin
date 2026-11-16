@@ -53,14 +53,35 @@ $s   = $settings;
 	</table>
 
 	<h2>Person Schema</h2>
+	<p class="description">Person/Professional widgets and blocks always emit schema (manually entered data). These settings control automatic Person nodes for post and page authors.</p>
 	<table class="form-table gcm-form-table">
 		<tr>
-			<th>Emit Person nodes</th>
+			<th>Posts</th>
 			<td>
 				<label>
-					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[authors][person_schema]" value="1"
-						<?php checked( $s->get('authors.person_schema', true) ); ?>>
-					Output <code>Person</code> JSON-LD nodes on author archive pages
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[authors][person_schema_posts]" value="1"
+						<?php checked( $s->get('authors.person_schema_posts', true) ); ?>>
+					Emit Person node for the author on single posts
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th>Pages</th>
+			<td>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[authors][person_schema_pages]" value="1"
+						<?php checked( $s->get('authors.person_schema_pages', true) ); ?>>
+					Emit Person node for the author on single pages
+				</label>
+			</td>
+		</tr>
+		<tr>
+			<th>Author Archives</th>
+			<td>
+				<label>
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[authors][person_schema_archives]" value="1"
+						<?php checked( $s->get('authors.person_schema_archives', true) ); ?>>
+					Emit Person node on author archive pages
 				</label>
 			</td>
 		</tr>

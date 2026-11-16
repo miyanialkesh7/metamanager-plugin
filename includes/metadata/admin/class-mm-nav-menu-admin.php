@@ -6,8 +6,8 @@
  * LEFT SIDEBAR ("Add menu items"):
  *   - Archives meta box: dropdown (Blog, CPT archives, Taxonomies) + checkboxes + Add to Menu
  *
- * LEFT SIDEBAR (below Archives):
- *   - Navigation Schema meta box: checkbox to designate menu for SiteNavigationElement
+ * Nav schema is determined by WordPress's native Menu Settings "Primary Menu"
+ * location assignment — no custom checkbox exists here.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -16,7 +16,6 @@ class MM_Nav_Menu_Admin {
 
 	public function register_hooks(): void {
 		add_action( 'admin_init', [ $this, 'register_nav_meta_boxes' ] );
-		add_action( 'wp_update_nav_menu', [ $this, 'save_schema_checkbox' ], 10, 2 );
 	}
 
 	/**
@@ -30,14 +29,6 @@ class MM_Nav_Menu_Admin {
 			'nav-menus',
 			'side',
 			'default'
-		);
-		add_meta_box(
-			'mm-schema-nav',
-			__( 'Navigation Schema', 'metamanager' ),
-			[ $this, 'render_schema_box' ],
-			'nav-menus',
-			'side',
-			'low'
 		);
 	}
 
@@ -164,62 +155,4 @@ class MM_Nav_Menu_Admin {
 		<?php
 	}
 
-	// -------------------------------------------------------------------------
-	// Navigation Schema meta box
-	// -------------------------------------------------------------------------
-
-	public function render_schema_box(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display
-		$menu_param = isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : '';
-		$current_menu = (int) $menu_param;
-		$checked = $current_menu ? get_term_meta( $current_menu, '_mm_nav_menu_primary', true ) : '';
-		?>
-		<div>
-			<label>
-				<input type="checkbox" name="_mm_nav_menu_primary" value="1" <?php checked( $checked, '1' ); ?>>
-				<strong><?php esc_html_e( 'Use for navigation schema', 'metamanager' ); ?></strong>
-			</label>
-			<p class="description" style="margin:6px 0 0;">
-				<?php esc_html_e( 'When checked, this menu is emitted as SiteNavigationElement JSON-LD. Only one menu can be designated. Schema outputs only when this menu is rendered on the page.', 'metamanager' ); ?>
-			</p>
-			<?php if ( $current_menu ) : ?>
-			<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo esc_attr( wp_create_nonce( 'mm_nav_menu_primary_' . $current_menu ) ); ?>">
-			<?php endif; ?>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Save the schema checkbox when a menu is updated.
-	 */
-	public function save_schema_checkbox( $menu_id, $data ): void {
-		if ( ! isset( $_POST['_mm_nav_menu_primary_nonce'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_mm_nav_menu_primary_nonce'] ) ), 'mm_nav_menu_primary_' . $menu_id ) ) {
-			return;
-		}
-		if ( ! current_user_can( 'edit_theme_options' ) ) {
-			return;
-		}
-
-		$is_primary = isset( $_POST['_mm_nav_menu_primary'] ) && '1' === $_POST['_mm_nav_menu_primary'];
-
-		if ( $is_primary ) {
-			$old = get_terms( [
-				'taxonomy'   => 'nav-menus',
-				'meta_query' => [ [ 'key' => '_mm_nav_menu_primary', 'value' => '1' ] ],
-				'number'     => 0,
-				'hide_empty' => false,
-			] );
-			if ( ! is_wp_error( $old ) ) {
-				foreach ( $old as $term ) {
-					if ( (int) $term->term_id !== (int) $menu_id ) {
-						delete_term_meta( $term->term_id, '_mm_nav_menu_primary' );
-					}
-				}
-			}
-			update_term_meta( $menu_id, '_mm_nav_menu_primary', '1' );
-		} else {
-			delete_term_meta( $menu_id, '_mm_nav_menu_primary' );
-		}
-	}
 }

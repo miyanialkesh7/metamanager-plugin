@@ -608,7 +608,9 @@ class MM_Site_Settings {
 				'noindex_default'      => false,
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => true,
+				'person_schema_posts'  => true,
+				'person_schema_pages'  => true,
+				'person_schema_archives' => true,
 				'profile_social_fields'=> true,
 			],
 
