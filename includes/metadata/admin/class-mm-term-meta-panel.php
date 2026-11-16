@@ -4,19 +4,38 @@
  *
  * Adds SEO fields to taxonomy term edit screens.
  * Stores data under term-meta key MM_META_KEY.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Term meta panel.
+ *
+ * @package Metamanager
+ */
 class MM_Term_Meta_Panel {
 
-	/** @var MM_Site_Settings */
+	/**
+	 * Site settings instance.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		// Add fields to all public taxonomy forms.
 		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
@@ -33,12 +52,23 @@ class MM_Term_Meta_Panel {
 	// Render
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render edit fields.
+	 *
+	 * @param \WP_Term $term Term object.
+	 * @param string   $taxonomy Taxonomy.
+	 */
 	public function render_edit_fields( \WP_Term $term, string $taxonomy ): void {
 		$meta = $this->settings->get_term_meta( $term->term_id );
 		wp_nonce_field( 'mm_meta_term_meta_save', 'mm_meta_term_nonce' );
 		include MM_META_DIR . 'templates/metabox/term-metadata.php';
 	}
 
+	/**
+	 * Render add fields.
+	 *
+	 * @param string $taxonomy Taxonomy.
+	 */
 	public function render_add_fields( string $taxonomy ): void {
 		$meta = array();
 		$term = null;
@@ -50,6 +80,11 @@ class MM_Term_Meta_Panel {
 	// Save
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Save meta.
+	 *
+	 * @param int $term_id Term ID.
+	 */
 	public function save_meta( int $term_id ): void {
 		if ( ! isset( $_POST['mm_meta_term_nonce'] ) ||
 			! wp_verify_nonce( sanitize_key( $_POST['mm_meta_term_nonce'] ), 'mm_meta_term_meta_save' ) ) {
@@ -100,6 +135,11 @@ class MM_Term_Meta_Panel {
 	// Assets
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Enqueue assets.
+	 *
+	 * @param string $hook Current admin page hook suffix.
+	 */
 	public function enqueue_assets( string $hook ): void {
 		if ( ! in_array( $hook, array( 'term.php', 'edit-tags.php' ), true ) ) {
 			return;
@@ -112,6 +152,12 @@ class MM_Term_Meta_Panel {
 
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Sanitize tristate.
+	 *
+	 * @param mixed $value Value.
+	 * @return bool|null Return value.
+	 */
 	private function sanitize_tristate( $value ): ?bool {
 		if ( $value === '' || $value === null ) {
 			return null;

@@ -7,13 +7,24 @@
  * Person schema override.
  *
  * Stores data under user-meta key MM_META_KEY.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * User meta panel.
+ *
+ * @package Metamanager
+ */
 class MM_User_Meta_Panel {
 
-	/** @var MM_Site_Settings */
+	/**
+	 * Site settings instance.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
 	/** Social profile fields. */
@@ -25,10 +36,18 @@ class MM_User_Meta_Panel {
 		'website'   => 'Personal Website URL',
 	);
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'authors.enabled', true ) ) {
 			return;
@@ -43,6 +62,11 @@ class MM_User_Meta_Panel {
 	// Render
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render fields.
+	 *
+	 * @param \WP_User $user User object.
+	 */
 	public function render_fields( \WP_User $user ): void {
 		if ( ! current_user_can( 'edit_user', $user->ID ) ) {
 			return;
@@ -56,6 +80,11 @@ class MM_User_Meta_Panel {
 	// Save
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Save meta.
+	 *
+	 * @param int $user_id User ID.
+	 */
 	public function save_meta( int $user_id ): void {
 		if ( ! isset( $_POST['mm_meta_user_nonce'] ) ||
 			! wp_verify_nonce( sanitize_key( $_POST['mm_meta_user_nonce'] ), 'mm_meta_user_meta_save' ) ) {

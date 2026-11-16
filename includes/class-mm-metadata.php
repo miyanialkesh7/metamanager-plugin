@@ -152,9 +152,9 @@ class MM_Metadata {
 		'video/webm'       => 'read_only',
 		'video/ogg'        => 'read_only',
 		// Audio.
-		'audio/mpeg'       => 'full',       // ID3v2
-		'audio/mp4'        => 'full',       // iTunes QuickTime atoms
-		'audio/flac'       => 'full',       // Vorbis comments + FLAC PICTURE
+		'audio/mpeg'       => 'full',       // ID3v2.
+		'audio/mp4'        => 'full',       // iTunes QuickTime atoms.
+		'audio/flac'       => 'full',       // Vorbis comments + FLAC PICTURE.
 		'audio/aiff'       => 'full',
 		'audio/x-aiff'     => 'full',
 		'audio/ogg'        => 'vorbis_only',
@@ -168,22 +168,38 @@ class MM_Metadata {
 	// MIME type helpers
 	// -----------------------------------------------------------------------
 
-	/** Return true if the MIME type is a supported video format. */
+	/**
+	 * Return true if the MIME type is a supported video format.
+	 *
+	 * @param string $mime Mime.
+	 */
 	public static function is_video_mime( string $mime ): bool {
 		return in_array( $mime, self::VIDEO_MIME_TYPES, true );
 	}
 
-	/** Return true if the MIME type is a supported audio format. */
+	/**
+	 * Return true if the MIME type is a supported audio format.
+	 *
+	 * @param string $mime Mime.
+	 */
 	public static function is_audio_mime( string $mime ): bool {
 		return in_array( $mime, self::AUDIO_MIME_TYPES, true );
 	}
 
-	/** Return true if the MIME type is a supported video or audio format. */
+	/**
+	 * Return true if the MIME type is a supported video or audio format.
+	 *
+	 * @param string $mime Mime.
+	 */
 	public static function is_av_mime( string $mime ): bool {
 		return self::is_video_mime( $mime ) || self::is_audio_mime( $mime );
 	}
 
-	/** Return true if the MIME type is a PDF document. */
+	/**
+	 * Return true if the MIME type is a PDF document.
+	 *
+	 * @param string $mime Mime.
+	 */
 	public static function is_pdf_mime( string $mime ): bool {
 		return 'application/pdf' === $mime;
 	}
@@ -191,13 +207,18 @@ class MM_Metadata {
 	/**
 	 * Return the metadata write-back capability for a MIME type.
 	 *
+	 * @param string $mime Mime.
 	 * @return 'full'|'xmp_only'|'vorbis_only'|'read_only'
 	 */
 	public static function write_capability( string $mime ): string {
 		return self::WRITE_CAPABILITY[ $mime ] ?? 'full';
 	}
 
-	/** Return true if ExifTool can write metadata back to files of this MIME type. */
+	/**
+	 * Return true if ExifTool can write metadata back to files of this MIME type.
+	 *
+	 * @param string $mime Mime.
+	 */
 	public static function can_write_meta( string $mime ): bool {
 		return 'read_only' !== self::write_capability( $mime );
 	}
@@ -575,7 +596,7 @@ class MM_Metadata {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * attachment_fields_to_edit filter: render custom metadata fields grouped
+	 * Attachment_fields_to_edit filter: render custom metadata fields grouped
 	 * into sections (Attribution & Rights, Editorial, Classification, Location).
 	 *
 	 * @param  array    $form_fields Existing fields array.
@@ -776,7 +797,7 @@ class MM_Metadata {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * attachment_fields_to_save filter: persist all custom meta and enqueue
+	 * Attachment_fields_to_save filter: persist all custom meta and enqueue
 	 * metadata jobs for all image sizes.
 	 *
 	 * WordPress handles native post fields (title, description, caption) via
@@ -835,7 +856,7 @@ class MM_Metadata {
 	}
 
 	/**
-	 * save_post hook for attachment post type.
+	 * Save_post hook for attachment post type.
 	 *
 	 * Catches native metadata field changes from REST API and WP-CLI
 	 * (which bypass attachment_fields_to_save). Queues a metadata
@@ -1132,8 +1153,8 @@ class MM_Metadata {
 	/**
 	 * Render a 0–5 star rating <select> for the attachment edit screen.
 	 *
-	 * @param  int    $attachment_id
-	 * @param  string $current_value
+	 * @param  int    $attachment_id Attachment ID.
+	 * @param  string $current_value Current value.
 	 * @return string HTML
 	 */
 	private static function rating_field_html( int $attachment_id, string $current_value ): string {

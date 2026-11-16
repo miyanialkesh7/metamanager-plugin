@@ -8,12 +8,22 @@
  *
  * LEFT SIDEBAR (below Archives):
  *   - Navigation Schema meta box: checkbox to designate menu for SiteNavigationElement
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Nav menu admin.
+ *
+ * @package Metamanager
+ */
 class MM_Nav_Menu_Admin {
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		add_action( 'admin_init', array( $this, 'register_nav_meta_boxes' ) );
 		add_action( 'wp_update_nav_menu', array( $this, 'save_schema_checkbox' ), 10, 2 );
@@ -45,11 +55,14 @@ class MM_Nav_Menu_Admin {
 	// Archives meta box — all archive types in a dropdown
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render archives box.
+	 */
 	public function render_archives_box(): void {
-		// Build archive items grouped by type
+		// Build archive items grouped by type.
 		$groups = array();
 
-		// Blog archive
+		// Blog archive.
 		$blog_url = get_post_type_archive_link( 'post' );
 		if ( $blog_url ) {
 			$groups['blog'] = array(
@@ -63,7 +76,7 @@ class MM_Nav_Menu_Admin {
 			);
 		}
 
-		// CPT archives
+		// CPT archives.
 		if ( class_exists( 'MM_Schema_Post_Types' ) ) {
 			$types     = MM_Schema_Post_Types::TYPES;
 			$cpt_items = array();
@@ -85,7 +98,7 @@ class MM_Nav_Menu_Admin {
 			}
 		}
 
-		// Taxonomy archives
+		// Taxonomy archives.
 		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
 		$tax_items  = array();
 		foreach ( $taxonomies as $tax ) {
@@ -186,6 +199,9 @@ class MM_Nav_Menu_Admin {
 	// Navigation Schema meta box
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render schema box.
+	 */
 	public function render_schema_box(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display
 		$menu_param   = isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : '';
@@ -209,6 +225,9 @@ class MM_Nav_Menu_Admin {
 
 	/**
 	 * Save the schema checkbox when a menu is updated.
+	 *
+	 * @param mixed $menu_id Menu ID.
+	 * @param mixed $data Data.
 	 */
 	public function save_schema_checkbox( $menu_id, $data ): void {
 		if ( ! isset( $_POST['_mm_nav_menu_primary_nonce'] ) ||

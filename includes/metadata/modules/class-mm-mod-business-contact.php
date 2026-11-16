@@ -10,10 +10,17 @@
  *   - Inline schema.org JSON-LD scoped to each rendered card instance
  *
  * Style and visibility settings are sitewide, managed at SEO → Contact Card.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod business contact.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/** WordPress option key for sitewide contact-card style settings. */
@@ -22,9 +29,18 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	/** Settings API option group for the Contact Card admin page. */
 	const OPT_GROUP = 'mm_meta_contact_group';
 
-	/** Nothing to write into the <head> document graph. */
+	/**
+	 * Nothing to write into the <head> document graph.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
 				add_filter( 'query_vars', array( $this, 'add_query_var' ) );
@@ -37,6 +53,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// Download endpoints
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add rewrite rules.
+	 */
 	public function add_rewrite_rules(): void {
 		add_rewrite_rule(
 			'^gcm-biz-export/(vcard|json|csv)/?$',
@@ -50,12 +69,21 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * Add query var.
+	 *
+	 * @param array $vars Vars.
+	 * @return array Resulting array.
+	 */
 	public function add_query_var( array $vars ): array {
 		$vars[] = 'gcm_biz_export';
 		$vars[] = 'gcm_event_ical';
 		return $vars;
 	}
 
+	/**
+	 * Maybe run serve download.
+	 */
 	public function maybe_serve_download(): void {
 		// Business card export.
 		$format = get_query_var( 'gcm_biz_export' );
@@ -93,6 +121,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Serve vcard.
+	 *
+	 * @param array $biz Biz.
+	 */
 	private function serve_vcard( array $biz ): void {
 		$name  = sanitize_text_field( $biz['name'] ?? '' );
 		$phone = sanitize_text_field( $biz['phone'] ?? '' );
@@ -135,7 +168,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		if ( $logo ) {
 			$lines[] = 'PHOTO;VALUE=URI:' . $logo; }
 
-		// Social URLs
+		// Social URLs.
 		$accounts    = $biz['accounts'] ?? array();
 		$social_urls = array();
 		foreach ( $accounts as $platform => $url ) {
@@ -149,7 +182,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			}
 		}
 
-		// Hours
+		// Hours.
 		$hours = $biz['hours'] ?? array();
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			foreach ( $hours as $group ) {
@@ -180,6 +213,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		exit;
 	}
 
+	/**
+	 * Serve JSON.
+	 *
+	 * @param array $biz Biz.
+	 */
 	private function serve_json( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
 		$addr = $biz['address'] ?? array();
@@ -208,7 +246,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		if ( null !== $lng ) {
 			$data['lng'] = $lng; }
 
-		// Hours
+		// Hours.
 		$hours = $biz['hours'] ?? array();
 		if ( ! empty( $hours ) && is_array( $hours ) ) {
 			$data['hours'] = array_map(
@@ -224,36 +262,36 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			);
 		}
 
-		// Social links
+		// Social links.
 		$accounts = $biz['accounts'] ?? array();
 		$social   = array_filter( $accounts );
 		if ( $social ) {
 			$data['social'] = $social;
 		}
 
-		// Service areas
+		// Service areas.
 		$areas = $biz['service_areas'] ?? array();
 		if ( ! empty( $areas ) ) {
 			$data['service_areas'] = array_values( $areas );
 		}
 
-		// Payment accepted
+		// Payment accepted.
 		$payment = $biz['payment_accepted'] ?? array();
 		if ( ! empty( $payment ) ) {
 			$data['payment_accepted'] = array_values( $payment );
 		}
 
-		// Price range
+		// Price range.
 		if ( ! empty( $biz['price_range'] ) ) {
 			$data['price_range'] = $biz['price_range'];
 		}
 
-		// Description
+		// Description.
 		if ( ! empty( $biz['description'] ) ) {
 			$data['description'] = wp_strip_all_tags( $biz['description'] );
 		}
 
-		// Location type
+		// Location type.
 		if ( ! empty( $biz['location_type'] ) ) {
 			$data['location_type'] = $biz['location_type'];
 		}
@@ -265,6 +303,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		exit;
 	}
 
+	/**
+	 * Serve csv.
+	 *
+	 * @param array $biz Biz.
+	 */
 	private function serve_csv( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
 		$addr = $biz['address'] ?? array();
@@ -334,6 +377,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/**
 	 * Serve an .ical file for a given event post.
+	 *
+	 * @param int $event_id Event ID.
 	 */
 	private function serve_event_ical( int $event_id ): void {
 		$post = get_post( $event_id );
@@ -404,6 +449,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	 * Format a datetime-local value for iCal (DTSTART/DTEND).
 	 *
 	 * Accepts YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS. Returns YYYYMMDDTHHMMSS or YYYYMMDD.
+	 *
+	 * @param string $datetime Datetime.
 	 */
 	private function format_ical_date( string $datetime ): string {
 		$datetime = trim( $datetime );
@@ -424,6 +471,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/**
 	 * Escape text for iCal (fold lines > 75 octets, escape special chars).
+	 *
+	 * @param string $text Text.
 	 */
 	private function escape_ical_text( string $text ): string {
 		$text = str_replace( array( '\\', ',', ';' ), array( '\\\\', '\\,', '\\;' ), $text );
@@ -436,6 +485,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// Widget
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register widget.
+	 */
 	public function register_widget(): void {
 	}
 
@@ -443,6 +495,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// Frontend assets
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Enqueue frontend assets.
+	 */
 	public function enqueue_frontend_assets(): void {
 		wp_enqueue_style( 'dashicons' );
 		wp_enqueue_style(
@@ -534,6 +589,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/**
 	 * Build map links HTML based on enabled map_links settings.
+	 *
+	 * @param array $biz Biz.
 	 */
 	public function render_map_links( array $biz ): string {
 		$lat           = isset( $biz['lat'] ) && is_numeric( $biz['lat'] ) ? (float) $biz['lat'] : null;
@@ -614,6 +671,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		return ob_get_clean();
 	}
 
+	/**
+	 * Render contact page.
+	 *
+	 * @return string Resulting string.
+	 */
 	public function render_contact_page(): string {
 		$biz   = $this->settings->all_business();
 		$style = self::get_style_settings();
@@ -1007,6 +1069,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 	/**
 	 * Get events that fall within a given month.
+	 *
+	 * @param int $year Year.
+	 * @param int $month Month.
 	 */
 	private function get_events_for_month( int $year, int $month ): array {
 		$start_date = sprintf( '%04d-%02d-01', $year, $month );
@@ -1039,6 +1104,13 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// Schema builder
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Build schema.
+	 *
+	 * @param array $biz Biz.
+	 * @param array $style Style.
+	 * @return array Resulting array.
+	 */
 	private function build_schema( array $biz, array $style ): array {
 		$type   = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
 		$schema = array(
@@ -1104,7 +1176,9 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	// Style settings helpers
 	// -------------------------------------------------------------------------
 
-	/** Return merged (defaults + saved) sitewide style settings. */
+	/**
+	 * Return merged (defaults + saved) sitewide style settings.
+	 */
 	public static function get_style_settings(): array {
 		$saved  = get_option( self::OPT_STYLE, array() );
 		$merged = array_merge( self::style_defaults(), is_array( $saved ) ? $saved : array() );
@@ -1136,17 +1210,19 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		return $merged;
 	}
 
-	/** Full set of style defaults. */
+	/**
+	 * Full set of style defaults.
+	 */
 	public static function style_defaults(): array {
 		return array(
-			// Visibility toggles
+			// Visibility toggles.
 			'show_phone'            => true,
 			'show_sms'              => true,
 			'show_email'            => true,
 			'show_vcard'            => true,
 			'show_json'             => false,
 			'show_csv'              => false,
-			// Card appearance
+			// Card appearance.
 			'card_bg'               => '#ffffff',
 			'card_text'             => '#333333',
 			'card_border'           => '#e2e2e2',
@@ -1155,7 +1231,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'card_padding'          => '24px',
 			'card_max_width'        => '420px',
 			'card_shadow'           => '0 2px 8px rgba(0,0,0,0.08)',
-			// Button appearance
+			// Button appearance.
 			'btn_bg'                => '#0073aa',
 			'btn_text'              => '#ffffff',
 			'btn_radius'            => '4px',
@@ -1173,7 +1249,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'btn_hover_enabled'     => true,
 			'btn_hover_bg'          => '',
 			'btn_hover_text'        => '',
-			// Typography
+			// Typography.
 			'name_font_size'        => '20px',
 			'body_font_size'        => '14px',
 		);

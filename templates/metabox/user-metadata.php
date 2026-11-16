@@ -7,7 +7,10 @@
  *   @var WP_User          $user
  *   @var array            $meta   Current _mm_meta values
  *   @var MM_Site_Settings $settings
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 $noindex        = $meta['noindex'] ?? null;
 $social_fields  = MM_User_Meta_Panel::SOCIAL_FIELDS;

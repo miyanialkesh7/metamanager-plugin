@@ -10,10 +10,13 @@
  *   @var string             $current_page   current sub-page slug
  *   @var string|null        $opt_group      option group for settings_fields()
  *   @var bool               $has_inner_form template handles its own <form>
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 
-/** @var MM_Metadata_Admin $this */
+// Template context: $this is the MM_Metadata_Admin instance.
 $page_cfg = $pages[ $current_page ] ?? $pages['metamanager-business'];
 $template = $page_cfg['template'];
 $label    = $page_cfg['label'];

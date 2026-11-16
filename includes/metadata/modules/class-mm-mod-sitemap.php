@@ -10,10 +10,17 @@
  *   /sitemap-media.xml        — media attachment pages with image:image and video:video
  *
  * On post publish, pings Google and Bing (async via cron, once per event).
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod sitemap web.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/** XML namespaces. */
@@ -21,9 +28,18 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	const NS_IMAGE   = 'http://www.google.com/schemas/sitemap-image/1.1';
 	const NS_VIDEO   = 'http://www.google.com/schemas/sitemap-video/0.9';
 
-	/** Nothing to add to HTML head. */
+	/**
+	 * Nothing to add to HTML head.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'sitemap.enabled', true ) ) {
 			return;
@@ -57,6 +73,9 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Rewrite rules
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add rewrite rules.
+	 */
 	public function add_rewrite_rules(): void {
 		global $wp_rewrite;
 
@@ -71,6 +90,12 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 		add_rewrite_rule( '^sitemap-media\.xml/?$', 'index.php?mm_meta_sitemap=media', 'top' );
 	}
 
+	/**
+	 * Add query var.
+	 *
+	 * @param array $vars Vars.
+	 * @return array Resulting array.
+	 */
 	public function add_query_var( array $vars ): array {
 		$vars[] = 'mm_meta_sitemap';
 		$vars[] = 'mm_meta_sitemap_type';
@@ -81,6 +106,9 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Routing
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Maybe run serve.
+	 */
 	public function maybe_serve(): void {
 		$type = get_query_var( 'mm_meta_sitemap' );
 		if ( ! $type ) {
@@ -133,12 +161,16 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 		exit;
 	}
 
-	/** Returns a version stamp used to scope all sitemap cache keys. */
+	/**
+	 * Returns a version stamp used to scope all sitemap cache keys.
+	 */
 	private function get_cache_version(): int {
 		return (int) get_option( 'mm_sitemap_cache_ver', 0 );
 	}
 
-	/** Bust all sitemap transients cheaply by incrementing the version stamp. */
+	/**
+	 * Bust all sitemap transients cheaply by incrementing the version stamp.
+	 */
 	public function flush_sitemap_cache(): void {
 		update_option( 'mm_sitemap_cache_ver', time(), false );
 	}
@@ -147,6 +179,11 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Index sitemap
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render index.
+	 *
+	 * @return string Resulting string.
+	 */
 	private function render_index(): string {
 		$s        = $this->settings;
 		$sitemaps = array();
@@ -210,6 +247,12 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Post-type sitemap
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render post sitemap.
+	 *
+	 * @param string $pt Pt.
+	 * @return string Resulting string.
+	 */
 	private function render_post_sitemap( string $pt ): string {
 		$s    = $this->settings;
 		$args = array(
@@ -266,6 +309,12 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Taxonomy sitemap
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render tax sitemap.
+	 *
+	 * @param string $taxonomy Taxonomy.
+	 * @return string Resulting string.
+	 */
 	private function render_tax_sitemap( string $taxonomy ): string {
 		$terms = get_terms(
 			array(
@@ -380,6 +429,8 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/**
 	 * Extract self-hosted video records from a post's content.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private function extract_selfhosted_videos( \WP_Post $post ): array {
 		$media   = MM_Media_Detector::scan_content( $post->post_content );
@@ -414,6 +465,10 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/**
 	 * Build a fully-enriched video record for a video attachment.
+	 *
+	 * @param int      $id ID.
+	 * @param \WP_Post $att Att.
+	 * @param string   $url URL.
 	 */
 	private function build_video_record( int $id, \WP_Post $att, string $url ): array {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $id, $key, true );
@@ -481,6 +536,8 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/**
 	 * Render a <video:video> extension node from a video record array.
+	 *
+	 * @param array $v V.
 	 */
 	private function render_video_node( array $v ): string {
 		$xml = "    <video:video>\n";
@@ -623,6 +680,9 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/**
 	 * Render an <image:image> extension node for an image attachment.
+	 *
+	 * @param int      $id ID.
+	 * @param \WP_Post $post Post object.
 	 */
 	private function render_image_node( int $id, \WP_Post $post ): string {
 		$src = wp_get_attachment_image_src( $id, 'full' );
@@ -679,6 +739,9 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 
 	/**
 	 * Append Sitemap: directives to the WordPress-generated robots.txt.
+	 *
+	 * @param string $output Output.
+	 * @param bool   $public Public.
 	 */
 	public function append_robots_txt( string $output, bool $public ): string {
 		if ( ! $public ) {
@@ -699,6 +762,11 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Content presence checks
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Check whether it has video content.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	private function has_video_content(): bool {
 		global $wpdb;
 
@@ -732,6 +800,11 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 		return false;
 	}
 
+	/**
+	 * Check whether it has media attachments.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	private function has_media_attachments(): bool {
 		$mime_types = array_merge(
 			array( 'image' ),
@@ -757,6 +830,13 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Publish ping
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Schedule ping.
+	 *
+	 * @param string   $new_status New status.
+	 * @param string   $old_status Old status.
+	 * @param \WP_Post $post Post object.
+	 */
 	public function schedule_ping( string $new_status, string $old_status, \WP_Post $post ): void {
 		if ( 'publish' !== $new_status || 'publish' === $old_status ) {
 			return;
@@ -770,6 +850,9 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Send ping.
+	 */
 	public function send_ping(): void {
 		$urls = array( home_url( '/sitemap.xml' ) );
 		if ( $this->settings->get( 'sitemap.video', true ) ) {
@@ -808,21 +891,43 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Get active post types.
+	 *
+	 * @return array Resulting array.
+	 */
 	private function get_active_post_types(): array {
 		$configured = $this->settings->get( 'sitemap.post_types', array() );
 		return array_keys( array_filter( $configured ) );
 	}
 
+	/**
+	 * Get active taxonomies.
+	 *
+	 * @return array Resulting array.
+	 */
 	private function get_active_taxonomies(): array {
 		$configured = $this->settings->get( 'sitemap.taxonomies', array() );
 		return array_keys( array_filter( $configured ) );
 	}
 
+	/**
+	 * Post type count.
+	 *
+	 * @param string $pt Pt.
+	 * @return int Resulting integer.
+	 */
 	private function post_type_count( string $pt ): int {
 		$counts = wp_count_posts( $pt );
 		return isset( $counts->publish ) ? (int) $counts->publish : 0;
 	}
 
+	/**
+	 * Last modified post.
+	 *
+	 * @param string $pt Pt.
+	 * @return string Resulting string.
+	 */
 	private function last_modified_post( string $pt ): string {
 		global $wpdb;
 		$date = $wpdb->get_var(
@@ -834,12 +939,20 @@ class MM_Mod_Sitemap_Web extends MM_Mod_Base {
 		return $date ? gmdate( 'Y-m-d', strtotime( $date ) ) : gmdate( 'Y-m-d' );
 	}
 
+	/**
+	 * XML header.
+	 *
+	 * @return string Resulting string.
+	 */
 	private function xml_header(): string {
 		return '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 	}
 
 	/**
 	 * Render an empty <urlset> document.
+	 *
+	 * @param string $ns_uri Ns URI.
+	 * @param string $ns_prefix Ns prefix.
 	 */
 	private function render_empty_urlset( string $ns_uri, string $ns_prefix ): string {
 		$xml  = $this->xml_header();

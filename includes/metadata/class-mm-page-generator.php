@@ -11,6 +11,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Page generator.
+ *
+ * @package Metamanager
+ */
 class MM_Page_Generator {
 
 	/**
@@ -50,6 +55,8 @@ class MM_Page_Generator {
 
 	/**
 	 * Regenerate a specific page by template slug.
+	 *
+	 * @param string $template Template.
 	 */
 	public static function regenerate_page( string $template ): void {
 		$page_id = self::find_page_by_template( $template );
@@ -130,6 +137,8 @@ class MM_Page_Generator {
 
 	/**
 	 * Generate About page content from business profile.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
 	 */
 	private static function generate_about( MM_Site_Settings $settings ): string {
 		$module = new MM_Mod_Business_Contact( $settings );
@@ -138,6 +147,8 @@ class MM_Page_Generator {
 
 	/**
 	 * Generate Contact page content from business profile.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
 	 */
 	private static function generate_contact( MM_Site_Settings $settings ): string {
 		$module = new MM_Mod_Business_Contact( $settings );
@@ -183,6 +194,8 @@ class MM_Page_Generator {
 
 	/**
 	 * Handle before_delete_post for events.
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	public static function on_before_delete_post( int $post_id ): void {
 		if ( 'mm_event' === get_post_type( $post_id ) ) {
@@ -201,6 +214,10 @@ class MM_Page_Generator {
 
 	/**
 	 * Handle transition_post_status for events (trashing/untrashing).
+	 *
+	 * @param string   $new_status New status.
+	 * @param string   $old_status Old status.
+	 * @param \WP_Post $post Post object.
 	 */
 	public static function on_transition_post_status( string $new_status, string $old_status, \WP_Post $post ): void {
 		if ( 'mm_event' !== $post->post_type ) {

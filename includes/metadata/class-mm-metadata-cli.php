@@ -13,6 +13,8 @@
  *   ping            Ping Google + Bing with the sitemap URL
  *   flush-rewrites  Flush WordPress rewrite rules
  *   schema-test     Fetch a URL and print the JSON-LD found in <head>
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -20,6 +22,11 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	return;
 }
 
+/**
+ * Metadata CLI.
+ *
+ * @package Metamanager
+ */
 class MM_Metadata_CLI extends \WP_CLI_Command {
 
 	// -------------------------------------------------------------------------
@@ -40,6 +47,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager export --format=pretty
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function export( array $args, array $assoc_args ): void {
 		$settings = get_option( MM_META_OPT_SETTINGS, array() );
@@ -80,6 +90,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   cat backup.json | wp metamanager import
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function import( array $args, array $assoc_args ): void {
 		$dry_run = isset( $assoc_args['dry-run'] );
@@ -162,6 +175,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager reset
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function reset( array $args, array $assoc_args ): void {
 		WP_CLI::confirm( 'This will overwrite all Metamanager settings. Continue?' );
@@ -188,6 +204,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager check-links --all
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function check_links( array $args, array $assoc_args ): void {
 		$settings  = MM_Site_Settings::get_instance();
@@ -230,6 +249,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager ping
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function ping( array $args, array $assoc_args ): void {
 		$settings = MM_Site_Settings::get_instance();
@@ -253,6 +275,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager backfill-links
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function backfill_links( array $args, array $assoc_args ): void {
 		$settings      = MM_Site_Settings::get_instance();
@@ -302,6 +327,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager flush-rewrites
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function flush_rewrites( array $args, array $assoc_args ): void {
 		flush_rewrite_rules( true );
@@ -325,6 +353,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager schema-test https://example.com/about/
 	 *
 	 * @when after_wp_load
+	 *
+	 * @param array $args Arguments.
+	 * @param array $assoc_args Associative arguments from WP-CLI.
 	 */
 	public function schema_test( array $args, array $assoc_args ): void {
 		$url = $args[0] ?? '';
@@ -378,6 +409,9 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * Recursively merge $override into $base. Arrays are merged by key;
 	 * scalar values in $override replace $base values.
 	 * Numeric lists are merged by key (not replaced).
+	 *
+	 * @param array $base Base.
+	 * @param array $override Override.
 	 */
 	private function deep_merge( array $base, array $override ): array {
 		return MM_Site_Settings::deep_merge( $base, $override, true );
@@ -385,6 +419,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 
 	/**
 	 * Show a flat diff between old and new settings arrays.
+	 *
+	 * @param array  $old Old.
+	 * @param array  $new New.
+	 * @param string $label Label.
 	 */
 	private function show_settings_diff( array $old, array $new, string $label = 'settings' ): void {
 		$flat_old = $this->flatten_array( $old );
@@ -415,6 +453,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	/**
 	 * Flatten a nested array to dot-notation keys.
 	 *
+	 * @param array  $array Array.
+	 * @param string $prefix Prefix.
 	 * @return array<string, mixed>
 	 */
 	private function flatten_array( array $array, string $prefix = '' ): array {

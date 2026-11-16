@@ -7,18 +7,38 @@
  *  - /.well-known/api-catalog — RFC 9727 linkset catalog
  *
  * All output is cached as transients and regenerated on settings save.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod discovery.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Discovery {
 
+	/**
+	 * Settings.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'discovery.llms_txt_enabled', true ) ) {
 			return;
@@ -35,12 +55,21 @@ class MM_Mod_Discovery {
 	// Rewrite rules
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add rewrite rules.
+	 */
 	public function add_rewrite_rules(): void {
 		add_rewrite_rule( '^llms-full\.txt/?$', 'index.php?mm_llms_full=1', 'top' );
 		add_rewrite_rule( '^llms\.txt/?$', 'index.php?mm_llms=1', 'top' );
 		add_rewrite_rule( '^\.well-known/api-catalog/?$', 'index.php?mm_api_catalog=1', 'top' );
 	}
 
+	/**
+	 * Add query vars.
+	 *
+	 * @param array $vars Vars.
+	 * @return array Resulting array.
+	 */
 	public function add_query_vars( array $vars ): array {
 		$vars[] = 'mm_llms';
 		$vars[] = 'mm_llms_full';
@@ -74,6 +103,11 @@ class MM_Mod_Discovery {
 	// llms.txt
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Serve llms txt.
+	 *
+	 * @param bool $full Full.
+	 */
 	private function serve_llms_txt( bool $full ): void {
 		$cache_key = $full ? 'mm_llms_full' : 'mm_llms';
 		$cached    = get_transient( $cache_key );
@@ -89,6 +123,12 @@ class MM_Mod_Discovery {
 		exit;
 	}
 
+	/**
+	 * Generate llms txt.
+	 *
+	 * @param bool $full Full.
+	 * @return string Resulting string.
+	 */
 	private function generate_llms_txt( bool $full ): string {
 		$name        = get_bloginfo( 'name' );
 		$description = get_bloginfo( 'description' );
@@ -203,6 +243,9 @@ class MM_Mod_Discovery {
 	// .well-known/api-catalog
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Serve API catalog.
+	 */
 	private function serve_api_catalog(): void {
 		$cached = get_transient( 'mm_api_catalog' );
 
@@ -217,6 +260,11 @@ class MM_Mod_Discovery {
 		exit;
 	}
 
+	/**
+	 * Generate API catalog.
+	 *
+	 * @return string Resulting string.
+	 */
 	private function generate_api_catalog(): string {
 		$home = home_url( '/' );
 
@@ -261,12 +309,18 @@ class MM_Mod_Discovery {
 	// Cache management
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Clear cache.
+	 */
 	public function clear_cache(): void {
 		delete_transient( 'mm_llms' );
 		delete_transient( 'mm_llms_full' );
 		delete_transient( 'mm_api_catalog' );
 	}
 
+	/**
+	 * AJAX handler: regenerate.
+	 */
 	public function ajax_regenerate(): void {
 		check_ajax_referer( 'mm_tools_action', '_wpnonce' );
 

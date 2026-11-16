@@ -5,10 +5,17 @@
  * Emits a single <script type="application/ld+json"> block per page.
  * Nodes are added by this module and by MM_Mod_Local and MM_Mod_Author.
  * All nodes share a consistent @id convention: {site_url}#{fragment}.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod schema.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
@@ -30,6 +37,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		'Organization',
 	);
 
+	/**
+	 * Populate.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		// Media schema: scan content for actual media on singular pages.
 		if ( $context->is_singular() ) {
@@ -74,6 +88,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// WebSite
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add website node.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function add_website_node( array &$data, MM_Site_Settings $settings ): void {
 		$node = array(
 			'@type' => 'WebSite',
@@ -108,6 +128,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// SiteNavigationElement
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add navigation node.
+	 *
+	 * @param array $data Data.
+	 */
 	private function add_navigation_node( array &$data ): void {
 		$menu = self::get_primary_menu();
 		if ( ! $menu || empty( $menu['items'] ) ) {
@@ -154,6 +179,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// WebPage
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add webpage node.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function add_webpage_node( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$url   = $this->current_url();
 		$title = $data['title'] ?? get_the_title();
@@ -311,6 +343,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// BreadcrumbList
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add breadcrumb node.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function add_breadcrumb_node( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$items = array();
 		$pos   = 1;
@@ -393,6 +432,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// Content nodes (BlogPosting, Article, HowTo, Product, Event, Service, etc.)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add content node.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function add_content_node( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$post = $context->get_post();
 		if ( ! $post ) {
@@ -539,6 +585,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// ItemList (taxonomy archives)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add itemlist node.
+	 *
+	 * @param array           $data Data.
+	 * @param MM_Page_Context $context Context.
+	 */
 	private function add_itemlist_node( array &$data, MM_Page_Context $context ): void {
 		global $wp_query;
 		$posts = $wp_query->posts ?? array();
@@ -588,6 +640,14 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Handle crumb.
+	 *
+	 * @param int    $pos Pos.
+	 * @param string $name Name.
+	 * @param string $url URL.
+	 * @return array Resulting array.
+	 */
 	private function crumb( int $pos, string $name, string $url ): array {
 		return array(
 			'@type'    => 'ListItem',
@@ -597,6 +657,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * Current URL.
+	 *
+	 * @return string Resulting string.
+	 */
 	private function current_url(): string {
 		// Canonical URL for singular content: REQUEST_URI carries query
 		// strings (?utm=...) that would make @ids unstable and dangle the
@@ -610,6 +675,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		return home_url( ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/' ) );
 	}
 
+	/**
+	 * Get OG image.
+	 *
+	 * @param array $data Data.
+	 * @return array|null Return value.
+	 */
 	private function get_og_image( array $data ): ?array {
 		foreach ( $data['meta'] as $mt ) {
 			if ( ( $mt['property'] ?? '' ) === 'og:image' && $mt['content'] ) {
@@ -721,6 +792,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	 *
 	 * Only media that is present in the rendered HTML gets schema output.
 	 * This prevents manipulation signals for media that doesn't exist on the page.
+	 *
+	 * @param array           $data Data.
+	 * @param MM_Page_Context $context Context.
 	 */
 	private function add_media_schema( array &$data, MM_Page_Context $context ): void {
 		$post = $context->get_post();
@@ -760,6 +834,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit ImageObject schema for featured image if present on page.
+	 *
+	 * @param array    $data Data.
+	 * @param \WP_Post $post Post object.
+	 * @param array    $content_media Content media.
 	 */
 	private function add_featured_image_schema( array &$data, \WP_Post $post, array $content_media ): void {
 		$thumb_id = (int) get_post_thumbnail_id( $post->ID );
@@ -799,6 +877,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit ImageObject schema for featured images on archive pages.
+	 *
+	 * @param array           $data Data.
+	 * @param MM_Page_Context $context Context.
 	 */
 	private function add_archive_media_schema( array &$data, MM_Page_Context $context ): void {
 		global $wp_query;
@@ -844,6 +925,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit schema for an attachment page (the media IS the page).
+	 *
+	 * @param array    $data Data.
+	 * @param \WP_Post $post Post object.
 	 */
 	private function add_attachment_page_schema( array &$data, \WP_Post $post ): void {
 		$mime = (string) get_post_mime_type( $post->ID );
@@ -905,6 +989,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit an ImageObject schema node for a detected image.
+	 *
+	 * @param array    $data Data.
+	 * @param array    $item Item.
+	 * @param \WP_Post $post Post object.
 	 */
 	private function add_image_schema( array &$data, array $item, \WP_Post $post ): void {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $item['attachment_id'], $key, true );
@@ -1012,6 +1100,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit a VideoObject schema node for a detected video.
+	 *
+	 * @param array    $data Data.
+	 * @param array    $item Item.
+	 * @param \WP_Post $post Post object.
 	 */
 	private function add_video_schema( array &$data, array $item, \WP_Post $post ): void {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $item['attachment_id'], $key, true );
@@ -1075,6 +1167,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit an AudioObject schema node for a detected audio file.
+	 *
+	 * @param array    $data Data.
+	 * @param array    $item Item.
+	 * @param \WP_Post $post Post object.
 	 */
 	private function add_audio_schema( array &$data, array $item, \WP_Post $post ): void {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $item['attachment_id'], $key, true );
@@ -1130,6 +1226,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 
 	/**
 	 * Emit a DigitalDocument schema node for a detected PDF.
+	 *
+	 * @param array $data Data.
+	 * @param array $item Item.
 	 */
 	private function add_document_schema( array &$data, array $item ): void {
 		// Check if media is protected (S-10): use watermarked preview for schema.
@@ -1174,6 +1273,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	// Media schema helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add location to node.
+	 *
+	 * @param array $node Node.
+	 * @param int   $attachment_id Attachment ID.
+	 */
 	private function add_location_to_node( array &$node, int $attachment_id ): void {
 		$lat     = (string) get_post_meta( $attachment_id, MM_Metadata::META_GPS_LAT, true );
 		$lon     = (string) get_post_meta( $attachment_id, MM_Metadata::META_GPS_LON, true );
@@ -1212,6 +1317,12 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Seconds to iso duration.
+	 *
+	 * @param int $seconds Seconds.
+	 * @return string Resulting string.
+	 */
 	private function seconds_to_iso_duration( int $seconds ): string {
 		$h = (int) floor( $seconds / 3600 );
 		$m = (int) floor( ( $seconds % 3600 ) / 60 );

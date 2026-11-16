@@ -35,7 +35,11 @@ class MM_Updater {
 	/** URL of the apt server test channel metadata.json. */
 	private const METADATA_URL_TEST = 'https://apt.richardkentgates.com/metamanager-test/metadata.json';
 
-	/** Basename of this plugin file, e.g. "metamanager/metamanager.php". */
+	/**
+	 * Basename of this plugin file, e.g. "metamanager/metamanager.php".
+	 *
+	 * @var string
+	 */
 	private string $plugin_basename;
 
 	/**
@@ -342,7 +346,7 @@ class MM_Updater {
 				array(
 					'mm_notice'       => $notice,
 					'mm_notice_type'  => $type,
-					'mm_check_update' => false,   // drop nonce params on redirect
+					'mm_check_update' => false,   // drop nonce params on redirect.
 					'_wpnonce'        => false,
 				),
 				admin_url( 'plugins.php' )

@@ -250,7 +250,7 @@ class MM_Job_Queue {
 	 *
 	 * @param int    $attachment_id WordPress attachment ID.
 	 * @param array  $meta          Attachment metadata (from wp_get_attachment_metadata).
-	 * @param string $types         'both' | 'compression' | 'metadata'
+	 * @param string $types         'both' | 'compression' | 'metadata'.
 	 * @param array  $extra         Extra fields passed to each job.
 	 */
 	public static function enqueue_all_sizes(
@@ -303,7 +303,7 @@ class MM_Job_Queue {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * wp_generate_attachment_metadata hook: enqueue both job types on upload.
+	 * Wp_generate_attachment_metadata hook: enqueue both job types on upload.
 	 *
 	 * Fresh upload (no completed jobs in DB): reads embedded metadata into WP,
 	 * then queues both compression and metadata-embedding jobs.
@@ -367,7 +367,7 @@ class MM_Job_Queue {
 	}
 
 	/**
-	 * delete_attachment hook: remove queued job files and compression meta.
+	 * Delete_attachment hook: remove queued job files and compression meta.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 */

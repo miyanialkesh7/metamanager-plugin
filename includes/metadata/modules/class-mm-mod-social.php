@@ -5,12 +5,26 @@
  * Both tag sets are derived from the same resolved data object so they
  * cannot diverge.  Always emits og:image dimensions when available.
  * Correctly handles: articles, products, author pages, local business homepage.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod social.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Social extends MM_Mod_Base {
 
+	/**
+	 * Populate.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		if ( ! $settings->get( 'social.og_enabled', true ) ) {
 			return;
@@ -41,6 +55,14 @@ class MM_Mod_Social extends MM_Mod_Base {
 	// Shared data resolver — one call, used by both OG and Twitter.
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve social data.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return array Resulting array.
+	 */
 	private function resolve_social_data( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): array {
 		// Start from the already-resolved title/description in $data.
 		$title       = $data['title'] ?? '';
@@ -157,6 +179,14 @@ class MM_Mod_Social extends MM_Mod_Base {
 	// Open Graph emission
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Emit OG.
+	 *
+	 * @param array            $data Data.
+	 * @param array            $r R.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function emit_og( array &$data, array $r, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$this->add_meta(
 			$data,
@@ -376,6 +406,13 @@ class MM_Mod_Social extends MM_Mod_Base {
 	// Twitter / X card emission
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Emit twitter.
+	 *
+	 * @param array            $data Data.
+	 * @param array            $r R.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	private function emit_twitter( array &$data, array $r, MM_Site_Settings $settings ): void {
 		$card = $r['image']['url']
 			? $settings->get( 'social.twitter_card_type', 'summary_large_image' )
@@ -449,6 +486,12 @@ class MM_Mod_Social extends MM_Mod_Base {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Default image.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return array Resulting array.
+	 */
 	private function default_image( MM_Site_Settings $settings ): array {
 		$id  = (int) $settings->get( 'social.og_default_image_id', 0 );
 		$url = $settings->get( 'social.og_default_image', '' );
@@ -465,6 +508,12 @@ class MM_Mod_Social extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * Mime from URL.
+	 *
+	 * @param string $url URL.
+	 * @return string Resulting string.
+	 */
 	private function mime_from_url( string $url ): string {
 		$ext = strtolower( pathinfo( wp_parse_url( $url, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
 		$map = array(

@@ -7,15 +7,31 @@
  * and records the HTTP status code.
  *
  * Admin AJAX endpoints expose table data and per-link re-check.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod links.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Links extends MM_Mod_Base {
 
-	/** Nothing to add to HTML head. */
+	/**
+	 * Nothing to add to HTML head.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'links.enabled', true ) ) {
 			return;
@@ -45,6 +61,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// DB table
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Create table.
+	 */
 	public static function create_table(): void {
 		global $wpdb;
 		$table   = self::table_name();
@@ -98,6 +117,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 		// phpcs:enable
 	}
 
+	/**
+	 * Table name.
+	 *
+	 * @return string Resulting string.
+	 */
 	public static function table_name(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'mm_meta_links';
@@ -107,6 +131,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// Link extraction
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Extract from post.
+	 *
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post Post object.
+	 */
 	public function extract_from_post( int $post_id, \WP_Post $post ): void {
 		// Only public post types; skip auto-saves and revisions.
 		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
@@ -153,6 +183,13 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Parse links.
+	 *
+	 * @param string $html HTML markup.
+	 * @param int    $post_id Post ID.
+	 * @return array Resulting array.
+	 */
 	private function parse_links( string $html, int $post_id ): array {
 		$links = array();
 		$home  = home_url();
@@ -185,6 +222,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 		return $links;
 	}
 
+	/**
+	 * Purge for post.
+	 *
+	 * @param int $post_id Post ID.
+	 */
 	public function purge_for_post( int $post_id ): void {
 		global $wpdb;
 		$table = self::table_name();
@@ -196,6 +238,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// Batch checker (WP-Cron)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add cron schedule.
+	 *
+	 * @param array $schedules Schedules.
+	 * @return array Resulting array.
+	 */
 	public function add_cron_schedule( array $schedules ): array {
 		$schedules['mm_meta_6h'] = array(
 			'interval' => 6 * HOUR_IN_SECONDS,
@@ -204,6 +252,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		return $schedules;
 	}
 
+	/**
+	 * Maybe run schedule cron.
+	 */
 	public function maybe_schedule_cron(): void {
 		$freq = $this->settings->get( 'links.cron_frequency', 'twicedaily' );
 		if ( ! wp_next_scheduled( 'mm_meta_check_links' ) ) {
@@ -211,6 +262,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Run batch check.
+	 */
 	public function run_batch_check(): void {
 		global $wpdb;
 		$table      = self::table_name();
@@ -269,6 +323,13 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Head request.
+	 *
+	 * @param string $url URL.
+	 * @param int    $timeout Timeout.
+	 * @return int Resulting integer.
+	 */
 	private function head_request( string $url, int $timeout ): int {
 		$host = wp_parse_url( $url, PHP_URL_HOST );
 		if ( $host ) {
@@ -292,6 +353,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		return (int) wp_remote_retrieve_response_code( $response );
 	}
 
+	/**
+	 * Maybe run send alert.
+	 */
 	private function maybe_send_alert(): void {
 		global $wpdb;
 		$table     = self::table_name();
@@ -327,6 +391,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// Admin AJAX
 	// -------------------------------------------------------------------------
 
+	/**
+	 * AJAX handler: fetch links.
+	 */
 	public function ajax_fetch_links(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -383,6 +450,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * AJAX handler: recheck link.
+	 */
 	public function ajax_recheck_link(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -427,6 +497,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * AJAX handler: ignore link.
+	 */
 	public function ajax_ignore_link(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -448,6 +521,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		wp_send_json_success();
 	}
 
+	/**
+	 * AJAX handler: scan all posts.
+	 */
 	public function ajax_scan_all_posts(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -469,6 +545,8 @@ class MM_Mod_Links extends MM_Mod_Base {
 	 * Uses a stable ORDER BY ID ASC offset so progress is predictable across
 	 * multiple AJAX or CLI calls.
 	 *
+	 * @param int $offset Offset.
+	 * @param int $batch_size Batch size.
 	 * @return array{ total: int, scanned: int, skipped: int, new_offset: int, done: bool }
 	 */
 	public function backfill_posts( int $offset = 0, int $batch_size = 20 ): array {

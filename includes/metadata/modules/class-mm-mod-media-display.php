@@ -3,12 +3,22 @@
  * MM_Mod_Media_Display — Frontend media display features.
  *
  * Handles featured image citation and other media display enhancements.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod media display.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Media_Display {
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		$settings = MM_Site_Settings::get_instance();
 
@@ -19,6 +29,12 @@ class MM_Mod_Media_Display {
 
 	/**
 	 * Add citation HTML under featured images.
+	 *
+	 * @param mixed $image Image.
+	 * @param mixed $attachment_id Attachment ID.
+	 * @param mixed $size Image size name.
+	 * @param mixed $attr Attr.
+	 * @param mixed $post_id Post ID.
 	 */
 	public function filter_featured_image_citation( $image, $attachment_id, $size, $attr, $post_id ): string {
 		if ( ! $post_id ) {
@@ -40,6 +56,8 @@ class MM_Mod_Media_Display {
 
 	/**
 	 * Get citation HTML for an attachment.
+	 *
+	 * @param int $attachment_id Attachment ID.
 	 */
 	private function get_attachment_citation( int $attachment_id ): string {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $attachment_id, $key, true );

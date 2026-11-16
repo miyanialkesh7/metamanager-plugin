@@ -3,14 +3,17 @@
  * Admin tab — Business Profile.
  *
  * @var MM_Site_Settings $settings
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 $b   = $settings->get_business();
 $opt = MM_META_OPT_BUSINESS;
 
 $business_types = MM_Mod_Local::get_business_types();
 
-// Opening hours skeleton (7 rows if none saved)
+// Opening hours skeleton (7 rows if none saved).
 $hours         = $b['hours'] ?? array();
 $hour_defaults = array(
 	array(

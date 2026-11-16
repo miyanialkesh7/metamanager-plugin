@@ -13,15 +13,31 @@
  *   show_date   (yes|no, default: no)
  *   order_by    (menu_order|title|date, default: menu_order)
  *   limit       (int, default: 500, max posts per flat query)
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod HTML sitemap.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 
-	/** Nothing to add to HTML head. */
+	/**
+	 * Nothing to add to HTML head.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( $this->settings->get( 'sitemap.html_sitemap.enabled', true ) ) {
 			add_shortcode( 'mm_sitemap', array( $this, 'render_shortcode' ) );
@@ -30,6 +46,9 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Register block.
+	 */
 	public function register_block(): void {
 		if ( ! function_exists( 'register_block_type' ) ) {
 			return;
@@ -68,6 +87,9 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * Register widget.
+	 */
 	public function register_widget(): void {
 		register_widget( 'MM_Sitemap_Widget' );
 	}
@@ -76,6 +98,12 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	// Shortcode
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render shortcode.
+	 *
+	 * @param mixed $atts Shortcode attributes.
+	 * @return string Resulting string.
+	 */
 	public function render_shortcode( $atts ): string {
 		wp_enqueue_style( 'mm-html-sitemap', MM_META_URL . 'assets/css/html-sitemap.css', array(), MM_META_VERSION );
 
@@ -164,6 +192,17 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	// Post-type section
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render post type.
+	 *
+	 * @param string $pt Pt.
+	 * @param int    $depth Depth.
+	 * @param array  $exclude Exclude.
+	 * @param bool   $show_date Show date.
+	 * @param string $order_by Order by.
+	 * @param int    $limit Limit.
+	 * @return string Resulting string.
+	 */
 	private function render_post_type( string $pt, int $depth, array $exclude, bool $show_date, string $order_by, int $limit ): string {
 		$obj = get_post_type_object( $pt );
 		if ( ! $obj ) {
@@ -190,6 +229,19 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		return $out;
 	}
 
+	/**
+	 * Render hierarchical.
+	 *
+	 * @param string $pt Pt.
+	 * @param int    $parent Parent.
+	 * @param int    $max_depth Max depth.
+	 * @param array  $exclude Exclude.
+	 * @param bool   $show_date Show date.
+	 * @param string $order_by Order by.
+	 * @param int    $current_depth Current depth.
+	 * @param int    $limit Limit.
+	 * @return string Resulting string.
+	 */
 	private function render_hierarchical( string $pt, int $parent, int $max_depth, array $exclude, bool $show_date, string $order_by, int $current_depth = 0, int $limit = 500 ): string {
 		if ( $max_depth > 0 && $current_depth >= $max_depth ) {
 			return '';
@@ -229,6 +281,16 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		return $out;
 	}
 
+	/**
+	 * Render flat.
+	 *
+	 * @param string $pt Pt.
+	 * @param array  $exclude Exclude.
+	 * @param bool   $show_date Show date.
+	 * @param string $order_by Order by.
+	 * @param int    $limit Limit.
+	 * @return string Resulting string.
+	 */
 	private function render_flat( string $pt, array $exclude, bool $show_date, string $order_by, int $limit = 500 ): string {
 		$query_args = array(
 			'post_type'      => $pt,
@@ -264,6 +326,12 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	// Taxonomy section
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render taxonomy.
+	 *
+	 * @param string $taxonomy Taxonomy.
+	 * @return string Resulting string.
+	 */
 	private function render_taxonomy( string $taxonomy ): string {
 		$obj = get_taxonomy( $taxonomy );
 		if ( ! $obj ) {
@@ -310,6 +378,12 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Filter noindex.
+	 *
+	 * @param array $posts Posts.
+	 * @return array Resulting array.
+	 */
 	private function filter_noindex( array $posts ): array {
 		return array_filter(
 			$posts,
@@ -331,6 +405,13 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 		);
 	}
 
+	/**
+	 * Apply order.
+	 *
+	 * @param array  $args Arguments.
+	 * @param string $order_by Order by.
+	 * @return array Resulting array.
+	 */
 	private function apply_order( array $args, string $order_by ): array {
 		switch ( $order_by ) {
 			case 'title':
@@ -341,7 +422,7 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
 				$args['orderby'] = 'date';
 				$args['order']   = 'DESC';
 				break;
-			default: // menu_order
+			default: // menu_order.
 				$args['orderby'] = 'menu_order title';
 				$args['order']   = 'ASC';
 				break;
@@ -355,6 +436,9 @@ class MM_Mod_Html_Sitemap extends MM_Mod_Base {
  */
 class MM_Sitemap_Widget extends WP_Widget {
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		parent::__construct(
 			'mm_meta_sitemap',
@@ -366,6 +450,12 @@ class MM_Sitemap_Widget extends WP_Widget {
 		);
 	}
 
+	/**
+	 * Handle widget.
+	 *
+	 * @param mixed $args Arguments.
+	 * @param mixed $instance Instance.
+	 */
 	public function widget( $args, $instance ): void {
 		$module = new MM_Mod_Html_Sitemap( MM_Site_Settings::get_instance() );
 		echo $args['before_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -378,6 +468,11 @@ class MM_Sitemap_Widget extends WP_Widget {
 		echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
+	/**
+	 * Handle form.
+	 *
+	 * @param mixed $instance Instance.
+	 */
 	public function form( $instance ): void {
 		$title = ! empty( $instance['title'] ) ? $instance['title'] : '';
 		?>
@@ -391,6 +486,13 @@ class MM_Sitemap_Widget extends WP_Widget {
 		<?php
 	}
 
+	/**
+	 * Update.
+	 *
+	 * @param mixed $new_instance New instance.
+	 * @param mixed $old_instance Old instance.
+	 * @return array Resulting array.
+	 */
 	public function update( $new_instance, $old_instance ): array {
 		return array( 'title' => sanitize_text_field( $new_instance['title'] ?? '' ) );
 	}

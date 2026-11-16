@@ -140,6 +140,11 @@ class MM_Admin {
 	// and on the Media Library screen.
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Add help tabs.
+	 *
+	 * @param \WP_Screen $screen Screen.
+	 */
 	public static function add_help_tabs( \WP_Screen $screen ): void {
 		if ( 'metamanager_page_mm-site-assistant' === $screen->id ) {
 			$screen->add_help_tab(
@@ -418,6 +423,9 @@ class MM_Admin {
 	// Menu
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Add menu.
+	 */
 	public static function add_menu(): void {
 		// Top-level Metamanager entry. MM_Admin owns the top-level registration so
 		// it can control position and icon. MM_Metadata_Admin registers its pages
@@ -455,6 +463,9 @@ class MM_Admin {
 	// System status banner
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Status banner.
+	 */
 	public static function status_banner(): void {
 		global $pagenow;
 		$is_mm_page   = isset( $_GET['page'] ) && in_array( sanitize_key( $_GET['page'] ), array( 'metamanager-bulk-meta', 'metamanager-settings' ), true ); // phpcs:ignore WordPress.Security.NonceVerification
@@ -498,6 +509,9 @@ class MM_Admin {
 	// WordPress Dashboard widget
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Register dashboard widget.
+	 */
 	public static function register_dashboard_widget(): void {
 		if ( ! current_user_can( 'upload_files' ) ) {
 			return;
@@ -509,6 +523,9 @@ class MM_Admin {
 		);
 	}
 
+	/**
+	 * Render dashboard widget.
+	 */
 	public static function render_dashboard_widget(): void {
 		$status    = MM_Status::system_status();
 		$updater   = self::get_updater_status();
@@ -737,6 +754,8 @@ class MM_Admin {
 	// -----------------------------------------------------------------------
 
 	/**
+	 * Add media column.
+	 *
 	 * @param array $columns Existing columns.
 	 * @return array
 	 */
@@ -747,6 +766,8 @@ class MM_Admin {
 	}
 
 	/**
+	 * Render media column.
+	 *
 	 * @param string $column_name Column slug.
 	 * @param int    $attachment_id Attachment ID.
 	 */
@@ -1041,6 +1062,8 @@ class MM_Admin {
 	// -----------------------------------------------------------------------
 
 	/**
+	 * Register bulk actions.
+	 *
 	 * @param array $actions Existing bulk actions.
 	 * @return array
 	 */
@@ -1051,6 +1074,8 @@ class MM_Admin {
 	}
 
 	/**
+	 * Handle bulk actions.
+	 *
 	 * @param string $redirect_to Redirect URL.
 	 * @param string $doaction    Bulk action slug.
 	 * @param int[]  $post_ids    Selected attachment IDs.
@@ -1300,6 +1325,8 @@ class MM_Admin {
 	// -----------------------------------------------------------------------
 
 	/**
+	 * Enqueue assets.
+	 *
 	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_assets( string $hook ): void {
@@ -1360,6 +1387,9 @@ class MM_Admin {
 	// REST endpoint: real-time compression status for Media Library column
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Register REST routes.
+	 */
 	public static function register_rest_routes(): void {
 		// Shared API gate: enforces the disabled flag and IP allowlist for
 		// unauthenticated / external callers only.  Requests from a logged-in
@@ -1565,6 +1595,8 @@ class MM_Admin {
 
 	/**
 	 * REST: paginated job history.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_get_jobs( \WP_REST_Request $request ) {
 		$result   = MM_DB::get_jobs(
@@ -1584,6 +1616,8 @@ class MM_Admin {
 
 	/**
 	 * REST: single job by DB ID.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_get_job( \WP_REST_Request $request ) {
 		$job = MM_DB::get_job( (int) $request->get_param( 'id' ) );
@@ -1595,6 +1629,8 @@ class MM_Admin {
 
 	/**
 	 * REST: compression + sync status for a single attachment.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_attachment_status( \WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
@@ -1616,6 +1652,8 @@ class MM_Admin {
 	 * Images are recompressed losslessly (jpegtran/optipng/cwebp).
 	 * Video files are remuxed losslessly (ffmpeg -c copy).
 	 * Audio files and PDFs have no compression step — returns 422.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_compress_attachment( \WP_REST_Request $request ) {
 		$id    = (int) $request->get_param( 'id' );
@@ -1655,6 +1693,8 @@ class MM_Admin {
 
 	/**
 	 * REST: aggregate stats.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_get_stats( \WP_REST_Request $request ) {
 		return rest_ensure_response( MM_DB::get_stats() );
@@ -1665,6 +1705,8 @@ class MM_Admin {
 	 *
 	 * Reads the status JSON written by the plugin.
 	 * Requires manage_options for authenticated requests, or IP allowlist for external.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_get_status( \WP_REST_Request $request ) {
 		$job_root = defined( 'MM_JOB_ROOT' ) ? MM_JOB_ROOT : WP_CONTENT_DIR . '/metamanager-jobs';
@@ -1705,6 +1747,8 @@ class MM_Admin {
 	 * Queues a daemon job to write the current WordPress field values back into
 	 * the media file via ExifTool.  Supports images (all sizes), video, audio,
 	 * and PDF.  Returns 422 if the MIME type cannot receive embedded metadata.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
 	 */
 	public static function rest_embed_attachment( \WP_REST_Request $request ) {
 		$id   = (int) $request->get_param( 'id' );
@@ -1755,6 +1799,9 @@ class MM_Admin {
 	// Admin page — job dashboard
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Render jobs page.
+	 */
 	public static function render_jobs_page(): void {
 		if ( ! current_user_can( 'edit_others_posts' ) ) {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'metamanager' ) );
@@ -1908,6 +1955,9 @@ class MM_Admin {
 	// AJAX handlers
 	// -----------------------------------------------------------------------
 
+	/**
+	 * AJAX handler: jobs refresh.
+	 */
 	public static function ajax_jobs_refresh(): void {
 		check_ajax_referer( 'mm_jobs_refresh', 'nonce' );
 		if ( ! current_user_can( 'edit_others_posts' ) ) {
@@ -1917,6 +1967,9 @@ class MM_Admin {
 		wp_die();
 	}
 
+	/**
+	 * AJAX handler: status refresh.
+	 */
 	public static function ajax_status_refresh(): void {
 		check_ajax_referer( 'mm_status_refresh', 'nonce' );
 		if ( ! current_user_can( 'upload_files' ) ) {
@@ -1964,6 +2017,9 @@ class MM_Admin {
 		);
 	}
 
+	/**
+	 * AJAX handler: requeue job.
+	 */
 	public static function ajax_requeue_job(): void {
 		check_ajax_referer( 'mm_requeue_job', 'nonce' );
 		if ( ! current_user_can( 'edit_others_posts' ) ) {
@@ -2270,6 +2326,9 @@ class MM_Admin {
 	// Dashboard content (shared by page render + AJAX refresh)
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Render jobs content.
+	 */
 	public static function render_jobs_content(): void {
 		echo '<input type="hidden" class="mm-paged" value="' . esc_attr( (string) max( 1, absint( wp_unslash( $_REQUEST['paged'] ?? '1' ) ) ) ) . '">'; // phpcs:ignore WordPress.Security.NonceVerification
 		self::render_history_section();
@@ -2292,7 +2351,7 @@ class MM_Admin {
 		}
 
 		// Which page numbers to show (always include 1, last, and a window around current).
-		$window = 1; // pages each side of current
+		$window = 1; // pages each side of current.
 		$pages  = array();
 		for ( $i = 1; $i <= $total_pages; $i++ ) {
 			if ( $i === 1 || $i === $total_pages || abs( $i - $paged ) <= $window ) {
@@ -2529,6 +2588,9 @@ class MM_Admin {
 	// Bulk spinner markup
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Bulk spinner markup.
+	 */
 	public static function bulk_spinner_markup(): void {
 		echo '<style>.mm-spinner{display:none;position:fixed;top:50%;left:50%;z-index:9999;transform:translate(-50%,-50%);background:#fff;padding:20px 28px;border-radius:7px;box-shadow:0 2px 14px #0003;font-size:16px;font-weight:600;}.mm-spinner.active{display:block;}</style>';
 		echo '<div class="mm-spinner" id="mmBulkSpinner">' . esc_html__( 'Processing…', 'metamanager' ) . '</div>';

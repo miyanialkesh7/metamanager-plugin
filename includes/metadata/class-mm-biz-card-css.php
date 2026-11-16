@@ -4,10 +4,17 @@
  *
  * All values are sanitized before being written into the CSS string to prevent
  * injection. Only characters valid in CSS values are permitted per type.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Biz card CSS.
+ *
+ * @package Metamanager
+ */
 class MM_Biz_Card_CSS {
 
 	/**
@@ -105,29 +112,45 @@ class MM_Biz_Card_CSS {
 	// Sanitizers — only allow characters valid for each CSS value type.
 	// -------------------------------------------------------------------------
 
-	/** Hex, rgb/rgba/hsl/hsla, or named color. */
+	/**
+	 * Hex, rgb/rgba/hsl/hsla, or named color.
+	 *
+	 * @param string $v V.
+	 */
 	private static function color( string $v ): string {
 		$v = trim( $v );
-		// Allow: a-z A-Z 0-9 # % ( ) , . space
+		// Allow: a-z A-Z 0-9 # % ( ) , . space.
 		$sanitized = preg_replace( '/[^a-zA-Z0-9#%(),.\s]/', '', $v );
 		return $sanitized ?: '#000000';
 	}
 
-	/** Single CSS length: digits, dot, units (px em rem % vh vw). */
+	/**
+	 * Single CSS length: digits, dot, units (px em rem % vh vw).
+	 *
+	 * @param string $v V.
+	 */
 	private static function length( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9.%]/', '', $v );
 		return $sanitized ?: '0';
 	}
 
-	/** Shorthand length (up to 4 space-separated lengths). */
+	/**
+	 * Shorthand length (up to 4 space-separated lengths).
+	 *
+	 * @param string $v V.
+	 */
 	private static function shorthand( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9.% ]/', '', $v );
 		return $sanitized ?: '0';
 	}
 
-	/** Box-shadow value: lengths, colors, keywords. */
+	/**
+	 * Box-shadow value: lengths, colors, keywords.
+	 *
+	 * @param string $v V.
+	 */
 	private static function shadow( string $v ): string {
 		$v         = trim( $v );
 		$sanitized = preg_replace( '/[^a-zA-Z0-9#%(),.\s\-]/', '', $v );

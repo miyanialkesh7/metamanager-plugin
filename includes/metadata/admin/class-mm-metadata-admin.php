@@ -7,13 +7,24 @@
  * mm_meta_settings option.  The sanitize callback loads the current full
  * option and merges only the submitted section so other sections are never
  * overwritten on a partial save.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Metadata admin.
+ *
+ * @package Metamanager
+ */
 class MM_Metadata_Admin {
 
-	/** @var MM_Site_Settings */
+	/**
+	 * Site settings instance.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
 	/**
@@ -25,6 +36,8 @@ class MM_Metadata_Admin {
 	 *   'template'     => Suffix of templates/admin/page-{suffix}.php.
 	 *   'inner_form'   => Template manages its own <form> tag (no outer wrapper).
 	 * ]
+	  *
+	  * @var array
 	 */
 	private array $pages = array(
 		'metamanager-business' => array(
@@ -113,10 +126,18 @@ class MM_Metadata_Admin {
 		),
 	);
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
@@ -129,6 +150,9 @@ class MM_Metadata_Admin {
 	// Menu
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register menu.
+	 */
 	public function register_menu(): void {
 		// Note: the top-level 'metamanager' menu is registered by MM_Admin::add_menu().
 		// This class only registers its submenu pages under that existing parent.
@@ -150,6 +174,9 @@ class MM_Metadata_Admin {
 	// Settings API
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register settings.
+	 */
 	public function register_settings(): void {
 		// Business is a standalone option.
 		register_setting(
@@ -197,11 +224,18 @@ class MM_Metadata_Admin {
 	// Rendering
 	// -------------------------------------------------------------------------
 
-	/** Named callback — required for add_menu_page() and the Business submenu. */
+	/**
+	 * Named callback — required for add_menu_page() and the Business submenu.
+	 */
 	public function render_business(): void {
 		$this->render( 'metamanager-business' );
 	}
 
+	/**
+	 * Render.
+	 *
+	 * @param string $page_slug Page slug.
+	 */
 	private function render( string $page_slug ): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Insufficient permissions.', 'metamanager' ) );
@@ -214,12 +248,17 @@ class MM_Metadata_Admin {
 		$opt_group      = $page_cfg['option_group'];
 		$has_inner_form = $page_cfg['inner_form'];
 
-		include MM_META_DIR . 'templates/admin/page-settings.php'; // shell wrapper
+		include MM_META_DIR . 'templates/admin/page-settings.php'; // shell wrapper.
 	}
 
-	// -------------------------------------------------------------------------
-	// Sanitization
-	// -------------------------------------------------------------------------
+	/**
+	 * -------------------------------------------------------------------------.
+	 * Sanitization
+	 * -------------------------------------------------------------------------
+	 *
+	 * @param mixed $raw Raw.
+	 * @return array Resulting array.
+	 */
 	public function sanitize_contact_style( $raw ): array {
 		if ( ! is_array( $raw ) ) {
 			return MM_Mod_Business_Contact::style_defaults();
@@ -227,6 +266,12 @@ class MM_Metadata_Admin {
 		return MM_Site_Settings::deep_sanitize_section( $raw, MM_Mod_Business_Contact::style_defaults() );
 	}
 
+	/**
+	 * Sanitize business.
+	 *
+	 * @param mixed $raw Raw.
+	 * @return array Resulting array.
+	 */
 	public function sanitize_business( $raw ): array {
 		if ( ! is_array( $raw ) ) {
 			return MM_Site_Settings::business_defaults();
@@ -238,6 +283,11 @@ class MM_Metadata_Admin {
 	// Assets
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Enqueue assets.
+	 *
+	 * @param string $hook Current admin page hook suffix.
+	 */
 	public function enqueue_assets( string $hook ): void {
 		$gcm_hooks = array(
 			'metamanager_page_metamanager-business',
@@ -281,6 +331,9 @@ class MM_Metadata_Admin {
 	// Tools AJAX
 	// -------------------------------------------------------------------------
 
+	/**
+	 * AJAX handler: tools action.
+	 */
 	public function ajax_tools_action(): void {
 		check_ajax_referer( 'mm_meta_tools_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -294,20 +347,24 @@ class MM_Metadata_Admin {
 				update_option( MM_META_OPT_SETTINGS, MM_Site_Settings::settings_defaults() );
 				update_option( MM_META_OPT_BUSINESS, MM_Site_Settings::business_defaults() );
 				wp_send_json_success( 'Settings reset to defaults.' );
+				// No break: wp_send_json_success() terminates the request.
 
 			case 'flush_rewrite':
 				flush_rewrite_rules();
 				wp_send_json_success( 'Rewrite rules flushed.' );
+				// No break: wp_send_json_success() terminates the request.
 
 			case 'ping_sitemap':
 				( new MM_Mod_Sitemap_Web( $this->settings ) )->send_ping();
 				wp_send_json_success( 'Ping sent.' );
+				// No break: wp_send_json_success() terminates the request.
 
 			case 'purge_links':
 				global $wpdb;
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', MM_Mod_Links::table_name() ) );
 				wp_send_json_success( 'Link table purged.' );
+				// No break: wp_send_json_success() terminates the request.
 
 			default:
 				wp_send_json_error( 'Unknown action.' );
@@ -321,6 +378,8 @@ class MM_Metadata_Admin {
 	/**
 	 * Register contextual help tabs for every Metamanager admin screen.
 	 * Hooked to current_screen so $screen is already resolved.
+	 *
+	 * @param \WP_Screen $screen Screen.
 	 */
 	public function add_help_tabs( \WP_Screen $screen ): void {
 		$map = array(
@@ -372,6 +431,12 @@ class MM_Metadata_Admin {
 	// Public helpers (available inside included templates via $this)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Get page URL.
+	 *
+	 * @param string $slug Slug.
+	 * @return string Resulting string.
+	 */
 	public function get_page_url( string $slug ): string {
 		return admin_url( 'admin.php?page=' . rawurlencode( $slug ) );
 	}

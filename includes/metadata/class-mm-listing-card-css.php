@@ -9,6 +9,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Listing card CSS.
+ *
+ * @package Metamanager
+ */
 class MM_Listing_Card_CSS {
 
 	/**
@@ -43,26 +48,56 @@ class MM_Listing_Card_CSS {
 		return $css;
 	}
 
+	/**
+	 * Handle color.
+	 *
+	 * @param string $v V.
+	 * @return string Resulting string.
+	 */
 	private static function color( string $v ): string {
 		$v = trim( $v );
 		return preg_match( '/^#[0-9a-fA-F]{3,8}$/', $v ) ? $v : '#0073aa';
 	}
 
+	/**
+	 * Handle length.
+	 *
+	 * @param string $v V.
+	 * @return string Resulting string.
+	 */
 	private static function length( string $v ): string {
 		$v = trim( $v );
 		return preg_match( '/^[0-9.]+(px|rem|em|%)$/', $v ) ? $v : '14px';
 	}
 
+	/**
+	 * Handle shorthand.
+	 *
+	 * @param string $v V.
+	 * @return string Resulting string.
+	 */
 	private static function shorthand( string $v ): string {
 		$v = trim( $v );
 		return preg_match( '/^[0-9a-zA-Z .%]+$/', $v ) ? $v : '4px';
 	}
 
+	/**
+	 * Font weight.
+	 *
+	 * @param string $v V.
+	 * @return string Resulting string.
+	 */
 	private static function font_weight( string $v ): string {
 		$v = trim( $v );
 		return in_array( $v, array( '400', '500', '600', '700' ), true ) ? $v : '600';
 	}
 
+	/**
+	 * Sanitize.
+	 *
+	 * @param string $v V.
+	 * @return string Resulting string.
+	 */
 	private static function sanitize( string $v ): string {
 		return esc_html( trim( $v ) );
 	}

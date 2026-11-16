@@ -11,6 +11,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod person.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Person extends MM_Mod_Base {
 
 	/**
@@ -24,6 +29,10 @@ class MM_Mod_Person extends MM_Mod_Base {
 
 	/**
 	 * No-op — Person cards render inline via widget/block, not in the head.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
 	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
@@ -41,6 +50,9 @@ class MM_Mod_Person extends MM_Mod_Base {
 	// Block
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register block.
+	 */
 	public function register_block(): void {
 		if ( ! function_exists( 'register_block_type' ) ) {
 			return;
@@ -105,6 +117,9 @@ class MM_Mod_Person extends MM_Mod_Base {
 	// Widget
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register widget.
+	 */
 	public function register_widget(): void {
 		register_widget( 'MM_Person_Widget' );
 	}
@@ -113,6 +128,12 @@ class MM_Mod_Person extends MM_Mod_Base {
 	// Shortcode
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render shortcode.
+	 *
+	 * @param mixed $atts Shortcode attributes.
+	 * @return string Resulting string.
+	 */
 	public function render_shortcode( $atts ): string {
 		$atts = shortcode_atts(
 			array(
@@ -149,6 +170,9 @@ class MM_Mod_Person extends MM_Mod_Base {
 	// Assets
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Enqueue assets.
+	 */
 	public function enqueue_assets(): void {
 		wp_enqueue_style(
 			'mm-meta-person',
@@ -284,6 +308,9 @@ class MM_Mod_Person extends MM_Mod_Base {
  */
 class MM_Person_Widget extends WP_Widget {
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		parent::__construct(
 			'mm_meta_person',
@@ -295,6 +322,12 @@ class MM_Person_Widget extends WP_Widget {
 		);
 	}
 
+	/**
+	 * Handle widget.
+	 *
+	 * @param mixed $args Arguments.
+	 * @param mixed $instance Instance.
+	 */
 	public function widget( $args, $instance ): void {
 		$module = new MM_Mod_Person( MM_Site_Settings::get_instance() );
 		echo $args['before_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -307,6 +340,11 @@ class MM_Person_Widget extends WP_Widget {
 		echo $args['after_widget']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
+	/**
+	 * Handle form.
+	 *
+	 * @param mixed $instance Instance.
+	 */
 	public function form( $instance ): void {
 		$name        = ! empty( $instance['name'] ) ? $instance['name'] : '';
 		$job_title   = ! empty( $instance['jobTitle'] ) ? $instance['jobTitle'] : '';
@@ -381,6 +419,13 @@ class MM_Person_Widget extends WP_Widget {
 		<?php
 	}
 
+	/**
+	 * Update.
+	 *
+	 * @param mixed $new_instance New instance.
+	 * @param mixed $old_instance Old instance.
+	 * @return array Resulting array.
+	 */
 	public function update( $new_instance, $old_instance ): array {
 		return array(
 			'name'          => sanitize_text_field( $new_instance['name'] ?? '' ),

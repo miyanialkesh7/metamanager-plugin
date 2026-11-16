@@ -21,15 +21,31 @@
  *  - Serve only the excerpt rather than full post content (feed.use_excerpt).
  *  - Override the feed channel title (feed.feed_title).
  *  - Add a copyright notice to the channel (feed.feed_copyright).
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod RSS.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Rss extends MM_Mod_Base {
 
-	/** Nothing to add to the HTML <head>. */
+	/**
+	 * Nothing to add to the HTML <head>.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'feed.cleanup_enabled', true ) ) {
 			return;
@@ -89,7 +105,9 @@ class MM_Mod_Rss extends MM_Mod_Base {
 	// Output buffer — wfw / slash cleanup
 	// -------------------------------------------------------------------------
 
-	/** Start buffering the feed template output on feed requests. */
+	/**
+	 * Start buffering the feed template output on feed requests.
+	 */
 	public function start_rss_buffer(): void {
 		if ( is_feed() ) {
 			ob_start( array( $this, 'clean_rss_output' ) );

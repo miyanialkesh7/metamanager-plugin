@@ -6,7 +6,10 @@
  * and Person widget clickable elements.
  *
  * @var MM_Site_Settings $settings
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 
 $s         = $settings->get( 'listing' );

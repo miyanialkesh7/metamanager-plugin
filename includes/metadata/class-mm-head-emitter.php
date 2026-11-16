@@ -13,23 +13,55 @@
  *   'links'  => [ ['rel'=>..., 'href'=>...], ... ],
  *   'schema' => array  (will be JSON-encoded as @graph),
  * ]
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Head emitter.
+ *
+ * @package Metamanager
+ */
 class MM_Head_Emitter {
 
-	/** @var MM_Mod_Base[] */
+	/**
+	 * Registered modules.
+	 *
+	 * @var MM_Mod_Base[]
+	 */
 	private array $modules = array();
 
+	/**
+	 * Context.
+	 *
+	 * @var MM_Page_Context
+	 */
 	private MM_Page_Context $context;
+	/**
+	 * Settings.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Page_Context $context, MM_Site_Settings $settings ) {
 		$this->context  = $context;
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Add module.
+	 *
+	 * @param MM_Mod_Base $module Module.
+	 */
 	public function add_module( MM_Mod_Base $module ): void {
 		$this->modules[] = $module;
 	}
@@ -38,6 +70,9 @@ class MM_Head_Emitter {
 	// wp_head callback
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render.
+	 */
 	public function render(): void {
 		$data = array(
 			'title'  => '',

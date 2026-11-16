@@ -1,16 +1,41 @@
 <?php
 /**
  * MM_Metadata_Loader — wires every module and admin class to WordPress hooks.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Metadata loader.
+ *
+ * @package Metamanager
+ */
 class MM_Metadata_Loader {
 
+	/**
+	 * Settings.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
+	/**
+	 * Context.
+	 *
+	 * @var MM_Page_Context
+	 */
 	private MM_Page_Context $context;
+	/**
+	 * Document.
+	 *
+	 * @var MM_Head_Emitter
+	 */
 	private MM_Head_Emitter $document;
 
+	/**
+	 * Run.
+	 */
 	public function run(): void {
 		$this->settings = MM_Site_Settings::get_instance();
 		$this->context  = new MM_Page_Context();
@@ -67,6 +92,12 @@ class MM_Metadata_Loader {
 	// Title filter
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Filter title.
+	 *
+	 * @param string $title Title.
+	 * @return string Resulting string.
+	 */
 	public function filter_title( string $title ): string {
 		// Build a throw-away $data array just to run the Meta module's title logic.
 		$data = array(

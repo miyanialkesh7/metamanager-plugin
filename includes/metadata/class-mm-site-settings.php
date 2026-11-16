@@ -4,18 +4,48 @@
  *
  * All reads are from a deep-merged in-memory copy (defaults + saved).
  * Dot-notation keys: e.g. get('titles.separator'), get('social.og_locale').
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Site settings.
+ *
+ * @package Metamanager
+ */
 class MM_Site_Settings {
 
+	/**
+	 * Instance.
+	 *
+	 * @var ?self
+	 */
 	private static ?self $instance = null;
+	/**
+	 * Settings data.
+	 *
+	 * @var ?array
+	 */
 	private ?array $settings_data  = null;
+	/**
+	 * Business data.
+	 *
+	 * @var ?array
+	 */
 	private ?array $business_data  = null;
 
+	/**
+	 * Constructor.
+	 */
 	private function __construct() {}
 
+	/**
+	 * Get instance.
+	 *
+	 * @return self Return value.
+	 */
 	public static function get_instance(): self {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
@@ -50,6 +80,9 @@ class MM_Site_Settings {
 
 	/**
 	 * Get a business profile value using dot-notation.
+	 *
+	 * @param string $key Key.
+	 * @param mixed  $default Default value.
 	 */
 	public function get_business( string $key = '', mixed $default = null ) {
 		$this->load();
@@ -59,13 +92,17 @@ class MM_Site_Settings {
 		return self::dot_get( $this->business_data, $key, $default );
 	}
 
-	/** Return the full (merged) settings array. */
+	/**
+	 * Return the full (merged) settings array.
+	 */
 	public function all(): array {
 		$this->load();
 		return $this->settings_data;
 	}
 
-	/** Return the full (merged) business array. */
+	/**
+	 * Return the full (merged) business array.
+	 */
 	public function all_business(): array {
 		$this->load();
 		return $this->business_data;
@@ -75,33 +112,62 @@ class MM_Site_Settings {
 	// Entity meta helpers
 	// -------------------------------------------------------------------------
 
-	/** Return decoded _mm_meta postmeta for a post, or []. */
+	/**
+	 * Return decoded _mm_meta postmeta for a post, or [].
+	 *
+	 * @param int $post_id Post ID.
+	 */
 	public function get_post_meta( int $post_id ): array {
 		$raw = get_post_meta( $post_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/** Return decoded _mm_meta termmeta for a term, or []. */
+	/**
+	 * Return decoded _mm_meta termmeta for a term, or [].
+	 *
+	 * @param int $term_id Term ID.
+	 */
 	public function get_term_meta( int $term_id ): array {
 		$raw = get_term_meta( $term_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/** Return decoded _mm_meta usermeta for a user, or []. */
+	/**
+	 * Return decoded _mm_meta usermeta for a user, or [].
+	 *
+	 * @param int $user_id User ID.
+	 */
 	public function get_user_meta( int $user_id ): array {
 		$raw = get_user_meta( $user_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/** Save entity meta (post/term/user) — always stores clean JSON. */
+	/**
+	 * Save entity meta (post/term/user) — always stores clean JSON.
+	 *
+	 * @param int   $post_id Post ID.
+	 * @param array $data Data.
+	 */
 	public function save_post_meta( int $post_id, array $data ): void {
 		update_post_meta( $post_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
 
+	/**
+	 * Save term meta.
+	 *
+	 * @param int   $term_id Term ID.
+	 * @param array $data Data.
+	 */
 	public function save_term_meta( int $term_id, array $data ): void {
 		update_term_meta( $term_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
 
+	/**
+	 * Save user meta.
+	 *
+	 * @param int   $user_id User ID.
+	 * @param array $data Data.
+	 */
 	public function save_user_meta( int $user_id, array $data ): void {
 		update_user_meta( $user_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
@@ -110,17 +176,26 @@ class MM_Site_Settings {
 	// Save settings
 	// -------------------------------------------------------------------------
 
-	/** Persist settings to the database and bust the in-memory cache. */
+	/**
+	 * Persist settings to the database and bust the in-memory cache.
+	 *
+	 * @param array $data Data.
+	 */
 	public function save_settings( array $data ): void {
 		update_option( MM_META_OPT_SETTINGS, $data, false );
 		$this->settings_data = null; // Bust instance cache.
 	}
 
+	/**
+	 * Save business.
+	 *
+	 * @param array $data Data.
+	 */
 	public function save_business( array $data ): void {
 		// Auto-derive coordinates via Google Maps Geocoding API when:
 		// - API key is set
 		// - Address has a street
-		// - Coordinates are missing OR address changed
+		// - Coordinates are missing OR address changed.
 		$old            = get_option( MM_META_OPT_BUSINESS, array() );
 		$key            = sanitize_text_field( $data['google_maps_api_key'] ?? '' );
 		$has_addr       = ! empty( $data['address']['street'] ?? '' );
@@ -251,7 +326,7 @@ class MM_Site_Settings {
 	/**
 	 * Intercept options.php save to merge the submitted section into the full option.
 	 *
-	 * options.php calls update_option() which first runs sanitize_option(). When
+	 * Options.php calls update_option() which first runs sanitize_option(). When
 	 * multiple sections register sanitize_callbacks on the same shared option,
 	 * they chain in the sanitize_option filter — each callback reloads from DB
 	 * via get_option(), destroying the POST data by the time the matching
@@ -266,6 +341,10 @@ class MM_Site_Settings {
 	 * NOTE: Because the sanitize callbacks were removed from register_setting()
 	 * for the shared option, the value here IS the raw POST data (unmodified
 	 * by sanitize_option). This is the correct behavior.
+	 *
+	 * @param mixed $value Value.
+	 * @param mixed $old_value Old value.
+	 * @param mixed $option Option.
 	 */
 	public static function intercept_save( $value, $old_value, $option ) {
 		if ( ! is_array( $value ) ) {
@@ -314,6 +393,9 @@ class MM_Site_Settings {
 	 * Unknown keys in nested associative arrays: preserved and recursively
 	 * sanitized using the first default value as a structural template.
 	 * Missing bool keys (unchecked checkboxes) default to false.
+	 *
+	 * @param array $input Raw input.
+	 * @param array $defaults Defaults.
 	 */
 	public static function deep_sanitize_section( array $input, array $defaults ): array {
 		$out = array();
@@ -504,6 +586,11 @@ class MM_Site_Settings {
 	// Defaults
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Settings defaults.
+	 *
+	 * @return array Resulting array.
+	 */
 	public static function settings_defaults(): array {
 		return array(
 			'titles'    => array(
@@ -703,6 +790,11 @@ class MM_Site_Settings {
 		);
 	}
 
+	/**
+	 * Business defaults.
+	 *
+	 * @return array Resulting array.
+	 */
 	public static function business_defaults(): array {
 		return array(
 			'name'                 => '',
@@ -760,6 +852,9 @@ class MM_Site_Settings {
 	// Internal helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Load.
+	 */
 	private function load(): void {
 		if ( null === $this->settings_data ) {
 			$saved               = get_option( MM_META_OPT_SETTINGS, array() );
@@ -771,6 +866,14 @@ class MM_Site_Settings {
 		}
 	}
 
+	/**
+	 * Deep merge.
+	 *
+	 * @param array $base Base.
+	 * @param array $override Override.
+	 * @param bool  $merge_lists Merge lists.
+	 * @return array Resulting array.
+	 */
 	public static function deep_merge( array $base, array $override, bool $merge_lists = false ): array {
 		foreach ( $override as $key => $value ) {
 			if ( isset( $base[ $key ] ) && is_array( $base[ $key ] ) && is_array( $value ) ) {
@@ -785,6 +888,14 @@ class MM_Site_Settings {
 		return $base;
 	}
 
+	/**
+	 * Dot get.
+	 *
+	 * @param array  $data Data.
+	 * @param string $key Key.
+	 * @param mixed  $default Default value.
+	 * @return mixed Return value.
+	 */
 	private static function dot_get( array $data, string $key, mixed $default ): mixed {
 		$keys    = explode( '.', $key );
 		$current = $data;
@@ -797,6 +908,12 @@ class MM_Site_Settings {
 		return $current;
 	}
 
+	/**
+	 * Decode meta.
+	 *
+	 * @param mixed $raw Raw.
+	 * @return array Resulting array.
+	 */
 	private function decode_meta( mixed $raw ): array {
 		if ( ! $raw ) {
 			return array();
@@ -808,15 +925,33 @@ class MM_Site_Settings {
 		return is_array( $decoded ) ? $decoded : array();
 	}
 
+	/**
+	 * Get excerpt.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @return string Resulting string.
+	 */
 	private function get_excerpt( \WP_Post $post ): string {
 		return $post->post_excerpt ? wp_strip_all_tags( $post->post_excerpt ) : '';
 	}
 
+	/**
+	 * Get post type label.
+	 *
+	 * @param string $pt Pt.
+	 * @return string Resulting string.
+	 */
 	private function get_post_type_label( string $pt ): string {
 		$obj = get_post_type_object( $pt );
 		return $obj ? $obj->labels->singular_name : $pt;
 	}
 
+	/**
+	 * Get post type label for tax.
+	 *
+	 * @param string $taxonomy Taxonomy.
+	 * @return string Resulting string.
+	 */
 	private function get_post_type_label_for_tax( string $taxonomy ): string {
 		$tax = get_taxonomy( $taxonomy );
 		if ( ! $tax || empty( $tax->object_type ) ) {

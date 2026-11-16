@@ -37,6 +37,9 @@ class MM_Upload_Notify {
 	// Boot
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Initialise.
+	 */
 	public static function init(): void {
 		// Queue each raw upload into the current batch.
 		add_action( 'add_attachment', array( __CLASS__, 'on_attachment_added' ) );

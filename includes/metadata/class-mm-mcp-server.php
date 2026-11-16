@@ -5,10 +5,17 @@
  *
  * Requires the WordPress MCP Adapter plugin (https://github.com/WordPress/mcp-adapter).
  * Gracefully degrades if the adapter is not active.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mcp server.
+ *
+ * @package Metamanager
+ */
 class MM_MCP_Server {
 
 	private const ABILITIES = array(
@@ -20,6 +27,9 @@ class MM_MCP_Server {
 		'metamanager/get-term-meta',
 	);
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		// Only hook if MCP Adapter is available.
 		if ( ! class_exists( 'WP\MCP\Core\McpAdapter' ) ) {

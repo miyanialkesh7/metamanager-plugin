@@ -5,12 +5,26 @@
  * Per-page robots attributes (noindex, nofollow, noarchive, nosnippet,
  * noimageindex) flow:
  *   per-post meta override  >  per-type global default  >  built-in fallback
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod head meta.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Head_Meta extends MM_Mod_Base {
 
+	/**
+	 * Populate.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		$title       = $this->resolve_title( $context, $settings );
 		$description = $this->resolve_description( $context, $settings );
@@ -61,6 +75,13 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// Title
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve title.
+	 *
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return string Resulting string.
+	 */
 	private function resolve_title( MM_Page_Context $context, MM_Site_Settings $settings ): string {
 		$page = $context->get_page_number();
 
@@ -149,6 +170,13 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// Meta description
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve description.
+	 *
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return string Resulting string.
+	 */
 	private function resolve_description( MM_Page_Context $context, MM_Site_Settings $settings ): string {
 		// Front page (must check before is_singular, which also matches static front pages).
 		if ( $context->is_front_page() ) {
@@ -202,6 +230,13 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// Canonical
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve canonical.
+	 *
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return string Resulting string.
+	 */
 	private function resolve_canonical( MM_Page_Context $context, MM_Site_Settings $settings ): string {
 		// Front page (must check before is_singular, which also matches static front pages).
 		if ( $context->is_front_page() ) {
@@ -254,6 +289,13 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// Robots directives — the heart of per-page attribute control
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve robots.
+	 *
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return string Resulting string.
+	 */
 	private function resolve_robots( MM_Page_Context $context, MM_Site_Settings $settings ): string {
 		$noindex      = false;
 		$nofollow     = false;
@@ -315,6 +357,10 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	/**
 	 * Resolve a boolean robots flag from postmeta, with a default fallback.
 	 * Uses three-state logic: null = "not set" (use default), true/false = explicit override.
+	 *
+	 * @param array  $meta Metadata.
+	 * @param string $key Key.
+	 * @param bool   $default Default value.
 	 */
 	private function resolve_flag( array $meta, string $key, bool $default ): bool {
 		if ( array_key_exists( $key, $meta ) && $meta[ $key ] !== null && $meta[ $key ] !== '' ) {
@@ -323,6 +369,16 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		return $default;
 	}
 
+	/**
+	 * Build robots string.
+	 *
+	 * @param bool $noindex Noindex.
+	 * @param bool $nofollow Nofollow.
+	 * @param bool $noarchive Noarchive.
+	 * @param bool $nosnippet Nosnippet.
+	 * @param bool $noimageindex Noimageindex.
+	 * @return string Resulting string.
+	 */
 	private function build_robots_string( bool $noindex, bool $nofollow, bool $noarchive, bool $nosnippet, bool $noimageindex ): string {
 		$parts   = array();
 		$parts[] = $noindex ? 'noindex' : 'index';
@@ -340,6 +396,13 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// Helpers
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Auto description.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $source Source.
+	 * @return string Resulting string.
+	 */
 	private function auto_description( \WP_Post $post, string $source ): string {
 		if ( 'excerpt' === $source || '' === $source ) {
 			if ( $post->post_excerpt ) {
@@ -354,6 +417,14 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 		return '';
 	}
 
+	/**
+	 * Maybe run append page.
+	 *
+	 * @param string           $title Title.
+	 * @param int              $page Page.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return string Resulting string.
+	 */
 	private function maybe_append_page( string $title, int $page, MM_Site_Settings $settings ): string {
 		if ( $page > 1 && $settings->get( 'titles.paginate_append', true ) ) {
 			$sep    = $settings->get( 'titles.separator', '|' );
@@ -369,6 +440,9 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	 * On attachment pages, uses the attachment's own mm_copyright meta.
 	 * On singular posts/pages, scans content for media and uses the first
 	 * detected attachment's copyright (if consistent across all media).
+	 *
+	 * @param array           $data Data.
+	 * @param MM_Page_Context $context Context.
 	 */
 	private function add_license_link( array &$data, MM_Page_Context $context ): void {
 		if ( ! $context->is_singular() ) {
@@ -407,6 +481,9 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	 *
 	 * If the value is a valid URL, outputs <link rel="license">.
 	 * Otherwise, outputs <meta name="copyright">.
+	 *
+	 * @param string $copyright Copyright.
+	 * @param array  $data Data.
 	 */
 	private function emit_license( string $copyright, array &$data ): void {
 		if ( filter_var( $copyright, FILTER_VALIDATE_URL ) ) {

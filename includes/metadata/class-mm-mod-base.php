@@ -4,20 +4,39 @@
  *
  * Each concrete module extends this class and implements populate(), which
  * writes its output into the shared $data array rather than echoing directly.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod base.
+ *
+ * @package Metamanager
+ */
 abstract class MM_Mod_Base {
 
 	/**
 	 * Track which nav menus were rendered during this request.
 	 * Populated by MM_Metadata_Loader::track_rendered_menu().
+	  *
+	  * @var array
 	 */
 	public static array $rendered_menus = array();
 
+	/**
+	 * Settings.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	protected MM_Site_Settings $settings;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
@@ -150,7 +169,12 @@ abstract class MM_Mod_Base {
 		);
 	}
 
-	/** Add a meta tag to the data array, preventing duplicates by name/property. */
+	/**
+	 * Add a meta tag to the data array, preventing duplicates by name/property.
+	 *
+	 * @param array $data Data.
+	 * @param array $attrs Attrs.
+	 */
 	protected function add_meta( array &$data, array $attrs ): void {
 		$key = $attrs['name'] ?? $attrs['property'] ?? null;
 		if ( $key ) {
@@ -167,12 +191,22 @@ abstract class MM_Mod_Base {
 		$data['meta'][] = $attrs;
 	}
 
-	/** Add a link tag. */
+	/**
+	 * Add a link tag.
+	 *
+	 * @param array $data Data.
+	 * @param array $attrs Attrs.
+	 */
 	protected function add_link( array &$data, array $attrs ): void {
 		$data['links'][] = $attrs;
 	}
 
-	/** Add or replace a schema node by @id. */
+	/**
+	 * Add or replace a schema node by @id.
+	 *
+	 * @param array $data Data.
+	 * @param array $node Node.
+	 */
 	protected function add_node( array &$data, array $node ): void {
 		if ( isset( $node['@id'] ) ) {
 			foreach ( $data['schema'] as $i => $existing ) {
@@ -185,7 +219,13 @@ abstract class MM_Mod_Base {
 		$data['schema'][] = $node;
 	}
 
-	/** Merge additional properties into an existing schema node by @id. */
+	/**
+	 * Merge additional properties into an existing schema node by @id.
+	 *
+	 * @param array  $data Data.
+	 * @param string $id ID.
+	 * @param array  $extra Extra.
+	 */
 	protected function merge_node( array &$data, string $id, array $extra ): void {
 		foreach ( $data['schema'] as $i => $node ) {
 			if ( ( $node['@id'] ?? '' ) === $id ) {
@@ -195,12 +235,18 @@ abstract class MM_Mod_Base {
 		}
 	}
 
-	/** Safe site URL with trailing slash. */
+	/**
+	 * Safe site URL with trailing slash.
+	 */
 	protected function site_url(): string {
 		return trailingslashit( home_url() );
 	}
 
-	/** Build a schema @id string for the site. */
+	/**
+	 * Build a schema @id string for the site.
+	 *
+	 * @param string $fragment Fragment.
+	 */
 	protected function site_id( string $fragment = '' ): string {
 		// A publication/content site (knowledge entity = WebSite) has no
 		// separate organization node: the WebSite node is the graph root, so
@@ -218,6 +264,8 @@ abstract class MM_Mod_Base {
 	 * Get the best available image data (URL, width, height) for a given
 	 * attachment ID or direct URL, with graceful fallback.
 	 *
+	 * @param int    $attachment_id Attachment ID.
+	 * @param string $url URL.
 	 * @return array{url: string, width: int, height: int}
 	 */
 	protected function image_data( int $attachment_id = 0, string $url = '' ): array {

@@ -10,6 +10,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Customizer.
+ *
+ * @package Metamanager
+ */
 class MM_Customizer {
 
 	/**
@@ -29,6 +34,8 @@ class MM_Customizer {
 
 	/**
 	 * Register the Schema section and per-CPT layout controls.
+	 *
+	 * @param \WP_Customize_Manager $wp_customize Customizer manager.
 	 */
 	public static function customize_register( \WP_Customize_Manager $wp_customize ): void {
 		// Root-level MM Archives section.
@@ -71,6 +78,8 @@ class MM_Customizer {
 
 	/**
 	 * Sanitize layout value.
+	 *
+	 * @param mixed $value Value.
 	 */
 	public static function sanitize_layout( $value ): string {
 		return array_key_exists( $value, self::LAYOUTS ) ? $value : 'menu';

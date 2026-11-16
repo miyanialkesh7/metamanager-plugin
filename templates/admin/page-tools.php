@@ -3,7 +3,10 @@
  * Admin tab — Tools.
  *
  * @var MM_Site_Settings $settings
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 ?>
 <div class="mm-meta-panel" id="page-tools">

@@ -6,10 +6,17 @@
  *   - The narrowed list of schema types relevant to GCM clients
  *   - Per-type field definitions for the admin UI (metabox + settings tab)
  *   - A builder that converts flat stored overrides into nested JSON-LD properties
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Schema types.
+ *
+ * @package Metamanager
+ */
 class MM_Schema_Types {
 
 	// -------------------------------------------------------------------------
@@ -928,7 +935,11 @@ class MM_Schema_Types {
 	 * @return array JSON-LD properties to merge.
 	 */
 	public static function build_node_additions( array $fields, string $type ): array {
-		/** @var array<string, mixed> $out */
+		/**
+		 * Collected schema property additions.
+		 *
+		 * @var array<string, mixed> $out
+		 */
 		$out = array();
 
 		// ── Helpers ──────────────────────────────────────────────────────────

@@ -53,6 +53,9 @@ class MM_Settings {
 	// Boot
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Initialise.
+	 */
 	public static function init(): void {
 		// Priority 50 ensures this submenu is registered after all other
 		// Metamanager submenus (which use default priority 10), so
@@ -65,6 +68,9 @@ class MM_Settings {
 	// Menu
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Add menu.
+	 */
 	public static function add_menu(): void {
 		add_submenu_page(
 			'metamanager',
@@ -80,6 +86,9 @@ class MM_Settings {
 	// Register settings
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Register settings.
+	 */
 	public static function register_settings(): void {
 		register_setting(
 			'mm_settings_group',
@@ -334,6 +343,9 @@ class MM_Settings {
 	// Field renderers
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Field compress level.
+	 */
 	public static function field_compress_level(): void {
 		$value = self::get_compress_level();
 		echo '<select id="mm_compress_level" name="' . esc_attr( self::OPTION_COMPRESS_LEVEL ) . '">';
@@ -357,6 +369,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'All compression is lossless — this controls optimisation effort for PNG (optipng) and WebP (cwebp). JPEG is always compressed at maximum lossless quality. Higher effort produces slightly smaller files but takes longer.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field batch size.
+	 */
 	public static function field_batch_size(): void {
 		$value = self::get_batch_size();
 		printf(
@@ -367,6 +382,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'Maximum number of files processed per batch cycle (upload scan, cron tick, or WP-CLI batch). The plugin checks available memory before each cycle and automatically reduces this number if memory is limited. If memory is critically low, processing pauses and resumes on the next cycle.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field max revisions.
+	 */
 	public static function field_max_revisions(): void {
 		$value = self::get_max_revisions();
 		printf(
@@ -377,6 +395,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'Maximum number of revisions stored per post (pages, posts, and media metadata). Set to 0 for unlimited revisions. Default: 36.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field notify enabled.
+	 */
 	public static function field_notify_enabled(): void {
 		$checked = (bool) get_option( self::OPTION_NOTIFY_ENABLED, false );
 		printf(
@@ -387,6 +408,9 @@ class MM_Settings {
 		echo ' <label for="mm_notify_enabled">' . esc_html__( 'Send an email when a job fails', 'metamanager' ) . '</label>';
 	}
 
+	/**
+	 * Field notify email.
+	 */
 	public static function field_notify_email(): void {
 		$value = self::get_notify_email();
 		printf(
@@ -398,6 +422,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'Leave blank to use the WordPress admin email address.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field API disabled.
+	 */
 	public static function field_api_disabled(): void {
 		$checked = self::get_api_disabled();
 		printf(
@@ -409,6 +436,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'Blocks unauthenticated external requests to /wp-json/metamanager/v1/*. Logged-in WordPress users are never blocked, so the compression status column and job dashboard continue to work normally.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field API allowed ips.
+	 */
 	public static function field_api_allowed_ips(): void {
 		$value = (string) get_option( self::OPTION_API_ALLOWED_IPS, '' );
 		printf(
@@ -427,6 +457,9 @@ class MM_Settings {
 		}
 	}
 
+	/**
+	 * Field upload notify extra.
+	 */
 	public static function field_upload_notify_extra(): void {
 		$value = (string) get_option( self::OPTION_UPLOAD_NOTIFY_EXTRA, '' );
 		printf(
@@ -437,6 +470,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'Optional. Comma-separated list of addresses that will receive a copy of every upload receipt in addition to the admin and uploader.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field auto provenance.
+	 */
 	public static function field_auto_provenance(): void {
 		$checked = (bool) get_option( self::OPTION_AUTO_PROVENANCE, true );
 		printf(
@@ -448,6 +484,9 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'When enabled (default), the Publisher (site name) and Website (site URL) fields are embedded as neutral provenance in every metadata job and on upload. This is not an authorship or copyright claim &mdash; it simply marks where the file was published. Disable if you want Metamanager to leave those fields untouched.', 'metamanager' ) . '</p>';
 	}
 
+	/**
+	 * Field delete data.
+	 */
 	public static function field_delete_data(): void {
 		$checked = self::get_delete_data();
 		printf(
@@ -463,6 +502,9 @@ class MM_Settings {
 	// Page renderer
 	// -----------------------------------------------------------------------
 
+	/**
+	 * Render page.
+	 */
 	public static function render_page(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage settings.', 'metamanager' ) );

@@ -17,6 +17,8 @@ class MM_DB {
 
 	/**
 	 * Prevents the one-time dedup migration from running more than once per request.
+	  *
+	  * @var bool
 	 */
 	private static bool $dedup_done = false;
 
@@ -203,7 +205,7 @@ class MM_DB {
 	/**
 	 * Query job history with optional search, ordering, and pagination.
 	 *
-	 * @param array $args {
+	 * @param array $args {.
 	 *   @type string $search    Search term for image_name / job_type / status.
 	 *   @type string $orderby   Column to order by. Whitelisted.
 	 *   @type string $order     ASC or DESC.

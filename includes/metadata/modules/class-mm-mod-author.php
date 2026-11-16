@@ -5,12 +5,26 @@
  * Adds Person nodes on author archive pages.  On BlogPosting nodes
  * built by the Schema module, the author Person @id is referenced
  * by URL so this module can be loaded in any order.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod author.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Author extends MM_Mod_Base {
 
+	/**
+	 * Populate.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		if ( ! $settings->get( 'authors.enabled', true ) || ! $settings->get( 'authors.person_schema', true ) ) {
 			return;
@@ -43,6 +57,13 @@ class MM_Mod_Author extends MM_Mod_Base {
 		}
 	}
 
+	/**
+	 * Build person node.
+	 *
+	 * @param \WP_User         $author Author.
+	 * @param MM_Site_Settings $settings Settings.
+	 * @return array Resulting array.
+	 */
 	private function build_person_node( \WP_User $author, MM_Site_Settings $settings ): array {
 		$meta       = $settings->get_user_meta( $author->ID );
 		$author_url = get_author_posts_url( $author->ID );

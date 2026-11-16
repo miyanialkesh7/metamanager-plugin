@@ -4,10 +4,17 @@
  * Abilities API so they are discoverable by the MCP Adapter and AI agents.
  *
  * Requires WordPress 6.9+ (Abilities API). Gracefully degrades if unavailable.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Abilities.
+ *
+ * @package Metamanager
+ */
 class MM_Abilities {
 
 	/**
@@ -42,6 +49,9 @@ class MM_Abilities {
 		);
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
 			return;
@@ -74,6 +84,9 @@ class MM_Abilities {
 		);
 	}
 
+	/**
+	 * Register abilities.
+	 */
 	public function register_abilities(): void {
 		$this->register_get_post_meta();
 		$this->register_update_post_meta();
@@ -165,6 +178,8 @@ class MM_Abilities {
 
 	/**
 	 * Publishing: edit rights on the post plus the publish capability.
+	 *
+	 * @param array $input Raw input.
 	 */
 	public function can_publish_post( array $input ) {
 		$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
@@ -180,6 +195,8 @@ class MM_Abilities {
 
 	/**
 	 * Destructive: delete rights on the post.
+	 *
+	 * @param array $input Raw input.
 	 */
 	public function can_trash_post( array $input ) {
 		$post_id = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
@@ -192,6 +209,9 @@ class MM_Abilities {
 		);
 	}
 
+	/**
+	 * Check whether it can upload.
+	 */
 	public function can_upload() {
 		if ( current_user_can( 'upload_files' ) ) {
 			return true;
@@ -202,6 +222,9 @@ class MM_Abilities {
 		);
 	}
 
+	/**
+	 * Check whether it can moderate.
+	 */
 	public function can_moderate() {
 		if ( current_user_can( 'moderate_comments' ) ) {
 			return true;
@@ -212,6 +235,9 @@ class MM_Abilities {
 		);
 	}
 
+	/**
+	 * Register report abilities.
+	 */
 	private function register_report_abilities(): void {
 		// MetaManager manages metadata (post meta, term meta, schema).
 		// GCM server status lives in the GCM Coworker (gcm/*).
@@ -250,6 +276,9 @@ class MM_Abilities {
 	}
 
 	/**
+	 * Ability get daemon status.
+	 *
+	 * @param array $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_daemon_status( array $input = array() ) {
@@ -260,6 +289,9 @@ class MM_Abilities {
 	// metamanager/get-post-meta
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register get post meta.
+	 */
 	private function register_get_post_meta(): void {
 		wp_register_ability(
 			'metamanager/get-post-meta',
@@ -329,7 +361,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{post_id: int} $input
+	 * Ability get post meta.
+	 *
+	 * @param array{post_id: int} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_post_meta( array $input ) {
@@ -348,6 +382,9 @@ class MM_Abilities {
 	// metamanager/update-post-meta
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register update post meta.
+	 */
 	private function register_update_post_meta(): void {
 		wp_register_ability(
 			'metamanager/update-post-meta',
@@ -411,7 +448,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{post_id: int, ...} $input
+	 * Ability update post meta.
+	 *
+	 * @param array{post_id: int} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_update_post_meta( array $input ) {
@@ -464,6 +503,9 @@ class MM_Abilities {
 	// metamanager/get-schema
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register get schema.
+	 */
 	private function register_get_schema(): void {
 		wp_register_ability(
 			'metamanager/get-schema',
@@ -502,7 +544,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{url: string} $input
+	 * Ability get schema.
+	 *
+	 * @param array{url: string} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_schema( array $input ) {
@@ -555,6 +599,9 @@ class MM_Abilities {
 	// metamanager/get-business-profile
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register get business profile.
+	 */
 	private function register_get_business_profile(): void {
 		wp_register_ability(
 			'metamanager/get-business-profile',
@@ -598,7 +645,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{} $input
+	 * Ability get business profile.
+	 *
+	 * @param array{} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_business_profile( array $input ) {
@@ -642,6 +691,9 @@ class MM_Abilities {
 	// metamanager/get-navigation
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register get navigation.
+	 */
 	private function register_get_navigation(): void {
 		wp_register_ability(
 			'metamanager/get-navigation',
@@ -681,7 +733,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{} $input
+	 * Ability get navigation.
+	 *
+	 * @param array{} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_navigation( array $input ) {
@@ -703,6 +757,9 @@ class MM_Abilities {
 	// metamanager/get-term-meta
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Register get term meta.
+	 */
 	private function register_get_term_meta(): void {
 		wp_register_ability(
 			'metamanager/get-term-meta',
@@ -747,7 +804,9 @@ class MM_Abilities {
 	}
 
 	/**
-	 * @param array{term_id: int, taxonomy: string} $input
+	 * Ability get term meta.
+	 *
+	 * @param array{term_id: int, taxonomy: string} $input Raw input.
 	 * @return array|WP_Error
 	 */
 	public function ability_get_term_meta( array $input ) {

@@ -6,22 +6,45 @@
  *   Canonical URL override        noindex / nofollow / noarchive / nosnippet / noimageindex
  *   Schema type override          Breadcrumb label
  *   Exclude from sitemap
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Post meta panel.
+ *
+ * @package Metamanager
+ */
 class MM_Post_Meta_Panel {
 
-	/** @var MM_Site_Settings */
+	/**
+	 * Site settings instance.
+	 *
+	 * @var MM_Site_Settings
+	 */
 	private MM_Site_Settings $settings;
 
-	/** Post types that should NOT have the SEO metabox. */
+	/**
+	 * Post types that should NOT have the SEO metabox.
+	 *
+	 * @var array
+	 */
 	private array $excluded_types = array( 'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset' );
 
+	/**
+	 * Constructor.
+	 *
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function __construct( MM_Site_Settings $settings ) {
 		$this->settings = $settings;
 	}
 
+	/**
+	 * Register hooks.
+	 */
 	public function register_hooks(): void {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
 		add_action( 'save_post', array( $this, 'save_meta' ), 5, 2 );
@@ -32,6 +55,9 @@ class MM_Post_Meta_Panel {
 	// Meta box registration
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Add meta boxes.
+	 */
 	public function add_meta_boxes(): void {
 		$post_types = get_post_types( array( 'public' => true ), 'names' );
 		foreach ( $post_types as $pt ) {
@@ -75,6 +101,11 @@ class MM_Post_Meta_Panel {
 	// Render
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Render metabox.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
 	public function render_metabox( \WP_Post $post ): void {
 		$meta     = $this->settings->get_post_meta( $post->ID );
 		$settings = $this->settings;
@@ -86,6 +117,12 @@ class MM_Post_Meta_Panel {
 	// Save
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Save meta.
+	 *
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post Post object.
+	 */
 	public function save_meta( int $post_id, \WP_Post $post ): void {
 		// Skip revisions, auto-saves, and AJAX non-metabox saves.
 		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
@@ -164,6 +201,11 @@ class MM_Post_Meta_Panel {
 	// Assets
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Enqueue assets.
+	 *
+	 * @param string $hook Current admin page hook suffix.
+	 */
 	public function enqueue_assets( string $hook ): void {
 		if ( ! in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			return;
@@ -206,6 +248,8 @@ class MM_Post_Meta_Panel {
 
 	/**
 	 * Sanitize a tristate field: '' → null, '1' → true, '0' → false.
+	 *
+	 * @param mixed $value Value.
 	 */
 	private function sanitize_tristate( $value ): ?bool {
 		if ( $value === '' || $value === null ) {

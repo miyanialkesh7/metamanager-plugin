@@ -10,6 +10,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Schema post types.
+ *
+ * @package Metamanager
+ */
 class MM_Schema_Post_Types {
 
 	/** Map of post type slug => [schema_type_label, short_label, supports, icon]. */
@@ -239,6 +244,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the meta box for a given schema post type.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	public static function render_meta_box( \WP_Post $post ): void {
 		wp_nonce_field( 'mm_schema_meta', 'mm_schema_nonce' );
@@ -420,6 +427,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the meta box for pages using schema templates.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	public static function render_page_template_meta_box( \WP_Post $post ): void {
 		wp_nonce_field( 'mm_schema_meta', 'mm_schema_nonce' );
@@ -451,6 +460,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the ContactPage meta box — auto-generated from business info.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_contact_page_meta_box( \WP_Post $post ): void {
 		$settings = MM_Site_Settings::get_instance();
@@ -501,6 +512,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the AboutPage meta box — auto-generated from business info.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_about_page_meta_box( \WP_Post $post ): void {
 		$settings  = MM_Site_Settings::get_instance();
@@ -553,6 +566,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the Calendar meta box — auto-generated event calendar.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_calendar_meta_box( \WP_Post $post ): void {
 		$events = self::get_upcoming_events();
@@ -608,6 +623,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the FAQPage meta box — dynamic Q&A pairs.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_faq_page_meta_box( \WP_Post $post ): void {
 		$saved = get_post_meta( $post->ID, 'mm_schema_fields', true );
@@ -670,6 +687,9 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render a single FAQ Q&A pair.
+	 *
+	 * @param int   $i I.
+	 * @param array $saved Saved.
 	 */
 	private static function render_faq_pair( int $i, array $saved ): void {
 		$question = $saved[ "faq_question_{$i}" ] ?? '';
@@ -691,6 +711,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the HowTo meta box — HowTo-level fields, dynamic supply/tools, dynamic steps.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_how_to_meta_box( \WP_Post $post ): void {
 		$saved = get_post_meta( $post->ID, 'mm_schema_fields', true );
@@ -865,6 +887,9 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render a single HowTo step.
+	 *
+	 * @param int   $i I.
+	 * @param array $saved Saved.
 	 */
 	private static function render_how_to_step( int $i, array $saved ): void {
 		$name  = $saved[ "howto_step_name_{$i}" ] ?? '';
@@ -889,6 +914,9 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render WooCommerce product linking section for Event/Service.
+	 *
+	 * @param \WP_Post $post Post object.
+	 * @param string   $slug Slug.
 	 */
 	private static function render_wc_product_linking_section( \WP_Post $post, string $slug ): void {
 		$linked_product_id = (int) get_post_meta( $post->ID, '_mm_wc_product_id', true );
@@ -963,6 +991,8 @@ class MM_Schema_Post_Types {
 	 * Render vessel linking section for Trip CPT.
 	 *
 	 * Allows linking a Trip to a Vessel post, similar to WC product linking.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_vessel_linking_section( \WP_Post $post ): void {
 		$vessel_id    = (int) get_post_meta( $post->ID, '_mm_vessel_id', true );
@@ -1032,6 +1062,8 @@ class MM_Schema_Post_Types {
 	 * Render destination linking section for Trip CPT.
 	 *
 	 * Allows linking a Trip to a Destination post.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_destination_linking_section( \WP_Post $post ): void {
 		$dest_id    = (int) get_post_meta( $post->ID, '_mm_destination_id', true );
@@ -1158,6 +1190,9 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Save meta box data.
+	 *
+	 * @param int      $post_id Post ID.
+	 * @param \WP_Post $post Post object.
 	 */
 	public static function save_meta( int $post_id, \WP_Post $post ): void {
 		$is_schema_cpt  = isset( self::TYPES[ $post->post_type ] );
@@ -1313,6 +1348,8 @@ class MM_Schema_Post_Types {
 	 * Handles both page templates (mm-about, mm-contact, etc.) and
 	 * CPT single/archive templates (mm_trip, mm_destination, etc.).
 	 * No theme dependency — plugin provides its own templates.
+	 *
+	 * @param string $template Template.
 	 */
 	public static function load_page_template( string $template ): string {
 		// CPT single templates.
@@ -1361,6 +1398,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Check if a page template slug is a schema template.
+	 *
+	 * @param string $template Template.
 	 */
 	public static function is_schema_template( string $template ): bool {
 		return isset( self::TEMPLATES[ $template ] );
@@ -1368,6 +1407,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Convert a page template slug to its schema type name.
+	 *
+	 * @param string $template Template.
 	 */
 	public static function template_to_type( string $template ): ?string {
 		return self::TEMPLATES[ $template ] ?? null;
@@ -1375,6 +1416,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Get the schema template slug for a post, or null if not using one.
+	 *
+	 * @param \WP_Post $post Post object.
 	 */
 	public static function get_post_template( \WP_Post $post ): ?string {
 		if ( 'page' !== $post->post_type ) {
@@ -1439,6 +1482,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Convert a schema type name to its CPT slug.
+	 *
+	 * @param string $schema_type Schema type.
 	 */
 	public static function type_to_slug( string $schema_type ): ?string {
 		foreach ( self::TYPES as $slug => $config ) {
@@ -1451,6 +1496,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Convert a CPT slug to its schema type name.
+	 *
+	 * @param string $slug Slug.
 	 */
 	public static function slug_to_type( string $slug ): ?string {
 		return self::TYPES[ $slug ][0] ?? null;
@@ -1465,6 +1512,8 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Check if a post type is a schema CPT.
+	 *
+	 * @param string $post_type Post type.
 	 */
 	public static function is_schema_cpt( string $post_type ): bool {
 		return isset( self::TYPES[ $post_type ] );
@@ -1477,6 +1526,8 @@ class MM_Schema_Post_Types {
 	 * for every schema CPT. The layout is deliberately plain — a definition
 	 * list of the filled fields in field-definition order — because these
 	 * are details, not decoration. URL fields render as links.
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	public static function render_details_table( int $post_id ): void {
 		$post = get_post( $post_id );

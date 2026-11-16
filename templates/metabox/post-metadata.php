@@ -7,11 +7,14 @@
  *   @var WP_Post         $post
  *   @var array           $meta     Current _mm_meta values (decoded JSON)
  *   @var MM_Site_Settings $settings
+  *
+  * @package Metamanager
  */
+
 defined( 'ABSPATH' ) || exit;
 
 $canonical        = $meta['canonical'] ?? '';
-$noindex          = $meta['noindex'] ?? null;  // true|false|null
+$noindex          = $meta['noindex'] ?? null;  // true|false|null.
 $nofollow         = $meta['nofollow'] ?? null;
 $noarchive        = $meta['noarchive'] ?? null;
 $nosnippet        = $meta['nosnippet'] ?? null;
@@ -89,7 +92,7 @@ $stored_schema_fields = $meta['schema_fields'] ?? array();
 					'noimageindex' => array( 'Noimageindex', 'Don\'t index images on this page.' ),
 				);
 				foreach ( $directives as $field => $info ) :
-					$current = $$field; // e.g. $noindex, $nofollow …
+					$current = $$field; // e.g. $noindex, $nofollow ….
 					?>
 					<tr class="gcm-robots-row">
 						<td><?php echo esc_html( $info[0] ); ?></td>

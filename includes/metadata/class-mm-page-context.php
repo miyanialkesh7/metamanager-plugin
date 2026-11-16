@@ -4,20 +4,33 @@
  *
  * Called once per request, cached internally.  All modules receive the
  * same context object so page-type conditionals are evaluated once.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Page context.
+ *
+ * @package Metamanager
+ */
 class MM_Page_Context {
 
-	// Resolved on first call to get().
+	/**
+	 * Resolved context, cached after the first call to get().
+	 *
+	 * @var array|null
+	 */
 	private ?array $resolved = null;
 
 	// -------------------------------------------------------------------------
 	// Primary resolver
 	// -------------------------------------------------------------------------
 
-	/** Return the full resolved context array. */
+	/**
+	 * Return the full resolved context array.
+	 */
 	public function get(): array {
 		if ( null === $this->resolved ) {
 			$this->resolved = $this->resolve();
@@ -25,66 +38,143 @@ class MM_Page_Context {
 		return $this->resolved;
 	}
 
-	// Convenience booleans -------------------------------------------------------
+	// Convenience booleans -------------------------------------------------------.
 
+	/**
+	 * Check whether front page.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_front_page(): bool {
 		return (bool) $this->prop( 'is_front_page' ); }
+	/**
+	 * Check whether home.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_home(): bool {
 		return (bool) $this->prop( 'is_home' ); }
+	/**
+	 * Check whether singular.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_singular(): bool {
 		return (bool) $this->prop( 'is_singular' ); }
+	/**
+	 * Check whether archive.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_archive(): bool {
 		return (bool) $this->prop( 'is_archive' ); }
+	/**
+	 * Check whether tax.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_tax(): bool {
 		return (bool) $this->prop( 'is_tax' ); }
+	/**
+	 * Check whether category.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_category(): bool {
 		return (bool) $this->prop( 'is_category' ); }
+	/**
+	 * Check whether tag.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_tag(): bool {
 		return (bool) $this->prop( 'is_tag' ); }
+	/**
+	 * Check whether author.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_author(): bool {
 		return (bool) $this->prop( 'is_author' ); }
+	/**
+	 * Check whether date.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_date(): bool {
 		return (bool) $this->prop( 'is_date' ); }
+	/**
+	 * Check whether search.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_search(): bool {
 		return (bool) $this->prop( 'is_search' ); }
+	/**
+	 * Check whether 404.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_404(): bool {
 		return (bool) $this->prop( 'is_404' ); }
+	/**
+	 * Check whether paged.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_paged(): bool {
 		return get_query_var( 'paged' ) > 1 || get_query_var( 'page' ) > 1; }
+	/**
+	 * Check whether post type archive.
+	 *
+	 * @return bool True on success, false otherwise.
+	 */
 	public function is_post_type_archive(): bool {
 		return (bool) $this->prop( 'is_post_type_archive' ); }
 
-	/** Returns WP_Post when on a singular page, otherwise null. */
+	/**
+	 * Returns WP_Post when on a singular page, otherwise null.
+	 */
 	public function get_post(): ?\WP_Post {
 		$post = $this->prop( 'post' );
 		return $post instanceof \WP_Post ? $post : null;
 	}
 
-	/** Returns WP_Term when on a taxonomy/category/tag archive, otherwise null. */
+	/**
+	 * Returns WP_Term when on a taxonomy/category/tag archive, otherwise null.
+	 */
 	public function get_term(): ?\WP_Term {
 		$term = $this->prop( 'term' );
 		return $term instanceof \WP_Term ? $term : null;
 	}
 
-	/** Returns WP_User when on an author archive, otherwise null. */
+	/**
+	 * Returns WP_User when on an author archive, otherwise null.
+	 */
 	public function get_author(): ?\WP_User {
 		$author = $this->prop( 'author' );
 		return $author instanceof \WP_User ? $author : null;
 	}
 
-	/** Returns the current page number (1-based). */
+	/**
+	 * Returns the current page number (1-based).
+	 */
 	public function get_page_number(): int {
 		$paged = (int) get_query_var( 'paged' );
 		$page  = (int) get_query_var( 'page' );
 		return max( 1, $paged, $page );
 	}
 
-	/** Returns the current post type slug (singular/archive contexts). */
+	/**
+	 * Returns the current post type slug (singular/archive contexts).
+	 */
 	public function get_post_type(): string {
 		return (string) $this->prop( 'post_type', '' );
 	}
 
-	/** Returns the queried object (any kind). */
+	/**
+	 * Returns the queried object (any kind).
+	 */
 	public function get_queried_object() {
 		return get_queried_object();
 	}
@@ -93,6 +183,11 @@ class MM_Page_Context {
 	// Internal resolver
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Resolve.
+	 *
+	 * @return array Resulting array.
+	 */
 	private function resolve(): array {
 		$ctx = array(
 			'is_front_page'        => is_front_page(),
@@ -130,6 +225,13 @@ class MM_Page_Context {
 		return $ctx;
 	}
 
+	/**
+	 * Handle prop.
+	 *
+	 * @param string $key Key.
+	 * @param mixed  $default Default value.
+	 * @return mixed Return value.
+	 */
 	private function prop( string $key, mixed $default = false ): mixed {
 		$ctx = $this->get();
 		return $ctx[ $key ] ?? $default;

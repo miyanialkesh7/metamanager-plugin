@@ -13,6 +13,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Media detector.
+ *
+ * @package Metamanager
+ */
 class MM_Media_Detector {
 
 	/**
@@ -132,6 +137,8 @@ class MM_Media_Detector {
 
 	/**
 	 * Parse an <img> tag into a media record.
+	 *
+	 * @param string $tag Tag.
 	 */
 	private static function parse_img_tag( string $tag ): ?array {
 		if ( ! preg_match( '/\bsrc=["\']([^"\']+)["\']/i', $tag, $src ) ) {
@@ -189,6 +196,8 @@ class MM_Media_Detector {
 
 	/**
 	 * Parse <source> tags inside a <video> element.
+	 *
+	 * @param string $inner Inner.
 	 */
 	private static function parse_video_sources( string $inner ): array {
 		$items = array();
@@ -210,6 +219,8 @@ class MM_Media_Detector {
 
 	/**
 	 * Parse <source> tags inside an <audio> element.
+	 *
+	 * @param string $inner Inner.
 	 */
 	private static function parse_audio_sources( string $inner ): array {
 		$items = array();
@@ -229,6 +240,8 @@ class MM_Media_Detector {
 
 	/**
 	 * Build a video media record from a URL.
+	 *
+	 * @param string $url URL.
 	 */
 	private static function make_video_record( string $url ): ?array {
 		if ( ! $url ) {
@@ -255,6 +268,8 @@ class MM_Media_Detector {
 
 	/**
 	 * Build an audio media record from a URL.
+	 *
+	 * @param string $url URL.
 	 */
 	private static function make_audio_record( string $url ): ?array {
 		if ( ! $url ) {
@@ -283,6 +298,8 @@ class MM_Media_Detector {
 	 * Build an embed media record from an iframe src URL.
 	 *
 	 * Detects YouTube and Vimeo and marks them as video embeds.
+	 *
+	 * @param string $url URL.
 	 */
 	private static function parse_iframe_src( string $url ): array {
 		$type = 'embed';

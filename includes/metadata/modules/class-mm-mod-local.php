@@ -7,12 +7,26 @@
  * business:contact_data:* tags for Facebook's business card format.
  *
  * Supports 45 schema.org LocalBusiness subtypes grouped by industry.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod local.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Local extends MM_Mod_Base {
 
+	/**
+	 * Populate.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
+	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		// A publication/content site (knowledge entity = WebSite) has no
 		// organization node: the WebSite node is the graph root and every
@@ -207,6 +221,12 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// Opening hours
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Build opening hours.
+	 *
+	 * @param array $hours Hours.
+	 * @return array Resulting array.
+	 */
 	private function build_opening_hours( array $hours ): array {
 		$specs   = array();
 		$day_map = array(
@@ -242,6 +262,14 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// Multiple locations
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Build location node.
+	 *
+	 * @param array $loc Loc.
+	 * @param array $parent Parent.
+	 * @param int   $index Index.
+	 * @return array Resulting array.
+	 */
 	private function build_location_node( array $loc, array $parent, int $index ): array {
 		$node = array(
 			'@type'              => $parent['@type'],
@@ -268,6 +296,13 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// OG business.business (homepage Facebook card)
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Emit OG business.
+	 *
+	 * @param array $data Data.
+	 * @param array $biz Biz.
+	 * @param array $node Node.
+	 */
 	private function emit_og_business( array &$data, array $biz, array $node ): void {
 		// Override og:type to business.business.
 		foreach ( $data['meta'] as &$mt ) {
@@ -304,6 +339,11 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// Used by admin settings UI.
 	// -------------------------------------------------------------------------
 
+	/**
+	 * Get business types.
+	 *
+	 * @return array Resulting array.
+	 */
 	public static function get_business_types(): array {
 		return array(
 			'General'                => array(

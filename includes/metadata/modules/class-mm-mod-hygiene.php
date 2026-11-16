@@ -4,15 +4,26 @@
  *
  * Removes meta/link tags that add noise, expose WP version, or are
  * not useful for content-marketing sites.
+  *
+  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Mod hygiene.
+ *
+ * @package Metamanager
+ */
 class MM_Mod_Hygiene extends MM_Mod_Base {
 
 	/**
 	 * Hygiene runs very early (module added first in Loader).
 	 * It registers removal hooks here rather than writing to $data.
+	 *
+	 * @param array            $data Data.
+	 * @param MM_Page_Context  $context Context.
+	 * @param MM_Site_Settings $settings Settings.
 	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		// All hygiene hooks are registered once on init via register_hooks(),
@@ -88,11 +99,23 @@ class MM_Mod_Hygiene extends MM_Mod_Base {
 		return $classes;
 	}
 
+	/**
+	 * Remove pingback header.
+	 *
+	 * @param array $headers Headers.
+	 * @return array Resulting array.
+	 */
 	public function remove_pingback_header( array $headers ): array {
 		unset( $headers['X-Pingback'] );
 		return $headers;
 	}
 
+	/**
+	 * Remove x powered by.
+	 *
+	 * @param array $headers Headers.
+	 * @return array Resulting array.
+	 */
 	public function remove_x_powered_by( array $headers ): array {
 		unset( $headers['X-Powered-By'] );
 		return $headers;
@@ -100,6 +123,9 @@ class MM_Mod_Hygiene extends MM_Mod_Base {
 
 	/**
 	 * Remove only DNS prefetch hints, preserving preconnect/preload/prefetch/prerender.
+	 *
+	 * @param array  $urls Urls.
+	 * @param string $relation_type Relation type.
 	 */
 	public function remove_dns_prefetch_only( array $urls, string $relation_type ): array {
 		if ( 'dns-prefetch' === $relation_type ) {
