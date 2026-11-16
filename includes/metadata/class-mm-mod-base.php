@@ -10,6 +10,12 @@ defined( 'ABSPATH' ) || exit;
 
 abstract class MM_Mod_Base {
 
+	/**
+	 * Track which nav menus were rendered during this request.
+	 * Populated by MM_Metadata_Loader::track_rendered_menu().
+	 */
+	public static array $rendered_menus = [];
+
 	protected MM_Site_Settings $settings;
 
 	public function __construct( MM_Site_Settings $settings ) {
