@@ -24,8 +24,8 @@ class MM_Mod_Links extends MM_Mod_Base {
 		// Register custom cron schedule.
 		add_filter( 'cron_schedules', [ $this, 'add_cron_schedule' ] );
 
-		// Schedule the recurring check if not yet set.
-		add_action( 'wp', [ $this, 'maybe_schedule_cron' ] );
+		// The recurring check is scheduled at activation / plugin update
+		// (mm_activate_single_site) — never on a request hook (rule 9).
 		add_action( 'mm_meta_check_links', MM_Cron_Tracker::wrap( 'mm_meta_check_links', [ $this, 'run_batch_check' ] ) );
 
 		// Extract links on post save.
@@ -190,13 +190,6 @@ class MM_Mod_Links extends MM_Mod_Base {
 			'display'  => 'Every 6 Hours',
 		];
 		return $schedules;
-	}
-
-	public function maybe_schedule_cron(): void {
-		$freq = $this->settings->get( 'links.cron_frequency', 'twicedaily' );
-		if ( ! wp_next_scheduled( 'mm_meta_check_links' ) ) {
-			wp_schedule_event( time(), $freq, 'mm_meta_check_links' );
-		}
 	}
 
 	public function run_batch_check(): void {

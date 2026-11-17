@@ -8,11 +8,13 @@ Before contributing, read [ARCHITECTURE.md](ARCHITECTURE.md) for a complete unde
 - **Admin**: `MM_Admin` (dashboard, bulk actions), `MM_Settings` (preferences)
 - **Modules**: `MM_Mod_*` classes — each handles one output concern (head meta, social, schema, sitemaps, robots, links, etc.)
 - **Metaboxes**: `MM_Post_Meta_Panel`, `MM_Term_Meta_Panel`, `MM_User_Meta_Panel`
-- **Daemons**: `metamanager-compress-daemon.sh`, `metamanager-meta-daemon.sh`
+- **Daemons**: live in the separate [`metamanager`](https://github.com/richardkentgates/metamanager) repo (`metamanager-compress-daemon.sh`, `metamanager-meta-daemon.sh`) — the cross-repo contract is `JOB_QUEUE_SPEC.md`
 
 ## Development Setup
 
-This is a WordPress plugin with bash daemons — no Composer dependencies.
+This is the WordPress plugin repository. Composer is used for development
+tooling only (PHPUnit, PHPStan, etc.) — the plugin runtime has no Composer
+autoloader.
 
 ### Requirements
 - PHP 8.0+
@@ -50,7 +52,7 @@ make lint
 
 All output modules extend `MM_Mod_Base` and implement `populate()` which adds data to the head emitter's document array. To add a new module:
 
-1. Create `includes/modules/class-mm-mod-{name}.php` extending `MM_Mod_Base`
+1. Create `includes/metadata/modules/class-mm-mod-{name}.php` extending `MM_Mod_Base`
 2. Implement `populate()` to add your data
 3. Register in `MM_Metadata_Loader::run()`
 4. Add settings if needed in `MM_Site_Settings`
@@ -66,7 +68,7 @@ All output modules extend `MM_Mod_Base` and implement `populate()` which adds da
 ## Pull Requests
 - Keep changes focused on a single issue.
 - Test on a real LAMP server before submitting.
-- No Composer dependencies — this is server software.
+- Keep runtime dependencies at zero beyond WordPress (Composer is dev tooling only).
 - Add a CHANGELOG entry in the appropriate version section.
 
 ## Version Management
@@ -75,7 +77,11 @@ All output modules extend `MM_Mod_Base` and implement `populate()` which adds da
 
 ### Daemon updates
 
-Daemon updates are handled automatically. When the plugin is updated, `MM_Daemon_Updater` triggers `apt-get update && apt-get install -y metamanager`. The server's apt channel (test/stable) determines which version is installed. No manual coordination needed.
+Daemon updates are handled by OS apt inside the GCM maintenance window — the
+server's apt channel (test/stable) determines which version installs. The
+plugin's `MM_Daemon_Updater` is display-only (reads
+`/usr/local/lib/metamanager/VERSION` for the dashboard); it never triggers
+updates.
 
 ## Database Schema Changes
 

@@ -12,7 +12,7 @@ MetaManager supports the following schema.org types. Each type can be assigned t
 | `AboutPage` | About page with business info | Page template `mm-about` |
 | `ContactPage` | Contact page with business contact data | Page template `mm-contact` |
 | `ProfilePage` | Author archive pages | Auto-assigned |
-| `Calendar` | Event calendar page | Page template `mm-calendar` |
+| `CollectionPage` | Event calendar page | Page template `mm-calendar` |
 | `FAQPage` | FAQ pages with Q&A pairs | CPT `mm_faq_page` |
 | `SearchResultsPage` | Search results | Auto-assigned |
 
@@ -44,6 +44,13 @@ MetaManager supports the following schema.org types. Each type can be assigned t
 | Type | Use For | CPT/Template |
 |------|---------|--------------|
 | `Course` | Educational courses, certifications | CPT `mm_course` |
+
+### Directory Types
+
+| Type | Use For | CPT/Template |
+|------|---------|--------------|
+| `LocalBusiness` | Business listings | CPT `mm_business` |
+| `Organization` | Nonprofit/public organizations | CPT `mm_organization` |
 
 ---
 

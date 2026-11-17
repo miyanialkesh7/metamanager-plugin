@@ -75,7 +75,8 @@ class MM_Updater {
 		// Handle the manual check-for-updates request.
 		add_action( 'admin_init', [ $this, 'handle_manual_check' ] );
 
-		// After any plugin is updated, trigger daemon package upgrade if needed.
+		// After any plugin is updated, re-run activation housekeeping
+		// (schema, cron registration). Daemon upgrades are OS apt's job.
 		add_action( 'upgrader_process_complete', [ $this, 'on_plugin_updated' ], 10, 2 );
 	}
 

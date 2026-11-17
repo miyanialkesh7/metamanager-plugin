@@ -2,6 +2,10 @@
 
 When to use a Custom Post Type (CPT) vs a Page Template in MetaManager.
 
+**Default conclusion (settled 2026-11-15, Gutter Tymer conversion): prefer the
+CPT over the page template** whenever the content is (or could become) a
+discrete entry — page templates are only for true singletons.
+
 ## Use a CPT When:
 
 - The content type is created and managed as **discrete entries** (multiple items)
@@ -30,9 +34,7 @@ When to use a Custom Post Type (CPT) vs a Page Template in MetaManager.
 **Examples:**
 - `mm-about` (AboutPage) — one about page, auto-generated from business profile
 - `mm-contact` (ContactPage) — one contact page, auto-generated from business profile
-- `mm-calendar` (Calendar) — one calendar page, pulls from mm_event CPT
-- `mm-area-guide` (TouristDestination) — one area guide page, pulls from mm_destination CPT
-- `mm-venue` (Place) — one venue page, pulls from mm_event CPT
+- `mm-calendar` (CollectionPage) — one calendar page, pulls from mm_event CPT
 
 ## Use Post Type Override When:
 

@@ -53,7 +53,6 @@ function _mm_uninstall_site(): void {
 	}
 
 	// Transients used by the plugin.
-	delete_transient( 'mm_github_latest_release' );
 	delete_transient( 'mm_upload_batch' );
 
 	// Exact post meta keys.
