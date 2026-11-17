@@ -74,7 +74,9 @@ into `compress/` for `job_type: "compression"` and into `meta/` for
 | `metadata` | object | always | Metadata payload (PascalCase keys, see below) |
 | `trigger` | string | always (via `$extra`) | Provenance vocabulary (see below) |
 | `requeue_source_id` | int | on `trigger: "requeue"` only | DB row id of the job being retried |
-| `priority` | int | optional (reserved) | Drain-order weight, descending; default 0. The plugin does not currently set it |
+
+There is no `priority` field (B4, 2026-11-16: the drain once sorted by one
+nothing wrote — jobs process FIFO in filename order).
 
 There is no separate `fields` or `job_trigger` key — the payload key is
 `metadata` and the trigger key is `trigger` (`job_trigger` is only the history
@@ -337,15 +339,17 @@ If a daemon crashes, `*.json.processing` files remain and are recovered on the
 next startup (`*.json.processing` → `*.json`); leftover `*.mm_tmp` tool
 temporaries are deleted at startup.
 
-Startup drain (`drain_jobs_loop()`) processes pre-existing jobs sorted by
-`.priority` (descending, default 0) before entering the main loop. The main
+Startup drain (`drain_jobs_loop()`) processes pre-existing jobs FIFO (filename
+order) before entering the main loop. The main
 loop uses `inotifywait` (`close_write`, `moved_to`) on the queue directory.
 
 ### Cross-process gating
 
 Processing pauses (never receiving) while another gated process is working:
 any of `/var/lib/gcm/busy/{backup,maint,update,scan,restore}` present, or
-MXRoute Mailer reporting pending mail (`/var/run/mxroute-status.json`). Missing
+MXRoute Mailer reporting queued mail (the gate reads the MXRoute queue DB
+through WP-CLI — `wp mxroute queue count`; the status JSON is admin/monitor
+data only). Missing
 state files or uninstalled software = idle. Queued jobs stay in place and run
 when the gate clears.
 
