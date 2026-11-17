@@ -285,9 +285,14 @@ class MM_Site_Settings {
 		// Use the old value (current full option from the database).
 		$current = is_array( $old_value ) ? $old_value : $defaults;
 
-		// Sanitize the submitted section against defaults (casts types, fills missing keys).
+		// Sanitize the submitted section against defaults (casts types, fills
+		// missing keys). Missing non-bool keys are preserved from the stored
+		// value — a partial form save must not reset fields the form doesn't
+		// render (e.g. the Schema tab does not submit archive_layouts, which
+		// is edited in the Customizer).
 		$section_defaults = $defaults[ $section ];
-		$sanitized        = self::deep_sanitize_section( $submitted, $section_defaults );
+		$section_current  = is_array( $current[ $section ] ?? null ) ? $current[ $section ] : [];
+		$sanitized        = self::deep_sanitize_section( $submitted, $section_defaults, $section_current );
 
 		// Merge the sanitized section into the full option.
 		$current[ $section ] = $sanitized;
@@ -297,16 +302,32 @@ class MM_Site_Settings {
 
 	/**
 	 * Recursively sanitize $input against $defaults.
-	 * Known keys: type-cast and fill missing from defaults.
+	 * Known keys: type-cast and fill missing from $preserve (stored value),
+	 * falling back to defaults.
 	 * Unknown keys in nested associative arrays: preserved and recursively
 	 * sanitized using the first default value as a structural template.
 	 * Missing bool keys (unchecked checkboxes) default to false.
+	 * Missing non-bool keys keep the stored value from $preserve when present
+	 * (a form that does not render a field must not reset it), else default.
+	 *
+	 * @param array $input    Submitted (raw) data for this section/level.
+	 * @param array $defaults Defaults for this section/level.
+	 * @param array $preserve Current stored value for this section/level,
+	 *                        used to keep keys the form did not submit.
 	 */
-	public static function deep_sanitize_section( array $input, array $defaults ): array {
+	public static function deep_sanitize_section( array $input, array $defaults, array $preserve = [] ): array {
 		$out = [];
 		foreach ( $defaults as $key => $default_val ) {
 			if ( ! array_key_exists( $key, $input ) ) {
-				$out[ $key ] = is_bool( $default_val ) ? false : $default_val;
+				if ( is_bool( $default_val ) ) {
+					// Unchecked checkbox — absent from POST means false.
+					$out[ $key ] = false;
+				} elseif ( array_key_exists( $key, $preserve ) ) {
+					// Field not rendered by this form — keep the stored value.
+					$out[ $key ] = $preserve[ $key ];
+				} else {
+					$out[ $key ] = $default_val;
+				}
 				continue;
 			}
 
@@ -355,7 +376,11 @@ class MM_Site_Settings {
 						) );
 					}
 				} else {
-					$out[ $key ] = self::deep_sanitize_section( $val, $default_val );
+					$out[ $key ] = self::deep_sanitize_section(
+						$val,
+						$default_val,
+						is_array( $preserve[ $key ] ?? null ) ? $preserve[ $key ] : []
+					);
 				}
 			} elseif ( is_bool( $default_val ) ) {
 				$out[ $key ] = (bool) $val;
