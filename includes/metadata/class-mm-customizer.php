@@ -2,7 +2,7 @@
 /**
  * MM_Customizer — WordPress Customizer integration for MetaManager.
  *
- * Adds a root-level "Schema" section with per-CPT archive layout selection.
+ * Adds a root-level "MM Archives" section with per-CPT archive layout selection.
  * Layouts: 'menu' (image left, text right) and 'grid' (image top, text below).
  *
  * @package Metamanager
@@ -28,7 +28,7 @@ class MM_Customizer {
 	}
 
 	/**
-	 * Register the Schema section and per-CPT layout controls.
+	 * Register the MM Archives section and per-CPT layout controls.
 	 */
 	public static function customize_register( \WP_Customize_Manager $wp_customize ): void {
 		// Root-level MM Archives section.
@@ -52,7 +52,7 @@ class MM_Customizer {
 			$wp_customize->add_control( "mm_archives_layout_{$slug}", [
 				'label'       => sprintf( __( '%s Archive Layout', 'metamanager' ), $label ),
 				'section'     => 'mm_archives',
-				'setting'     => "mm_meta_settings[schema][archive_layouts][{$slug}]",
+				'settings'    => [ 'default' => "mm_meta_settings[schema][archive_layouts][{$slug}]" ],
 				'type'        => 'select',
 				'choices'     => self::LAYOUTS,
 				'description' => sprintf( __( 'Choose how %s archive pages display their listings.', 'metamanager' ), strtolower( $label ) ),
