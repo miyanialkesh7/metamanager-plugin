@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.319
+ * Version:      2.3.322
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.319' );
+define( 'MM_VERSION',     '2.3.322' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -185,6 +185,14 @@ function mm_activate_single_site(): void {
 
 	if ( ! wp_next_scheduled( 'mm_write_status_json' ) ) {
 		wp_schedule_event( time(), 'mm_every_minute', 'mm_write_status_json' );
+	}
+
+	// Recurring link checker — registered at activation (and again after
+	// plugin updates, which re-run mm_activate). Never on request hooks
+	// (workspace rule 9): a missing event gets investigated, not masked.
+	$links_freq = MM_Site_Settings::get_instance()->get( 'links.cron_frequency', 'twicedaily' );
+	if ( ! wp_next_scheduled( 'mm_meta_check_links' ) ) {
+		wp_schedule_event( time(), is_string( $links_freq ) && $links_freq ? $links_freq : 'twicedaily', 'mm_meta_check_links' );
 	}
 
 	// Migrate option keys from old gcm-seo-core names to mm_meta_* keys.
@@ -501,12 +509,14 @@ function mm_import_completed_jobs(): void {
 		$lines = [ 'The following Metamanager jobs failed:', '' ];
 		foreach ( $failed_jobs as $job ) {
 			$detail  = is_array( $job['details'] ?? null ) ? ( $job['details']['message'] ?? '' ) : '';
-			$lines[] = '• ' . ( $job['image_name'] ?? '(unknown)' )
+			// ASCII-only body punctuation — multibyte glyphs have been
+			// mangled in transit on these notices (user report 2026-11-16).
+			$lines[] = '- ' . ( $job['image_name'] ?? '(unknown)' )
 				. ' [' . ( $job['size'] ?? '' ) . ']'
-				. ( $detail ? ' — ' . $detail : '' );
+				. ( $detail ? ' - ' . $detail : '' );
 		}
 		$lines[] = '';
-		$lines[] = 'View the Job Dashboard: ' . admin_url( 'upload.php?page=metamanager-jobs' );
+		$lines[] = 'View the Job Dashboard: ' . admin_url( 'admin.php?page=metamanager' );
 
 		wp_mail( $to, $subject, implode( "\n", $lines ), [ 'Content-Type: text/plain; charset=UTF-8' ] );
 	}

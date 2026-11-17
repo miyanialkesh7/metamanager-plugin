@@ -1,6 +1,6 @@
 # Metamanager Roadmap
 
-Last updated 2026-09-15.
+Last updated 2026-11-16.
 
 ---
 
@@ -8,14 +8,20 @@ Last updated 2026-09-15.
 
 Metamanager manages metadata for WordPress media and pages. It extracts, normalizes, and synchronizes metadata across file system, database, and frontend output. The daemon layer handles the heavy lifting (ExifTool embed, lossless compression, ffmpeg remux). The plugin layer handles WordPress integration (admin UI, job queue, structured data, frontend output).
 
+Closed history (completed fixes, audits, compliance snapshots) lives in
+[`_archive/ROADMAP-HISTORY.md`](_archive/ROADMAP-HISTORY.md) — record, not
+maintained. The schema-expansion programme is a design record in
+[`ROADMAP-SCHEMA-EXPANSION.md`](ROADMAP-SCHEMA-EXPANSION.md) (Phases 1–5
+implemented). The plugin↔daemon contract is [`JOB_QUEUE_SPEC.md`](JOB_QUEUE_SPEC.md).
+
 ---
 
 ## Repository Overview
 
-| Repo | Branch | Version | Purpose |
-|------|--------|---------|---------|
-| `metamanager-plugin` | dev/test/main | Auto-bumped by CI | WordPress plugin: metadata sync, frontend output, admin UI, job queue |
-| `metamanager` | dev/test/main | Auto-bumped by CI | Daemon scripts (meta embed, compression), apt server deployment, systemd units |
+| Repo | Branches | Purpose |
+|------|----------|---------|
+| `metamanager-plugin` | dev/test/main | WordPress plugin: metadata sync, frontend output, admin UI, job queue |
+| `metamanager` | dev/test/main | Daemon scripts (meta embed, compression), apt deployment, systemd units |
 
 ## Architecture
 
@@ -29,7 +35,7 @@ WordPress Plugin (PHP)                    OS Daemons (Bash)
 │ MM_Cron (import results)    │ results │                             │
 │                             │          │ metamanager-compress-daemon │
 │ MM_Media_Detector           │          │  - jpegtran/optipng/cwebp   │
-│  (content media scanning)   │          │  - ffmpeg remux             │
+│  (content media scanning)   │          │  - avifenc/ffmpeg remux     │
 │ MM_Head_Emitter + Modules   │          │                             │
 │  (page-level output)        │          │                             │
 │ MM_Abilities (AI API)       │          │                             │
@@ -40,376 +46,50 @@ WordPress Plugin (PHP)                    OS Daemons (Bash)
 
 ---
 
-## Current Status — Production
+## Current Status
 
 | Item | Value |
 |------|-------|
-| Plugin version | v2.3.173 (production) |
-| Daemon version | v2.4.79 |
-| WordPress version | 7.1 |
-| Production URL | https://hyercleaning.com |
+| Fleet (production + test hosts) | See the workspace `AGENTS.md` fleet table |
 | Apt server | apt.richardkentgates.com |
-
----
-
-## What's Done
-
-### Schema Expansion — Tourism, Education, Vehicle Types (2026-09-13)
-
-- **New CPTs:** `mm_trip` (TouristTrip), `mm_destination` (TouristDestination), `mm_vessel` (Vehicle), `mm_course` (Course)
-- **New schema types:** TouristTrip, TouristDestination, Vehicle, Course added to type list and field definitions
-- **New business types:** TourismBusiness, BoatRental, BoatTour, FishingCharter, AmusementPark, Museum added to Business Profile
-- **JSON-LD builders:** `build_node_additions()` handles all new types — tripOrigin with Place/GeoCoordinates, itinerary with ItemList, offers with booking URL, vehicle with specs, course with credentials
-- **Cross-linking:** Trip→Vessel and Trip→Destination relationships via post meta and @id references in JSON-LD
-- **Templates:** Single and archive templates for all CPTs (no theme dependency). Page templates for Area Guide and Venue.
-- **Metaboxes:** Vessel linking on Trip, Destination linking on Trip, business profile auto-population for Trip and Course
-- **Documentation:** Schema type reference, industry guides (charter boats, home services, tourism publications), CPT vs template guide, cross-linking guide, ouachita.online reference implementation
-
-### WP Sitemap Core Conflict Fix, sameAs Merge Fix, CLI Registration (2026-07-27)
-
-- **WP sitemap 404 fix**: WordPress core registers `^wp-sitemap\.xml$` at init priority 1; MM registered at priority 10. Core rule matched first, but `wp_sitemaps_enabled=false` meant no handler → 404. Fix: `unset($wp_rewrite->extra_rules_top['^wp-sitemap\.xml$'])` before MM adds its own rule. Key insight: the key starts with `^` — first attempt without the anchor silently failed.
-- **sameAs merge fix**: `array_merge($social_accounts, $biz_accounts)` overwrote non-empty social URLs with empty business defaults. Fix: `array_filter()` both arrays before merge to remove empty values.
-- **PHPUnit Polyfills CI fix**: Resolved missing polyfills in CI test runs.
-- **MM_Metadata_CLI registration**: Class was loaded via `require_once` but never registered with `WP_CLI::add_command()`. 7 subcommands were invisible. Fix: added `\WP_CLI::add_command( 'metamanager', 'MM_Metadata_CLI' )`. All 15 subcommands now accessible.
-- **WP-CLI import command**: Added `wp metamanager import [<file>] [--dry-run]` — reads JSON from file or stdin, validates, deep-merges with defaults, shows per-key diff, supports dry-run preview. Round-trip verified on production.
-
-### Daemon Updater Removal, mm_meta_links Table Fix (2026-09-09)
-
-- **Daemon updater removed**: Removed `trigger_update()`, `handle_plugin_update()`, `init()`, `admin_notice()` from `MM_Daemon_Updater`. Kept `get_daemon_version()` for status reporting. Daemon updates handled by OS apt (root context), not plugin PHP (www-data context).
-- **mm_meta_links table creation**: Added `MM_Mod_Links::create_table()` to `mm_activate_single_site()` activation hook. Table was defined but never created, causing `mm_meta_check_links` cron to error every 12 hours.
-- **All five servers updated**: PEO, Gap Creek, Hyer, Guttertymer, Ouachita — all on v2.3.173 via adopt.
-
-### WP-Cron History Tracking, Dashboard Widget, inject_update Fix (2026-09-02 to 2026-09-03)
-
-- **WP-Cron history tracking**: New `MM_Cron_Tracker` class wraps cron callbacks to auto-track last run, next run, pass/fail counts, and last 20 runs per hook
-- **Dashboard widget**: Third table showing cron event history with status icons and pass/fail counts; AJAX refresh includes cron data
-- **inject_update fix**: `inject_update()` now returns `$transient` instead of `false` when no update available, preventing clobbering of other updaters' data
-- **`on_plugin_updated()`**: Re-registers both crons (`mm_import_completed_jobs`, `mm_write_status_json`) after plugin update
-- **Cron tracker registered in**: `metamanager.php`, `class-mm-mod-links.php`
-- **Status JSON**: New `cron` key via `MM_Cron_Tracker::get_all()`
-- **CI tests updated**: Removed daemon-compat jobs from `ci.yml`
-- **Production deployed**: v2.3.169 on all four servers
-
-### Charset Fix (2026-09-01)
-
-- **wp_mail charset fix**: Added `Content-Type: text/plain; charset=UTF-8` to all `wp_mail()` calls in `metamanager.php` and `class-mm-mod-links.php`. Without this, UTF-8 characters (bullets, middle dots) were garbled when MXRoute defaulted to Latin-1.
-
-### Recent — Schema, Dashboard, Status JSON Fixes (2026-08-25 to 2026-08-31)
-
-- **Schema field completeness audit**: compared all fields against schema.org spec
-- **Article removed from schema types** — redundant with BlogPosting
-- **Event fields added**: `eventAttendanceMode`, `eventType` (16 categories)
-- **Service field added**: `service_provider_name`
-- **HowTo fields added**: `totalTime`, `estimatedCost`, `supply`, `tool`
-- **JSON-LD builders updated** for all new fields
-- **PHP lint + PHPStan pass** on all modified files
-- **Unit tests updated** — 8 new test methods; all pass
-- **Dashboard widget AJAX refresh** — `mm_status_refresh` endpoint
-- **daemon-compatibility.json automation implemented** in plugin workflows
-- **Plugin CI daemon-compat validation fixed** — now checks VERSION file on dev branch
-- **Removed duplicate map logic** from plugin promote-to-test.yml and promote-to-main.yml
-- **Fixed daemon-compatibility.json entry** — 2.3.143 → 2.4.75
-- **PHP test updated** — removed references to deleted functions
-- **Bug fixes**: self-updater `count_jobs()`, `gcm_mm_job_count()` double-count, AJAX hardcoded row indices
-
-### Audit #1 Bugs (2026-07-31) — All Fixed
-
-| # | Bug | Fix | Version |
-|---|-----|-----|---------|
-| BUG-1 | Video sitemap indexes YouTube/Vimeo embeds | Removed embed extraction | v2.3.41 |
-| BUG-2 | Organization schema uses invalid type `ProfessionalService` | Validate against `get_business_types()`, fall back to `LocalBusiness` | v2.3.45 |
-| BUG-3 | Compression UI labels imply lossy quality | Updated labels to "Effort Level" with lossless clarification | v2.3.41 |
-| BUG-4 | Author settings don't persist | Confirmed working — not reproducible | N/A |
-| BUG-5 | Two separate sitemap configuration pages | Consolidated into `MM_Site_Settings` | v2.3.43 |
-| BUG-6 | Duplicate Person schema controls | Removed `schema.author_persons`, kept `authors.person_schema` | v2.3.41 |
-
-### Audit #2 Bugs (2026-08-01) — All Fixed
-
-| # | Severity | Issue | Fix | Version |
-|---|----------|-------|-----|---------|
-| C1 | CRITICAL | `METADATA_URL` uses `http://` — MITM risk | Changed to `https://` | v2.3.58 |
-| C2 | MEDIUM | `MM_Importer` dead code (328 lines) | Deleted | v2.3.58 |
-| C3 | MEDIUM | `sslverify => false` in link checker | Removed | v2.3.58 |
-| C4 | LOW | Deprecated `wpmu_new_blog` hook | Removed | v2.3.58 |
-
-### Documentation Fixes — All Fixed
-
-| # | Issue | Status |
-|---|-------|--------|
-| D1 | readme.txt changelog stuck at v2.1.7 | Fixed |
-| D2 | GPL-2.0 vs GPL-3.0 license mismatch | Fixed (GPL-3.0-or-later) |
-| D3 | CHANGELOG.md 40+ auto-increment noise entries | Cleaned |
-| D4 | ROADMAP.md stale version references | Fixed |
-| D5 | JOB_QUEUE_SPEC.md wrong job_type values | Fixed |
-| D6 | ARCHITECTURE.md missing endpoints and files | Fixed |
-| D7 | GitHub Pages broken Quick Links | Rewritten |
-| D8 | Plugin URI points to server repo | Fixed |
-| D9 | AGENTS.md stale compatibility map example | Fixed |
-| D10 | CONTRIBUTING.md inconsistent version requirements | Fixed |
-| D11 | SECURITY.md missing endpoints | Fixed |
-| D12 | No issue/PR templates | Added |
-
-### Test Coverage — Priority 1 Complete
-
-| Class | Lines | Tests | Status |
-|-------|-------|-------|--------|
-| `MM_Page_Context` | 124 | 16 | Done |
-| `MM_Mod_Head_Meta` | 351 | 28 | Done |
-| `MM_Head_Emitter` | 106 | 11 | Done |
-| `MM_Mod_Author` | 92 | 4 | Done |
-| `MM_Mod_Local` | 341 | 14 | Done |
-| `MM_Mod_Social` | 247 | 15 | Done |
-| `MM_Memory_Manager` | 231 | 37 | Done |
-
-**Total: 488 tests, 1173 assertions — all passing.**
-
-### Infrastructure
-
-- CI/CD promotion chains verified (dev→test→main)
-- HTTPS on apt server (Let's Encrypt, auto-renewal)
-- Branch protection removed (was blocking workflow automation)
-- Promotion workflows rewritten (direct git merge, not PRs)
-- Both wikis populated (server: 3 pages, plugin: 14 pages)
-- GitHub Pages rewritten for both repos
-- Memory manager with dynamic batch sizing
-- AGENTS.md mandatory workflow rules
-- **Plugin manages daemon updates**: Plugin reads `daemon-compatibility.json` and triggers `apt-get install metamanager` when versions don't match. Daemon repo only builds and deploys the .deb package.
-
-### Audit #3 — Parallel Logic (2026-08-04) — All Fixed
-
-| # | Finding | Severity | Fix | Version |
-|---|---------|----------|-----|---------|
-| P-1 | Old metadata system (`MM_Frontend`, `MM_Sitemap`) still active alongside new module system | HIGH | Deleted both files, migrated features to new modules | v2.3.68 |
-| P-2 | Two sitemap implementations register same rewrite rules | HIGH | Removed `MM_Sitemap::init()`, consolidated into `MM_Mod_Sitemap_Web` | v2.3.68 |
-| P-3 | Two frontend/schema implementations emit duplicate tags | HIGH | Removed `MM_Frontend::init()`, content-based detection via `MM_Media_Detector` | v2.3.68 |
-| P-4 | `$pick` closure defined twice in `MM_Metadata` | HIGH | Extracted `MM_Metadata::pick_embedded_value()` — 1 definition, 6 calls | v2.3.67 |
-| P-5 | `deep_merge()` defined in two classes | MEDIUM | Unified into `MM_Site_Settings::deep_merge()` with `$merge_lists` param | v2.3.67 |
-| P-6 | PostalAddress built with/without sanitization across modules | MEDIUM | Extracted `MM_Mod_Base::postal_address_node()` with consistent sanitization | v2.3.67 |
-
-### Audit #3 — Old System Migration (2026-08-04) — Complete
-
-Migrated unique features from deleted `MM_Frontend` and `MM_Sitemap` into new module system:
-
-| Source | Feature | Destination |
-|--------|---------|-------------|
-| `MM_Frontend` | Attachment page schema (ImageObject/VideoObject/AudioObject/DigitalDocument) | `MM_Mod_Schema::add_media_schema()` |
-| `MM_Frontend` | Attachment page OG tags (og:video, og:audio, og:image:secure_url) | `MM_Mod_Social::emit_og()` |
-| `MM_Frontend` | License/copyright link | `MM_Mod_Head_Meta::add_license_link()` |
-| `MM_Sitemap` | `/sitemap-video.xml` (Google Video Sitemap) | `MM_Mod_Sitemap_Web::render_video_sitemap()` |
-| `MM_Sitemap` | `/sitemap-media.xml` (image:image + video:video) | `MM_Mod_Sitemap_Web::render_media_sitemap()` |
-| `MM_Sitemap` | Video extraction from post content | `MM_Mod_Sitemap_Web::extract_selfhosted_videos()` |
-| `MM_Sitemap` | Media/video robots.txt directives | `MM_Mod_Sitemap_Web::append_robots_txt()` |
-| `MM_Sitemap` | Search engine pings for all sitemaps | `MM_Mod_Sitemap_Web::send_ping()` |
-
-New class created: `MM_Media_Detector` — scans post_content for `<img>`, `<video>`, `<audio>`, `<iframe>`, `<a>` tags. Resolves URLs to WP attachment IDs. Filterable via `mm_detected_media`.
-
-Key design change: Schema and OG tags are now only emitted for media that actually exists in the post content — no more featured-image manipulation signals.
-
-### Audit #3 — Code Quality Fixes (2026-08-04) — Complete
-
-| # | Item | Fix |
-|---|------|-----|
-| Q-1 | `strpos()` → `str_contains()`/`str_starts_with()` | 4 files updated |
-| Q-2 | Missing type hints on `$default` params | Added `mixed` type hints in 3 files |
-| Q-3 | Indentation in `MM_Settings::init()` | Fixed 3-tab over-indentation |
-| Q-4 | Indentation for `mm_apply_bulk_meta` hook | Fixed 0/3-tab → 2-tab |
-| Q-5 | Legacy test class name `Test_MM_Frontend` | Renamed to `Test_MM_Modules` |
-| DUP-1 | `deep_sanitize_section()` duplicated | Consolidated into `MM_Site_Settings::deep_sanitize_section()` (public static) |
-| DUP-2 | Test helpers duplicated | Updated call sites to shared helpers |
-| DUP-3 | `extract_json_ld()` duplicated | Updated call sites to shared helper |
-| O-7 | Orphaned doc block | Removed |
-| O-8 | Empty comment separator | Removed |
-
-### Audit #3 — Dead Code & Missing Logic Fixes (2026-08-04) — Complete
-
-| # | Item | Fix |
-|---|------|-----|
-| O-1 | `calculate_batch_size()` never called | Wired into AJAX scan library for memory-aware batch sizing |
-| O-2 | `estimate_job_cost()` only caller was O-1 | Kept as dependency of O-1 |
-| O-5 | `check_version()` only called by tests | Made private; test updated to use `diagnose()` |
-| O-6 | 5× `*_path()` public, only called internally | Changed from `public` to `private` |
-| G-1 | `get_term_link()` WP_Error not checked | Added `is_string()` guards in mod-social, mod-head-meta, mod-schema |
-| G-2 | LinkedIn prefix empty string | Added `https://www.linkedin.com/in/` prefix |
-| G-3 | FAQ extraction only `<details>/<summary>` | Added `<dl>/<dt>/<dd>` and heading+paragraph patterns |
-| G-5 | HTML sitemap hierarchical unlimited | Capped at 500 per level |
-| G-6 | DNS prefetch removal kills all hints | Selective filter removes only `dns-prefetch` relation type |
-| G-7 | Deactivation hook missing cron clear | Added `mm_meta_check_links` + `flush_rewrite_rules` |
-| G-8 | Download methods lack `exit` | Added `exit` to vcard/json/csv sub-methods |
-
----
-
-## Audit #3 — 2026-08-04
-
-Full codebase audit covering orphans, parallel logic, security, missing logic, and WordPress coding standards.
-
-### Orphans / Dead Code
-
-| # | Item | File | Severity | Status |
-|---|------|------|----------|--------|
-| O-1 | `calculate_batch_size()` — never called in production | `class-mm-memory-manager.php:139` | MEDIUM | FIXED (v2.3.71) — wired into AJAX scan |
-| O-2 | `estimate_job_cost()` — only caller is O-1 | `class-mm-memory-manager.php:92` | LOW | FIXED (v2.3.71) — dependency of O-1 |
-| O-3 | `field_map()` — defined but never called anywhere | `class-mm-metadata.php:209` | MEDIUM | FIXED (v2.3.72) — single source of truth for import/verify |
-| O-4 | `drop_table()` — only called by tests, uninstall.php inlines its own | `class-mm-db.php:34` | MEDIUM | KEEP — correct for tests; uninstall.php cannot load classes |
-| O-5 | `check_version()` — only called by tests | `class-mm-daemon-updater.php:197` | LOW | FIXED (v2.3.71) — made private |
-| O-6 | 5× `*_path()` methods — public, only called internally | `class-mm-status.php` | LOW | FIXED (v2.3.71) — made private |
-| O-7 | Orphaned doc block ("AJAX: Save a single row's metadata fields") | `class-mm-admin.php:1564` | LOW | FIXED (v2.3.70) |
-| O-8 | Empty comment separator block | `class-mm-metadata.php:335` | LOW | FIXED (v2.3.70) |
-
-### Parallel Logic — Fixed
-
-| # | Finding | Severity | Status |
-|---|---------|----------|--------|
-| P-1 | Old metadata system (`MM_Frontend`, `MM_Sitemap`) still active alongside new module system | HIGH | FIXED (v2.3.68) |
-| P-2 | Two sitemap implementations register same rewrite rules | HIGH | FIXED (v2.3.68) |
-| P-3 | Two frontend/schema implementations emit duplicate tags | HIGH | FIXED (v2.3.68) |
-| P-4 | `$pick` closure defined twice in `MM_Metadata` | HIGH | FIXED (v2.3.67) |
-| P-5 | `deep_merge()` defined in two classes | MEDIUM | FIXED (v2.3.67) |
-| P-6 | PostalAddress built with/without sanitization across modules | MEDIUM | FIXED (v2.3.67) |
-| P-7 | `enqueue_all_sizes()` guard pattern repeated 16 times | MEDIUM | CLOSED — 15 call sites are legitimately different, not extractable |
-
-### Duplicate Code — Consolidation Needed
-
-| # | Item | Files | Severity | Status |
-|---|------|-------|----------|--------|
-| DUP-1 | `deep_sanitize_section()` duplicated | `class-mm-site-settings.php:185` vs `class-mm-metadata-admin.php:~217` | MEDIUM | FIXED (v2.3.70) |
-| DUP-2 | Test helpers duplicated (`make_image_attachment` etc.) | `tests/Integration/Test_MM_Frontend.php` vs `tests/Helpers/helpers.php` | LOW | FIXED (v2.3.70) |
-| DUP-3 | `extract_json_ld()` duplicated | `tests/Integration/Test_MM_Frontend.php` vs `tests/Helpers/helpers.php` | LOW | FIXED (v2.3.70) |
-
-### Security
-
-No CRITICAL or HIGH findings. One LOW: `@exec()` suppression in daemon updater.
-
-### Missing Logic / Gaps
-
-| # | Finding | Severity | Status |
-|---|---------|----------|--------|
-| G-1 | `get_term_link()` return not type-checked — WP_Error flows into og:url | MEDIUM | FIXED (v2.3.71) — added is_string() checks in 3 files |
-| G-2 | LinkedIn prefix empty string — produces bare handle, not URL | MEDIUM | FIXED (v2.3.71) — added https://www.linkedin.com/in/ prefix |
-| G-3 | FAQ extraction only supports `<details>/<summary>` — no other patterns | MEDIUM | FIXED (v2.3.71) — added dl/dt/dd and heading+paragraph patterns |
-| G-4 | HTML sitemap flat queries hardcap at 500 posts, no pagination | MEDIUM | FIXED (v2.3.72) — configurable flat_limit (default 500, max 5000) |
-| G-5 | HTML sitemap hierarchical queries unlimited — OOM risk on large sites | MEDIUM | FIXED (v2.3.71) — capped at 500 per level |
-| G-6 | `remove_wp_dns_prefetch` setting removes ALL resource hints, not just DNS prefetch | MEDIUM | FIXED (v2.3.71) — selective filter removes only dns-prefetch |
-| G-7 | No deactivation hook — cron events and tables persist after deactivation | MEDIUM | FIXED (v2.3.71) — added mm_meta_check_links + flush_rewrite_rules |
-| G-8 | `exit` missing in business contact download sub-methods | LOW | FIXED (v2.3.71) — added exit to vcard/json/csv methods |
-
-### Code Quality — PHP 8.0+ Modernization
-
-| # | Item | Files | Severity | Status |
-|---|------|-------|----------|--------|
-| Q-1 | `strpos()` should be `str_contains()` / `str_starts_with()` (PHP 8.0+) | `class-mm-site-settings.php:215,217`, `class-mm-metadata-admin.php:217,219`, `class-mm-mod-links.php:161,167`, `class-mm-metadata-cli.php:334` | MEDIUM | FIXED (v2.3.70) |
-| Q-2 | Missing type hints on `$default` parameters and filter callbacks | `class-mm-site-settings.php`, `class-mm-page-context.php`, `class-mm-updater.php` | MEDIUM | FIXED (v2.3.70) |
-| Q-3 | Indentation inconsistency in `init()` | `class-mm-settings.php:55-60` | LOW | FIXED (v2.3.70) |
-| Q-4 | Indentation inconsistency for `mm_apply_bulk_meta` hook | `class-mm-admin.php:66-67` | LOW | FIXED (v2.3.70) |
-| Q-5 | Legacy test class name `Test_MM_Frontend` (MM_Frontend no longer exists) | `tests/Integration/Test_MM_Frontend.php` | LOW | FIXED (v2.3.70) |
-
-### Test Coverage — Priority 2 — Complete
-
-| Class | Lines | Tests | Status |
-|-------|-------|-------|--------|
-| `MM_Post_Meta_Panel` | 198 | 19 | Done |
-| `MM_Metadata_Admin` | 366 | 15 | Done |
-| `MM_Mod_Sitemap_Web` | 337 | 34 | Done |
-
-### Validation
-
-- [x] Run WordPress Plugin Checker on production — admin page saves fixed (ModSecurity removed)
-- [x] SearchAction deprecated by Google Nov 2024 — default changed to `false` in schema.website_searchaction setting
-
-### Schema Type Thinning — Complete
-
-- Removed 7 types from per-post selector: LocalBusiness, Organization, Person, FAQPage, TouristAttraction, TouristTrip, RealEstateListing
-- BlogPosting locked for native posts (hidden from metabox dropdown)
-- Dead `extract_faq()` method removed
-- WebPage node mapping updated to reflect remaining types
-- Facebook Page ID field added under fb:app_id on Social settings
-- fb:admins meta tag emitted in head when set
-
----
-
-## Schema.org / OG Compliance — 2026-08-04
-
-### Emitted Schema Types (all valid)
-
-| Type | Location | Status |
-|------|----------|--------|
-| WebSite | `MM_Mod_Schema::add_website_node()` | ✅ Valid |
-| SiteNavigationElement | `MM_Mod_Schema::add_navigation_node()` | ✅ Valid (not in Google gallery, harmless) |
-| Person | `MM_Mod_Author` | ✅ Valid |
-| LocalBusiness / Corporation | `MM_Mod_Schema::add_content_node()` | ✅ Valid |
-| AboutPage / CollectionPage / ProfilePage / WebPage | `MM_Mod_Schema::add_webpage_node()` | ✅ Valid |
-| BreadcrumbList | `MM_Mod_Schema::add_breadcrumb_node()` | ✅ Valid |
-| ImageObject | `MM_Mod_Schema::add_image_schema()` | ✅ Valid |
-| VideoObject | `MM_Mod_Schema::add_video_schema()` | ✅ Valid |
-| AudioObject | `MM_Mod_Schema::add_audio_schema()` | ✅ Valid |
-| DigitalDocument | `MM_Mod_Schema::add_document_schema()` | ✅ Valid |
-| GeoCoordinates / Place | `MM_Mod_Schema::add_location_to_node()` | ✅ Valid |
-| FAQPage | Removed | ❌ Removed — Google dropped rich results May 2026 |
-
-### Emitted OG Tags (all valid)
-
-| Tag | Source | Status |
-|-----|--------|--------|
-| `og:title` | `MM_Mod_Head_Meta` | ✅ Required, HTTPS |
-| `og:type` | `MM_Mod_Head_Meta` | ✅ Required |
-| `og:url` | `MM_Mod_Head_Meta` | ✅ Required, HTTPS |
-| `og:image` | `MM_Mod_Head_Meta` | ✅ Required, content-based |
-| `og:description` | `MM_Mod_Head_Meta` | ✅ Recommended |
-| `og:site_name` | `MM_Mod_Head_Meta` | ✅ Recommended |
-| `og:locale` | `MM_Mod_Head_Meta` | ✅ Recommended |
-| `og:video` | `MM_Mod_Social` | ✅ Conditional (video present) |
-| `og:audio` | `MM_Mod_Social` | ✅ Conditional (audio present) |
-| `fb:app_id` | `MM_Mod_Social` | ✅ Optional (Facebook App ID) |
-| `fb:admins` | `MM_Mod_Social` | ✅ Optional (Facebook Page ID) |
-| `twitter:card` | `MM_Mod_Social` | ✅ Recommended |
-| `twitter:site` | `MM_Mod_Social` | ✅ Recommended |
-| `twitter:creator` | `MM_Mod_Social` | ✅ Recommended |
-
-### Deprecated by Google (NOT emitted)
-
-| Type | Deprecated | Status |
-|------|------------|--------|
-| HowTo | Sep 2023 | Not emitted ✅ |
-| Course Info | June 2025 | Not emitted ✅ |
-| ClaimReview | June 2025 | Not emitted ✅ |
-| EstimatedSalary | June 2025 | Not emitted ✅ |
-| LearningVideo | June 2025 | Not emitted ✅ |
-| SpecialAnnouncement | June 2025 | Not emitted ✅ |
-| VehicleListing | June 2025 | Not emitted ✅ |
-| Book Actions | June 2025 | Not emitted ✅ |
-| SearchAction (Sitelinks) | Nov 2024 | Default disabled ✅ |
-| FAQPage (rich results) | May 2026 | Kept — valid schema.org, useful for AI crawlers |
+| Versions | Auto-bumped by CI — check the repos themselves, never hardcode |
+
+Plugin updates: `MM_Updater` polls the apt server `metadata.json` feed (no
+caching) through the native WordPress update pipeline. Daemon updates: OS apt
+inside the GCM maintenance window; the apt channel decides the version;
+`MM_Daemon_Updater` is display-only.
 
 ---
 
 ## Pipeline
 
 ```
-dev ──push──> ci.yml (lint + PHPStan + tests + build)
-    │         version-bump.yml (auto version with [skip ci])
+dev ──push──> ci.yml (lint + PHPStan + tests + build + auto version bump)
     │
     │  workflow_dispatch: promote-to-test.yml
     ▼
-test ──push──> test-deploy.yml (build zip + apt server deploy)
+test ──merge + build zip + deploy to apt server test channel (/metamanager-test/)
     │
     │  workflow_dispatch: promote-to-main.yml
     ▼
-main ──push──> release.yml (tag + GitHub release + apt server deploy)
+main ──merge + tag + GitHub release + deploy to apt server production channel (/metamanager/)
 ```
+
+Real workflows: `ci.yml`, `promote-to-test.yml`, `promote-to-main.yml` only.
 
 ---
 
-## What's Left
+## Open Items
 
 ### Author Settings Simplification
 
 **Current state:** User profile has SEO Title Override, Meta Description textarea, and noindex radio buttons (Default/Force noindex/Force index). These overrides are not saving correctly and are unnecessary — WordPress already has titles and the author bio field for description.
 
 **Changes:**
-- Remove SEO Title Override field from user profile
-- Remove Meta Description textarea from user profile
+- Remove SEO Title Override field from user profile (title override removal also covers the per-term check in `templates/metabox/term-metadata.php`)
+- Remove Meta Description textarea from user profile; author archive description uses `$author->description` (bio) directly
 - Replace noindex radio buttons with a single "Allow search indexing" checkbox
 - Add a per-author "Show Person schema" checkbox (currently only a global setting)
-- Fix: author archive description uses `$author->description` (bio) directly, no separate override
 - Fix: author archive title uses global template only, no per-author override
 - Fix: settings save issue — investigate why existing settings say they saved but didn't persist
 
@@ -418,44 +98,6 @@ main ──push──> release.yml (tag + GitHub release + apt server deploy)
 - `includes/metadata/admin/class-mm-user-meta-panel.php` — update save logic
 - `includes/metadata/modules/class-mm-mod-head-meta.php` — remove per-author title/description override resolution
 - `includes/metadata/modules/class-mm-mod-author.php` — check per-author person_schema toggle
-
-### CPT Submenu with Dashboard
-
-**Current state:** 8 CPTs (Event, Service, HowTo, FAQPage, TouristTrip, TouristDestination, Vehicle, Course) each register as top-level admin menu items. Takes up a lot of space. TouristDestination is a long label.
-
-**Changes:**
-- Add a "Schema" parent menu item with a dashboard page showing all schema types, post counts, and create links
-- Move all CPTs under the "Schema" submenu using `'show_in_menu' => 'schema-types.php'`
-- Shorten menu labels: TouristDestination → Destinations, TouristTrip → Trips, Vehicle → Vehicles
-- Dashboard page: table of schema types, post counts per type, "Add New" links
-
-**Files:**
-- `includes/metadata/class-mm-schema-post-types.php` — change `show_in_menu`, register parent menu
-- New: `includes/metadata/admin/class-mm-schema-dashboard.php` — dashboard page
-
-### Remove Title Alternatives
-
-**Current state:** Per-post metabox uses template system with `%%post_title%%` (the WordPress title). Per-term and per-author have title override fields.
-
-**Changes:**
-- Remove title override from user profile (covered in Author Settings Simplification)
-- Check term metadata template for title override and remove if present
-- No change needed for posts — template system already uses WordPress titles
-
-**Files:**
-- `templates/metabox/user-metadata.php` — covered above
-- `templates/metabox/term-metadata.php` — check and remove title override if present
-
-### Remove Author MetaDescription Override
-
-**Current state:** User profile has a Meta Description textarea that overrides the author bio.
-
-**Changes:**
-- Remove Meta Description textarea from user profile (covered in Author Settings Simplification)
-- Author archive description falls back to `$author->description` (bio) → site description
-
-**Files:**
-- Covered in Author Settings Simplification above
 
 ### HIGH — Event as WooCommerce Product (S-4)
 
@@ -520,13 +162,6 @@ Simple WooCommerce integration for Service posts — make services purchasable a
 - Modified: `includes/metadata/class-mm-schema-types.php` — add `service_booking_url` field
 - Modified: `includes/metadata/modules/class-mm-mod-schema.php` — Service schema includes offers from WC when available
 
-**WooCommerce integration points:**
-- Register custom product type "Service Booking" in WC admin
-- Product data tab shows service selector dropdown
-- On order complete → generate booking hash, save to order meta
-- WC email template filter → include booking confirmation details
-- Service schema auto-populates price/availability from WC product data
-
 **Service-specific fields:**
 | Field | Purpose |
 |-------|---------|
@@ -539,10 +174,7 @@ Simple WooCommerce integration for Service posts — make services purchasable a
 | `service_includes` | What's included in the service |
 
 **NOT in scope:** (WooCommerce handles these)
-- Payment processing
-- Analytics and reporting
-- Coupon/discount codes
-- Refund processing
+- Payment processing, analytics, coupons, refunds
 - Appointment scheduling beyond basic booking hash
 - Calendar integration (use Bookly, Amelia, etc. if needed)
 
@@ -587,33 +219,9 @@ Sell digital media files (photos, videos, documents) as WooCommerce products wit
 **Files to change:**
 - New: `includes/class-mm-media-protection.php` — File protection, watermarking, license generation
 - New: `includes/rest-api/class-mm-rest-media-download.php` — PHP streaming endpoint with purchase validation
-- New: `includes/metadata/modules/class-mm-mod-media-display.php` — Featured image citation HTML output
 - Modified: `includes/class-mm-admin.php` — Add protection toggle and product linking to attachment edit screen
 - Modified: `includes/metadata/class-mm-site-settings.php` — Add media.featured_image_citation setting
 - Modified: `includes/metadata/class-mm-schema-types.php` — MediaObject schema from existing attachment metadata
-- Modified: `includes/metadata/modules/class-mm-mod-schema.php` — Archive media schema, protected media schema references
-
-**Media Library Integration:**
-- Single unified library (no separate directory for protected files)
-- Protected files show "Protected" badge/column
-- Filter by status: All | Public | Protected
-- Protected files display watermarked preview in library
-- Clicking protected file shows protection status + product link
-
-**Attachment edit screen additions:**
-- Protection toggle (on/off)
-- Product selector (link to WooCommerce product)
-- Watermarked preview preview
-- Protected file status indicator
-- **Public file warning**: When linking to product, warn if file is publicly accessible
-
-**Upload Flow (new media as product):**
-- "Add Media" button on product edit screen
-- Upload goes directly to `/srv/media/` (protected)
-- No reference detection needed (file is new)
-- Watermarked preview auto-generated for images
-- Product linked automatically
-- Metadata edited before upload (license type, etc.)
 
 **Protection Flow (existing media → product):**
 1. System scans for all public references to the media (posts, pages, widgets, etc.)
@@ -625,54 +233,30 @@ Sell digital media files (photos, videos, documents) as WooCommerce products wit
 7. Link attachment to WooCommerce product
 8. If no replacement selected: Product linking is ABORTED, media remains public
 
-**Reference Detection:**
-- Search `post_content` for original media URL/ID
-- Search `postmeta` for media references
-- Search widget options for media URLs
-- Search gallery/block references
-- Return list of locations for user to review
-
-**Replacement Options:**
-- Select existing media from media library (must be different file)
-- Upload new media to use as replacement
-- If no replacement selected: Product linking is ABORTED, media remains public
-
-**WooCommerce integration points:**
-- On order complete → move file to protected storage, generate watermarked preview, create license
-- WC email template filter → attach license document
-- My Account page → license document accessible in Downloads section
-- Download counter/limit enforcement via streaming endpoint
-
 **NOT in scope:** (WooCommerce handles these)
-- Payment processing
-- Order management
-- Customer account management
+- Payment processing, order management, customer accounts
 - Download tracking/limits (we enforce, WC stores)
-- Coupon/discount codes
-- Refund processing
+- Coupon/discount codes, refunds
 
 ---
 
 ### MEDIUM — Schema Type Cleanup (S-5)
 
-Remove redundant schema types that map to WordPress built-ins:
+Review the selectable type list (`MM_Schema_Types::get_schema_types()`) for
+redundancy with WordPress built-ins:
 
-| Type | Maps to | Action |
-|------|---------|--------|
-| BlogPosting | Default `post` type | Remove CPT, schema module detects `post` type |
-| WebPage | Default `page` type | Remove CPT, schema module detects `page` type |
-| ProfilePage | Author archive pages | Remove CPT, schema module detects `is_author()` |
-| Article | Redundant with WebPage + BlogPosting | Remove entirely |
+| Type | Maps to | Proposed action |
+|------|---------|-----------------|
+| `BlogPosting` | Default `post` type | Drop from the selector if auto-detection suffices |
+| `WebPage` | Default `page` type | Drop from the selector if auto-detection suffices |
+| `ProfilePage` | Author archive pages | Drop from the selector if auto-detection suffices |
 
-**Final CPT list:**
-| CPT | Type | Status |
-|-----|------|--------|
-| `mm_event` | Event | Editable, .ical, WC product integration |
-| `mm_service` | Service | Editable, WC product integration |
-| `mm_how_to` | HowTo | Editable |
-| `mm_about_page` | AboutPage | Read-only, auto-generated |
-| `mm_contact_page` | ContactPage | Read-only, auto-generated |
-| `mm_calendar` | Calendar | Read-only, auto-generated |
+These are selectable override types, not CPTs. The registered CPTs
+(`MM_Schema_Post_Types::TYPES`) are: `mm_event`, `mm_service`, `mm_how_to`,
+`mm_faq_page`, `mm_trip`, `mm_destination`, `mm_vessel`, `mm_course`,
+`mm_business`, `mm_organization`. Page templates (not CPTs): `mm-about`
+(AboutPage), `mm-contact` (ContactPage), `mm-calendar` (CollectionPage).
+`Article` is already removed (redundant with BlogPosting).
 
 ---
 
@@ -684,7 +268,7 @@ Integration tests require WordPress test suite at `/tmp/wordpress-tests-lib`. PE
 
 ## Media Type Capabilities Reference
 
-The bulk metadata form must respect these write capabilities per `MM_Metadata::WRITE_CAPABILITY`:
+The bulk metadata form must respect these write capabilities per `MM_Metadata::WRITE_CAPABILITY` (code is the source of truth):
 
 | Format | Write capability | Writable fields |
 |--------|-----------------|-----------------|
@@ -697,7 +281,7 @@ The bulk metadata form must respect these write capabilities per `MM_Metadata::W
 | WAV/WMA audio | `xmp_only` | XMP-only fields |
 | PDF | `xmp_only` | XMP-only fields |
 
-Compression support:
+Compression support (see `JOB_QUEUE_SPEC.md` for tool flags):
 | Format | Compressible |
 |--------|-------------|
 | JPEG | Yes (jpegtran) |
@@ -705,83 +289,9 @@ Compression support:
 | WebP | Yes (cwebp) |
 | AVIF | Yes (avifenc) |
 | GIF/TIFF | No |
-| Video (MP4/MOV/AVI/WMV/MKV/WebM/OGV) | Yes (ffmpeg remux) |
+| Video (MP4/MOV/AVI/WMV/MKV/WebM/OGV/…) | Yes (ffmpeg remux) |
 | Audio | No |
 | PDF | No |
-
----
-
-## Restoration & Expansion Plan (2026-08-11)
-
-### Restoration — Missing Functionality
-
-| # | Item | Priority | Status |
-|---|------|----------|--------|
-| R-1 | `META_SYNCED` constant + registration | HIGH | Done — constant defined, registered, set after import, used by `on_upload()` and Scan Library |
-| R-2 | Queue notice `queued` for metadata jobs | HIGH | Done — `write_job()` now pushes `'queued'` notice for metadata jobs behind pending |
-| R-3 | Media Processing page: media-type-aware form | HIGH | Done — query includes all MIME types, filter dropdown, data-write-cap attributes, JS field filtering |
-| R-4 | Media Processing page: compression checkbox per format | HIGH | Done — data-compressible attribute, JS hide/show, format-specific labels |
-| R-5 | Media Processing page: GPS read-only display | MEDIUM | Done — GPS lat/lon/alt shown in grid with pin icon |
-| R-6 | `phpunit.xml.dist` | MEDIUM | Exists at `tests/phpunit.xml` but requires WordPress test suite at `/tmp/wordpress-tests-lib` |
-| R-7 | GPS map preview on attachment edit | LOW | Done — Leaflet/OpenStreetMap enqueued on attachment edit screen |
-
-### Expansion — Platform Improvements
-
-| # | Item | Priority | Status |
-|---|------|----------|--------|
-| E-1 | Bulk metadata: video/audio/PDF support | HIGH | Done — query includes all MIME types, grid shows icons per type |
-| E-2 | Bulk metadata: per-MIME field filtering | HIGH | Done — client-side JS + server-side MIME validation in AJAX handler |
-| E-3 | Bulk metadata: dynamic compression checkbox | MEDIUM | Done — JS toggles visibility per format with format-specific labels |
-| E-4 | Attachment GPS map preview | LOW | Done — Leaflet/OSM map with marker |
-| E-5 | `phpunit.xml.dist` | MEDIUM | Exists at `tests/phpunit.xml` |
-| E-6 | Metadata versioning | LOW | Done — mm_meta_history table, snapshots on save, version history pane on attachment edit |
-| E-7 | Metadata diff view | LOW | Done — compare any two versions or current values, AJAX diff with color-coded before/after table |
-| S-1 | Schema type thinning | HIGH | Done — removed 7 types (LocalBusiness, Organization, Person, FAQPage, TouristAttraction, TouristTrip, RealEstateListing), locked BlogPosting for posts, removed dead FAQ extraction code |
-| S-2 | WooCommerce Product schema | HIGH | Done — auto-populates Product schema from WooCommerce meta (price, availability, brand, sku), manual fields as overrides |
-| S-3 | Facebook Page ID field | MEDIUM | Done — fb:admins field added under fb:app_id on Social settings, meta tag emitted in head |
-| S-4 | Event as WooCommerce Product | HIGH | Planned — event-ticket linking, QR codes, check-in endpoint |
-| S-5 | Schema Type Cleanup | MEDIUM | Planned — remove redundant CPTs (BlogPosting, WebPage, ProfilePage, Article) |
-| S-6 | ContactPage Auto-Generation | MEDIUM | Done — auto-generates from Business Profile settings |
-| S-7 | AboutPage Auto-Generation | MEDIUM | Done — auto-generates from Business Profile settings |
-| S-8 | Calendar Auto-Generation | MEDIUM | Done — navigable month-by-month event calendar |
-| S-9 | Service as WooCommerce Product | HIGH | Planned — service-booking linking, booking hashes |
-| S-10 | Digital Media as WooCommerce Product | HIGH | Planned — file protection, watermarks, licensing |
-| S-11 | Featured Image Citation | MEDIUM | Done — attribution HTML under featured images |
-
----
-
-## Audit #4 — 2026-08-24 (Cross-Repo Audit) — RESOLVED
-
-### Documentation Stale — RESOLVED
-
-| # | File | Issue | Severity | Status |
-|---|------|-------|----------|--------|
-| D-1 | `ROADMAP.md:344-370` | S-2 "WooCommerce Product Schema" listed in "What's Left" but marked Done | MEDIUM | ✅ Fixed — removed from "What's Left" |
-| D-2 | `ROADMAP.md:569-594` | S-11 "Featured Image Citation" listed in "What's Left" but marked Done | MEDIUM | ✅ Fixed — removed from "What's Left" |
-| D-3 | `ROADMAP.md:619-680` | S-6/S-7/S-8 implemented but not in Expansion table | LOW | ✅ Fixed — added to Expansion table |
-
-### Code Issues — RESOLVED
-
-| # | File | Line | Issue | Severity | Status |
-|---|------|------|-------|----------|--------|
-| C-1 | `class-mm-mod-media-display.php` | 10-12 | Extends `MM_Mod_Base` vestigially | MEDIUM | ✅ Fixed |
-| C-2 | `class-mm-mod-media-display.php` | — | Uses `register()` method inconsistent with other modules | LOW | ✅ Fixed |
-| C-3 | `class-mm-mod-discovery.php` | 14 | Does not extend `MM_Mod_Base` | LOW | ✅ Fixed |
-
-### Test Coverage Gaps — RESOLVED
-
-| # | Module | Issue | Severity | Status |
-|---|--------|-------|----------|--------|
-| T-1 | `MM_Mod_Robots` | No unit or integration tests | MEDIUM | ✅ Fixed |
-| T-2 | `MM_Mod_Hygiene` | No unit or integration tests | MEDIUM | ✅ Fixed |
-| T-3 | `MM_Mod_Html_Sitemap` | No unit or integration tests | MEDIUM | ✅ Fixed |
-| T-4 | `MM_Mod_Media_Display` | No unit or integration tests | MEDIUM | ✅ Fixed |
-
-### REST API — Application Passwords Migration — RESOLVED (verified 2026-10-09)
-
-`metamanager/v1/status` already requires an authenticated user with `manage_options` — the Application Passwords behavior this item called for. The permission callback rejects unauthenticated requests with 401 (`includes/class-mm-admin.php:1415-1435`, comment: "Protected by WordPress Application Passwords"). WordPress core validates `Authorization: Basic` Application Password credentials before the callback runs.
-
-The IP allowlist (`mm_api_allowed_ips`) was NOT removed: it remains correct and live for the internal polling routes (`/compression-status`, `/jobs`, `/stats`, etc.) via `$api_check` (`class-mm-admin.php:1289-1304`). See ARCHITECTURE.md "REST API" for the per-route access model.
 
 ---
 
@@ -794,4 +304,4 @@ The IP allowlist (`mm_api_allowed_ips`) was NOT removed: it remains correct and 
 - All software moves to production through native update systems (apt, WordPress auto-update).
 - PHP 8.4 for WP-CLI (`php8.4 /usr/local/bin/wp --path=/srv/www/wordpress`).
 - SSH user: `richardkentgates` (not root); default SSH key.
-- Plugin triggers daemon updates automatically — no manual intervention on success.
+- Daemon updates happen via OS apt (GCM maintenance window) — the plugin never triggers them.
