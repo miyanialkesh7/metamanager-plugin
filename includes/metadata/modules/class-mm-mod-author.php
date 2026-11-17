@@ -24,25 +24,24 @@ class MM_Mod_Author extends MM_Mod_Base {
 			}
 		}
 
-		// Singular Person node (author of the post). Posts and pages have
-		// separate settings. Template pages (About, Contact, Calendar) are
-		// business pages, not authored content — always skipped.
+		// Singular Person node (author of the post). Pages and posts have
+		// separate settings; CPTs (mm_service, mm_trip, …) follow the posts
+		// setting. Template pages (About, Contact, Calendar) are business
+		// pages, not authored content — always skipped.
 		if ( $context->is_singular() ) {
 			$post = $context->get_post();
-			if ( $post && 'page' === $post->post_type ) {
-				$template = MM_Schema_Post_Types::get_post_template( $post );
-				if ( $template ) {
-					return;
-				}
-				if ( ! $settings->get( 'authors.person_schema_pages', true ) ) {
-					return;
-				}
-			} elseif ( $post && 'post' === $post->post_type ) {
-				if ( ! $settings->get( 'authors.person_schema_posts', true ) ) {
-					return;
-				}
-			}
 			if ( $post ) {
+				if ( 'page' === $post->post_type ) {
+					$template = MM_Schema_Post_Types::get_post_template( $post );
+					if ( $template ) {
+						return;
+					}
+					if ( ! $settings->get( 'authors.person_schema_pages', true ) ) {
+						return;
+					}
+				} elseif ( ! $settings->get( 'authors.person_schema_posts', true ) ) {
+					return;
+				}
 				$author = get_userdata( (int) $post->post_author );
 				if ( $author ) {
 					$this->add_node( $data, $this->build_person_node( $author, $settings ) );
