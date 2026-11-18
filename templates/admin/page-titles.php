@@ -115,16 +115,6 @@ $template_vars_help = '%%sitetitle%% %%tagline%% %%sep%% %%post_title%% %%term_t
 			</tr>
 			<?php endif; ?>
 			<tr>
-				<th>Description Source</th>
-				<td>
-					<select name="<?php echo esc_attr($opt); ?>[titles][post_types][<?php echo esc_attr($pt_slug); ?>][description_source]">
-						<?php foreach (['excerpt'=>'Excerpt only','content'=>'Content (trimmed)','none'=>'None (manual only)'] as $ds_val => $ds_label) : ?>
-							<option value="<?php echo esc_attr($ds_val); ?>" <?php selected($pt_cfg['description_source']??'excerpt',$ds_val); ?>><?php echo esc_html($ds_label); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</td>
-			</tr>
-			<tr>
 				<th>Robots Defaults</th>
 				<td>
 					<label>

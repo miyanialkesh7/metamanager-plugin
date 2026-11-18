@@ -526,25 +526,21 @@ class MM_Site_Settings {
 					'post' => [
 						'single_title'       => '%%post_title%% %%sep%% %%sitetitle%%',
 						'archive_title'      => 'Blog %%sep%% %%sitetitle%%',
-						'description_source' => 'excerpt',
 						'noindex'            => false,
 						'noindex_archive'    => false,
 					],
 					'page' => [
 						'single_title'       => '%%post_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'excerpt',
 						'noindex'            => false,
 					],
 				],
 				'taxonomies' => [
 					'category' => [
 						'archive_title'      => '%%term_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'term_description',
 						'noindex'            => false,
 					],
 					'post_tag' => [
 						'archive_title'      => '%%term_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'term_description',
 						'noindex'            => false,
 					],
 				],

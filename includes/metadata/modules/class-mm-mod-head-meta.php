@@ -146,10 +146,9 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 				if ( ! empty( $meta['description'] ) ) {
 					return $settings->resolve( $meta['description'], $post );
 				}
-				// Per-post meta, else configured source (default: excerpt only).
-				$source = $settings->get( "titles.post_types.{$post->post_type}.description_source", 'excerpt' );
-				$desc = $this->auto_description( $post, $source );
-				return $desc ?: get_bloginfo( 'description' );
+				// Description is the excerpt, direct export as-is.
+				$desc = $post->post_excerpt;
+				return $desc !== '' ? $desc : get_bloginfo( 'description' );
 			}
 		}
 
@@ -159,11 +158,8 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 
 		if ( $context->is_tax() || $context->is_category() || $context->is_tag() ) {
 			$term = $context->get_term();
-			if ( $term ) {
-				$source = $settings->get( "titles.taxonomies.{$term->taxonomy}.description_source", 'term_description' );
-				if ( 'term_description' === $source && $term->description ) {
-					return wp_strip_all_tags( $term->description );
-				}
+			if ( $term && $term->description ) {
+				return $term->description;
 			}
 		}
 
@@ -318,20 +314,6 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 	// Helpers
 	// -------------------------------------------------------------------------
-
-	private function auto_description( \WP_Post $post, string $source ): string {
-		if ( 'excerpt' === $source || '' === $source ) {
-			if ( $post->post_excerpt ) {
-				return wp_trim_words( wp_strip_all_tags( $post->post_excerpt ), 25, '' );
-			}
-			// Excerpt-only: never fall back to post content.
-			return '';
-		}
-		if ( 'content' === $source ) {
-			return wp_trim_words( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ), 25, '' );
-		}
-		return '';
-	}
 
 	private function maybe_append_page( string $title, int $page, MM_Site_Settings $settings ): string {
 		if ( $page > 1 && $settings->get( 'titles.paginate_append', true ) ) {
