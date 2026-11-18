@@ -270,6 +270,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				'@id'   => $url . '#primaryimage',
 				'url'   => $og_image['url'],
 			);
+			// Google Image Metadata requirements.
+			$license_fields = $this->get_image_license_fields( $settings );
+			$image_node = array_merge( $image_node, $license_fields );
 			// Only emit width/height as QuantitativeValue when valid positive integers.
 			if ( ! empty( $og_image['width'] ) && is_numeric( $og_image['width'] ) && (int) $og_image['width'] > 0 ) {
 				$image_node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $og_image['width'], 'unitCode' => 'PIX' );
@@ -846,6 +849,33 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	}
 
 	/**
+	 * Get image licensing fields for ImageObject nodes.
+	 * Google requires license, acquireLicensePage, and creditText.
+	 */
+	private function get_image_license_fields( MM_Site_Settings $settings ): array {
+		$biz  = $settings->all_business();
+		$name = $biz['name'] ?? get_bloginfo( 'name' );
+
+		// Find terms-of-service page for license URL.
+		$license_url = home_url( '/terms-of-service/' );
+		$terms = get_page_by_path( 'terms-of-service' );
+		if ( ! $terms ) { $terms = get_page_by_path( 'terms-of-services' ); }
+		if ( $terms ) { $license_url = get_permalink( $terms->ID ); }
+
+		// Find contact page for acquireLicensePage.
+		$contact_url = home_url( '/contact/' );
+		$contact = get_page_by_path( 'contact' );
+		if ( ! $contact ) { $contact = get_page_by_path( 'contact-us' ); }
+		if ( $contact ) { $contact_url = get_permalink( $contact->ID ); }
+
+		return [
+			'license'            => $license_url,
+			'acquireLicensePage' => $contact_url,
+			'creditText'         => $name,
+		];
+	}
+
+	/**
 	 * Emit an ImageObject schema node for a detected image.
 	 */
 	private function add_image_schema( array &$data, array $item, \WP_Post $post ): void {
@@ -867,6 +897,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			'url'        => $schema_url,
 			'contentUrl' => $schema_url,
 		];
+
+		// Google Image Metadata requirements: license, acquireLicensePage, creditText.
+		$license_fields = $this->get_image_license_fields( MM_Site_Settings::get_instance() );
+		$node = array_merge( $node, $license_fields );
 
 		if ( $item['width'] && is_numeric( $item['width'] ) && (int) $item['width'] > 0 ) {
 			$node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $item['width'], 'unitCode' => 'PIX' );
