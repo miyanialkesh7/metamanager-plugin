@@ -190,6 +190,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			if ( file_exists( $local_path ) ) {
 				$data = file_get_contents( $local_path );
 				if ( $data ) {
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- vCard PHOTO embedding, not obfuscation
 					return chunk_split( base64_encode( $data ), 75, "\r\n " );
 				}
 			}
@@ -201,6 +202,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			return '';
 		}
 		$data = wp_remote_retrieve_body( $response );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- vCard PHOTO embedding, not obfuscation
 		return $data ? chunk_split( base64_encode( $data ), 75, "\r\n " ) : '';
 	}
 
