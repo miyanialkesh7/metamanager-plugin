@@ -44,6 +44,8 @@ class MM_Metadata {
 	public const META_OWNER     = 'mm_owner';
 	public const META_HEADLINE  = 'mm_headline';
 	public const META_CREDIT    = 'mm_credit';
+	public const META_LICENSE   = 'mm_license';
+	public const META_ACQUIRE_LICENSE_PAGE = 'mm_acquire_license_page';
 
 	/** Semicolon-separated keywords. Multi-value IPTC/XMP tags are joined with "; ". */
 	public const META_KEYWORDS = 'mm_keywords';
@@ -567,7 +569,21 @@ class MM_Metadata {
 			'label' => esc_html__( 'Credit', 'metamanager' ),
 			'input' => 'text',
 			'value' => (string) get_post_meta( $id, self::META_CREDIT, true ),
-			'helps' => esc_html__( 'Credit line (e.g. agency). → IPTC:Credit, XMP:Credit', 'metamanager' ),
+			'helps' => esc_html__( 'Credit line (e.g. agency or photographer name). Used as schema creditText. Leave empty to use the business name. → IPTC:Credit, XMP:Credit', 'metamanager' ),
+		];
+
+		$form_fields[ self::META_LICENSE ] = [
+			'label' => esc_html__( 'License URL', 'metamanager' ),
+			'input' => 'text',
+			'value' => (string) get_post_meta( $id, self::META_LICENSE, true ),
+			'helps' => esc_html__( 'URL of the license this image is available under. Used as schema license. Leave empty to use the site terms-of-service page.', 'metamanager' ),
+		];
+
+		$form_fields[ self::META_ACQUIRE_LICENSE_PAGE ] = [
+			'label' => esc_html__( 'Acquire License URL', 'metamanager' ),
+			'input' => 'text',
+			'value' => (string) get_post_meta( $id, self::META_ACQUIRE_LICENSE_PAGE, true ),
+			'helps' => esc_html__( 'URL where this image\'s license can be acquired. Used as schema acquireLicensePage. Leave empty to use the site contact page.', 'metamanager' ),
 		];
 
 		// --- Classification ---
