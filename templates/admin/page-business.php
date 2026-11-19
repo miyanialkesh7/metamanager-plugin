@@ -230,7 +230,7 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_tos_page">Terms of Service Page</label></td>
 						<td>
 							<?php wp_dropdown_pages( [
-								'name'              => $opt . '[contact_form_tos_page_id]',
+								'name'              => esc_attr( $opt ) . '[contact_form_tos_page_id]',
 								'id'                => 'gcm_cf_tos_page',
 								'selected'          => (int) ( $b['contact_form_tos_page_id'] ?? 0 ),
 								'show_option_none'  => '— Select Page —',

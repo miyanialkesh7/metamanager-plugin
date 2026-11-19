@@ -1237,7 +1237,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 				'body'    => [
 					'secret'   => $rc_secret,
 					'response' => $rc_token,
-					'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+					'remoteip' => sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) ),
 				],
 			] );
 			if ( is_wp_error( $verify ) ) {

@@ -55,7 +55,7 @@ $s   = $settings;
 			<td>
 				<?php
 				wp_dropdown_pages( [
-					'name'             => $opt . '[contact_form][tos_page_id]',
+					'name'             => esc_attr( $opt ) . '[contact_form][tos_page_id]',
 					'id'               => 'gcm_cf_tos_page',
 					'selected'         => (int) $s->get( 'contact_form.tos_page_id', 0 ),
 					'show_option_none' => '— Select Page —',
