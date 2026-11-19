@@ -603,7 +603,7 @@ class MM_CLI extends \WP_CLI_Command {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Set metadata fields on attachments (Creator, Copyright, Owner, Headline, etc.).
+	 * Get or set metadata fields on attachments (Creator, Copyright, Owner, Headline, etc.).
 	 *
 	 * Mirrors the Batch Metadata page and per-image attachment editor fields.
 	 * Only the provided fields are updated; blanks are skipped. Queue the
@@ -612,8 +612,11 @@ class MM_CLI extends \WP_CLI_Command {
 	 *
 	 * ## OPTIONS
 	 *
-	 * <ids>
-	 * : Comma-separated attachment IDs, or "all" for every image in the library.
+	 * <get|set|history>
+	 * : Subcommand: get, set, or history.
+	 *
+	 * [<ids>]
+	 * : For get/history: attachment ID. For set: comma-separated IDs or "all".
 	 *
 	 * [--creator=<text>]
 	 * [--copyright=<text>]
@@ -626,17 +629,45 @@ class MM_CLI extends \WP_CLI_Command {
 	 * [--state=<text>]
 	 * [--country=<text>]
 	 * [--rating=<0-5>]
-	 * : Field value(s) to set.
+	 * : For set: field value(s) to set.
+	 *
+	 * [--limit=<n>]
+	 * : For history: number of entries (default 10).
 	 *
 	 * ## EXAMPLES
 	 *
+	 *     wp metamanager meta get 42
 	 *     wp metamanager meta set 42,43 --creator="Jane Doe" --copyright="2026 Acme"
 	 *     wp metamanager meta set all --keywords="landscape; sunset"
+	 *     wp metamanager meta history 42
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
 	 */
-	public function meta_set( array $args, array $assoc_args ): void {
+	public function meta( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? '';
+		switch ( $sub ) {
+			case 'set':
+				$this->meta_set( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'get':
+				$this->meta_get( array_slice( $args, 1 ) );
+				break;
+			case 'history':
+				$this->meta_history( array_slice( $args, 1 ), $assoc_args );
+				break;
+			default:
+				\WP_CLI::error( "Unknown subcommand: {$sub}. Valid: get, set, history" );
+		}
+	}
+
+	/**
+	 * Set metadata fields on attachments.
+	 *
+	 * @param array $args       Positional arguments (ids).
+	 * @param array $assoc_args Named arguments (field values).
+	 */
+	private function meta_set( array $args, array $assoc_args ): void {
 		$field_map = [
 			'creator'   => MM_Metadata::META_CREATOR,
 			'copyright' => MM_Metadata::META_COPYRIGHT,
@@ -689,18 +720,9 @@ class MM_CLI extends \WP_CLI_Command {
 	/**
 	 * Read all Metamanager metadata fields for one attachment.
 	 *
-	 * ## OPTIONS
-	 *
-	 * <id>
-	 * : Attachment ID.
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp metamanager meta get 42
-	 *
-	 * @param array $args Positional arguments.
+	 * @param array $args Positional arguments (id).
 	 */
-	public function meta_get( array $args ): void {
+	private function meta_get( array $args ): void {
 		$id = (int) ( $args[0] ?? 0 );
 		if ( ! $id ) {
 			\WP_CLI::error( 'Usage: wp metamanager meta get <attachment_id>' );
@@ -735,24 +757,12 @@ class MM_CLI extends \WP_CLI_Command {
 	}
 
 	/**
-	 * Show metadata version history and field-level diff for an attachment.
+	 * Show metadata version history for an attachment.
 	 *
-	 * ## OPTIONS
-	 *
-	 * <id>
-	 * : Attachment ID.
-	 *
-	 * [--limit=<n>]
-	 * : Number of history entries to show (default 10).
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp metamanager meta history 42
-	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Named arguments.
+	 * @param array $args       Positional arguments (id).
+	 * @param array $assoc_args Named arguments (limit).
 	 */
-	public function meta_history( array $args, array $assoc_args ): void {
+	private function meta_history( array $args, array $assoc_args ): void {
 		$id = (int) ( $args[0] ?? 0 );
 		if ( ! $id ) {
 			\WP_CLI::error( 'Usage: wp metamanager meta history <attachment_id>' );
