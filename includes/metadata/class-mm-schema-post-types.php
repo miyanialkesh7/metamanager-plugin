@@ -1453,7 +1453,14 @@ class MM_Schema_Post_Types {
 		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
 		// only — never shown in the human-visible details table.
 		$hidden_fields_by_type = [
-			'Service' => [ 'service_type' ],
+			'Service'    => [ 'service_type', 'service_currency' ],
+			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
+			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
+			'Product'    => [ 'product_currency' ],
+			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency' ],
+			'Course'     => [ 'course_duration', 'course_currency', 'course_code' ],
+			'LocalBusiness' => [ 'business_type', 'business_hours' ],
+			'Organization'  => [ 'org_type' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 
