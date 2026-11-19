@@ -600,6 +600,104 @@ class MM_CLI extends \WP_CLI_Command {
 	}
 
 	// -----------------------------------------------------------------------
+	// geocode — reverse-geocode GPS to address fields
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Reverse-geocode GPS coordinates to address fields on images.
+	 *
+	 * Only populates empty fields — never overwrites existing values.
+	 * Uses the Google Maps API key from the business profile.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <ids>
+	 * : Comma-separated attachment IDs, or "all" for every image in the library.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager geocode 42,43
+	 *     wp metamanager geocode all
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Named arguments (unused).
+	 * @subcommand geocode
+	 */
+	public function geocode( array $args, array $assoc_args ): void {
+		$biz = MM_Site_Settings::get_instance()->all_business();
+		$key = (string) ( $biz['google_maps_api_key'] ?? '' );
+		if ( '' === $key ) {
+			\WP_CLI::error( 'No Google Maps API key set in business profile.' );
+		}
+
+		$target = $args[0] ?? '';
+		if ( 'all' === strtolower( $target ) ) {
+			$ids = get_posts( [
+				'post_type'      => 'attachment',
+				'post_mime_type' => 'image',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			] );
+		} else {
+			$ids = array_filter( array_map( 'intval', explode( ',', $target ) ) );
+		}
+		if ( empty( $ids ) ) {
+			\WP_CLI::error( 'No matching images found.' );
+		}
+
+		$count = 0;
+		$skipped = 0;
+		foreach ( $ids as $id ) {
+			if ( ! wp_attachment_is_image( $id ) ) {
+				continue;
+			}
+
+			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
+			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
+			if ( 0.0 === $lat && 0.0 === $lng ) {
+				++$skipped;
+				continue;
+			}
+
+			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
+			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
+			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
+
+			if ( '' !== $city && '' !== $state && '' !== $country ) {
+				++$skipped;
+				continue;
+			}
+
+			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
+			if ( ! $geo ) {
+				++$skipped;
+				continue;
+			}
+
+			$updated = false;
+			if ( '' === $city && '' !== $geo['city'] ) {
+				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
+				$updated = true;
+			}
+			if ( '' === $state && '' !== $geo['state'] ) {
+				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
+				$updated = true;
+			}
+			if ( '' === $country && '' !== $geo['country'] ) {
+				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
+				$updated = true;
+			}
+			if ( $updated ) {
+				++$count;
+			} else {
+				++$skipped;
+			}
+		}
+
+		\WP_CLI::success( sprintf( 'Geocoded %d images (%d skipped).', $count, $skipped ) );
+	}
+
+	// -----------------------------------------------------------------------
 	// meta — per-object metadata fields
 	// -----------------------------------------------------------------------
 

@@ -483,7 +483,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * : Longitude (auto-geocoded from address if blank).
 	 *
 	 * [--contact-form-enabled=<0|1>]
-	 * : Enable or disable the contact form.
+	 * : Contact form on/off (1 or 0).
 	 *
 	 * : Contact form delivery email (defaults to admin email).
 	 *
