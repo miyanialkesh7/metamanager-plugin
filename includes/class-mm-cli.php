@@ -552,6 +552,7 @@ class MM_CLI extends \WP_CLI_Command {
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
+	 * @subcommand set-licensing
 	 */
 	public function set_licensing( array $args, array $assoc_args ): void {
 		$license = (string) ( $assoc_args['license'] ?? '' );
