@@ -733,7 +733,6 @@ class MM_Site_Settings {
 			'show_json'            => true,
 			'show_csv'             => true,
 			'contact_form_enabled' => true,
-			'contact_form_to_email' => '',
 			'contact_form_subject_prefix' => '',
 			'contact_form_submit_text' => 'Submit',
 			'contact_form_tos_page_id' => 0,

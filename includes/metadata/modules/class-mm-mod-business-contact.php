@@ -1249,8 +1249,8 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			}
 		}
 
-		// Build email.
-		$to = $biz['contact_form_to_email'] ?? get_option( 'admin_email' );
+		// Build email — to address comes from the business email field.
+		$to = $biz['email'] ?? get_option( 'admin_email' );
 		if ( '' === trim( (string) $to ) ) {
 			$to = get_option( 'admin_email' );
 		}

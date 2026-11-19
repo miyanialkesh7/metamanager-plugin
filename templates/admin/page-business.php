@@ -215,8 +215,10 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 
 				<table style="margin:8px 0 12px 0;">
 					<tr>
-						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_to_email">To Email</label></td>
-						<td><input type="email" id="gcm_cf_to_email" name="<?php echo esc_attr($opt); ?>[contact_form_to_email]" value="<?php echo esc_attr( $b['contact_form_to_email'] ?? '' ); ?>" class="regular-text" placeholder="admin@domain.com"></td>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label>Delivery Email</label></td>
+						<td>
+							<p class="description" style="margin:0;">Uses the business email above (<?php echo esc_html( $b['email'] ?: 'not set' ); ?>). <?php esc_html_e( 'Set the business email field to change where submissions are delivered.', 'metamanager' ); ?></p>
+						</td>
 					</tr>
 					<tr>
 						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_subject_prefix">Subject Prefix</label></td>
