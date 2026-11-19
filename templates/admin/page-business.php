@@ -175,11 +175,15 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 					<input type="radio" name="<?php echo esc_attr($opt); ?>[location_type]" value="brick_and_mortar" <?php checked( ($b['location_type']??'brick_and_mortar') === 'brick_and_mortar' ); ?>>
 					<strong>Brick &amp; Mortar</strong> — customers visit this address
 				</label>
-				<label style="display:block;">
+				<label style="display:block;margin-bottom:6px;">
 					<input type="radio" name="<?php echo esc_attr($opt); ?>[location_type]" value="service_area" <?php checked( ($b['location_type']??'') === 'service_area' ); ?>>
 					<strong>Service Area</strong> — we come to you (mailing address only)
 				</label>
-				<p class="description">Controls how the address is presented. Service area businesses show the address as mailing-only with no map link. Brick &amp; mortar locations show the full address with map and directions.</p>
+				<label style="display:block;">
+					<input type="radio" name="<?php echo esc_attr($opt); ?>[location_type]" value="none" <?php checked( ($b['location_type']??'') === 'none' ); ?>>
+					<strong>No Location</strong> — online-only business or publication (no address shown)
+				</label>
+				<p class="description">Controls how the address is presented. Service area businesses show the address as mailing-only with no map link. Brick &amp; mortar locations show the full address with map and directions. No Location hides address, map, service areas, and hours entirely.</p>
 			</td>
 		</tr>
 		<tr>

@@ -470,7 +470,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * [--email=<text>]
 	 * : Email address.
 	 *
-	 * [--location-type=<brick_and_mortar|service_area>]
+	 * [--location-type=<brick_and_mortar|service_area|none>]
 	 * : Location type: brick_and_mortar or service_area.
 	 *
 	 * [--service-areas=<semicolon-separated>]

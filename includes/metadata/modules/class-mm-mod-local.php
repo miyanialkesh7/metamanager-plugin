@@ -79,23 +79,26 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['email'] = sanitize_email( $biz['email'] );
 		}
 
-		// Address & geo — always in schema (mailing address is valid structured data).
-		$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
-		if ( $addr ) {
-			$node['address'] = $addr;
-		}
+		// Address & geo — suppressed for location_type 'none' (online-only/publication).
+		$location_type = $biz['location_type'] ?? 'brick_and_mortar';
+		if ( 'none' !== $location_type ) {
+			$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
+			if ( $addr ) {
+				$node['address'] = $addr;
+			}
 
-		// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
-		// Suppressed for service_area businesses (home address — don't publish exact coordinates).
-		if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) && ( ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'service_area' ) ) {
-			$node['location'] = [
-				'@type' => 'Place',
-				'geo'   => [
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => (float) $biz['lat'],
-					'longitude' => (float) $biz['lng'],
-				],
-			];
+			// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
+			// Suppressed for service_area businesses (home address — don't publish exact coordinates).
+			if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) && ( $location_type !== 'service_area' ) ) {
+				$node['location'] = [
+					'@type' => 'Place',
+					'geo'   => [
+						'@type'     => 'GeoCoordinates',
+						'latitude'  => (float) $biz['lat'],
+						'longitude' => (float) $biz['lng'],
+					],
+				];
+			}
 		}
 
 		// Price range.
@@ -136,14 +139,16 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['paymentAccepted'] = implode( ', ', array_map( 'sanitize_text_field', $biz['payment_accepted'] ) );
 		}
 
-		// Opening hours.
-		$hours = $this->build_opening_hours( $biz['hours'] ?? [] );
-		if ( $hours ) {
-			$node['openingHoursSpecification'] = $hours;
+		// Opening hours — suppressed for location_type 'none'.
+		if ( 'none' !== $location_type ) {
+			$hours = $this->build_opening_hours( $biz['hours'] ?? [] );
+			if ( $hours ) {
+				$node['openingHoursSpecification'] = $hours;
+			}
 		}
 
-		// Service areas (areaServed).
-		if ( ! empty( $biz['service_areas'] ) ) {
+		// Service areas (areaServed) — suppressed for location_type 'none'.
+		if ( 'none' !== $location_type && ! empty( $biz['service_areas'] ) ) {
 			$service_areas = array_map( function ( $area ) {
 				return [ '@type' => 'City', 'name' => sanitize_text_field( $area ) ];
 			}, $biz['service_areas'] );

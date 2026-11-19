@@ -774,7 +774,7 @@ class MM_Site_Settings {
 			],
 			'lat'                  => '',
 			'lng'                  => '',
-			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
+			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area' | 'none'
 			'google_maps_api_key'  => '',
 			'show_sms'             => true,
 			'show_phone'           => true,

@@ -580,7 +580,7 @@ class MM_Abilities {
 							'country' => [ 'type' => 'string' ],
 						],
 					],
-					'location_type' => [ 'type' => 'string', 'enum' => [ 'brick_and_mortar', 'service_area' ] ],
+					'location_type' => [ 'type' => 'string', 'enum' => [ 'brick_and_mortar', 'service_area', 'none' ] ],
 					'service_areas' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
 					'lat'           => [ 'type' => 'string' ],
 					'lng'           => [ 'type' => 'string' ],

@@ -1232,22 +1232,37 @@ class MM_Schema_Post_Types {
 						<h2 class="mm-archive-card__title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h2>
-						<?php
-						// Schema field details (price, etc.) after title.
-						$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
-						if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
-							$detail_items = [];
-							$field_defs = MM_Schema_Types::get_fields_by_type()[ MM_Schema_Post_Types::slug_to_type( $slug ) ] ?? [];
-							$label_map = [];
-							foreach ( $field_defs as $fdef ) {
-								$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
-							}
-							foreach ( $saved_fields as $fkey => $fval ) {
-								$fval = trim( (string) $fval );
-								if ( '' === $fval ) continue;
-								$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
-								$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
-							}
+					<?php
+					// Schema field details (price, etc.) after title.
+					$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
+					if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
+						$detail_items = [];
+						$type = MM_Schema_Post_Types::slug_to_type( $slug );
+						$field_defs = MM_Schema_Types::get_fields_by_type()[ $type ] ?? [];
+						$label_map = [];
+						foreach ( $field_defs as $fdef ) {
+							$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
+						}
+						// Per-type hidden fields: machine-reading only, not shown in display.
+						$hidden_by_type = [
+							'Service'    => [ 'service_type', 'service_currency', 'service_provider_name', 'service_booking_url' ],
+							'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode', 'event_ticket_url' ],
+							'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
+							'Product'    => [ 'product_currency' ],
+							'TouristTrip' => [ 'trip_duration_iso', 'trip_currency', 'trip_booking_url' ],
+							'Course'     => [ 'course_duration', 'course_currency', 'course_code', 'course_enrollment_url' ],
+							'LocalBusiness' => [ 'business_type', 'business_hours' ],
+							'Organization'  => [ 'org_type' ],
+							'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
+						];
+						$hidden = $hidden_by_type[ $type ] ?? [];
+						foreach ( $saved_fields as $fkey => $fval ) {
+							$fval = trim( (string) $fval );
+							if ( '' === $fval ) continue;
+							if ( in_array( $fkey, $hidden, true ) ) continue;
+							$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
+							$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
+						}
 							if ( $detail_items ) : ?>
 						<div class="mm-archive-card__details">
 							<?php foreach ( $detail_items as $d ) : ?>
@@ -1471,15 +1486,15 @@ class MM_Schema_Post_Types {
 		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
 		// only — never shown in the human-visible details table.
 		$hidden_fields_by_type = [
-			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name', 'service_booking_url' ],
-			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode', 'event_ticket_url' ],
+			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name' ],
+			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
 			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
 			'Product'    => [ 'product_currency' ],
-			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency', 'trip_booking_url' ],
-			'Course'     => [ 'course_duration', 'course_currency', 'course_code', 'course_enrollment_url' ],
+			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency' ],
+			'Course'     => [ 'course_duration', 'course_currency', 'course_code' ],
 			'LocalBusiness' => [ 'business_type', 'business_hours' ],
 			'Organization'  => [ 'org_type' ],
-			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
+			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 
