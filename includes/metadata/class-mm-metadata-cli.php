@@ -430,22 +430,54 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * List all Metamanager preference options and their current values.
+	 * Get or set Metamanager preference options.
 	 *
 	 * ## OPTIONS
 	 *
+	 * <list|get|set>
+	 * : Subcommand: list, get, or set.
+	 *
+	 * [<key>]
+	 * : For get/set: option key (e.g. mm_compress_level).
+	 *
+	 * [<value>]
+	 * : For set: new value.
+	 *
 	 * [--format=<format>]
-	 * : Output format: table or json (default table).
+	 * : For list: output format (table or json).
 	 *
 	 * ## EXAMPLES
 	 *
 	 *   wp metamanager metadata pref list
-	 *   wp metamanager metadata pref list --format=json
+	 *   wp metamanager metadata pref get mm_compress_level
+	 *   wp metamanager metadata pref set mm_compress_level 3
 	 *
-	 * @subcommand pref-list
 	 * @when after_wp_load
 	 */
-	public function pref_list( array $args, array $assoc_args ): void {
+	public function pref( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? 'list';
+		switch ( $sub ) {
+			case 'list':
+				$this->pref_list( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'get':
+				$this->pref_get( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'set':
+				$this->pref_set( array_slice( $args, 1 ), $assoc_args );
+				break;
+			default:
+				WP_CLI::error( "Unknown subcommand: {$sub}. Valid: list, get, set" );
+		}
+	}
+
+	/**
+	 * List all Metamanager preference options and their current values.
+	 *
+	 * @param array $args       Positional arguments (unused).
+	 * @param array $assoc_args Named arguments (format).
+	 */
+	private function pref_list( array $args, array $assoc_args ): void {
 		$format = (string) ( $assoc_args['format'] ?? 'table' );
 		$prefs  = $this->get_pref_map();
 
@@ -473,10 +505,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 *   wp metamanager metadata pref get mm_compress_level
 	 *
-	 * @subcommand pref-get
+
 	 * @when after_wp_load
 	 */
-	public function pref_get( array $args, array $assoc_args ): void {
+		private function pref_get( array $args, array $assoc_args ): void {
 		$key = $args[0] ?? '';
 		if ( ! $key ) {
 			WP_CLI::error( 'Usage: wp metamanager metadata pref get <key>' );
@@ -505,10 +537,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager metadata pref set mm_compress_level 3
 	 *   wp metamanager metadata pref set mm_notify_email ops@example.com
 	 *
-	 * @subcommand pref-set
+
 	 * @when after_wp_load
 	 */
-	public function pref_set( array $args, array $assoc_args ): void {
+		private function pref_set( array $args, array $assoc_args ): void {
 		$key   = $args[0] ?? '';
 		$value = $args[1] ?? '';
 		if ( ! $key ) {
@@ -548,27 +580,61 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * List tracked links with status filter.
+	 * Manage tracked links (list, ignore, recheck, purge).
 	 *
 	 * ## OPTIONS
 	 *
+	 * <list|set-ignored|recheck|purge>
+	 * : Subcommand.
+	 *
+	 * [<id>]
+	 * : For set-ignored/recheck: link row ID.
+	 *
+	 * [<state>]
+	 * : For set-ignored: "ignore" or "unignore".
+	 *
 	 * [--status=<status>]
-	 * : Filter: broken, ok, ignored, or all (default all).
+	 * : For list: filter (broken, ok, ignored, all).
 	 *
-	 * [--per_page=<n>]
-	 * : Results per page (default 20).
-	 *
-	 * [--paged=<n>]
-	 * : Page number (default 1).
+	 * [--yes]
+	 * : For purge: confirm.
 	 *
 	 * ## EXAMPLES
 	 *
 	 *   wp metamanager metadata links list --status=broken
+	 *   wp metamanager metadata links set-ignored 5 ignore
+	 *   wp metamanager metadata links recheck 5
+	 *   wp metamanager metadata links purge --yes
 	 *
-	 * @subcommand links-list
 	 * @when after_wp_load
 	 */
-	public function links_list( array $args, array $assoc_args ): void {
+	public function links( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? 'list';
+		switch ( $sub ) {
+			case 'list':
+				$this->links_list( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'set-ignored':
+				$this->links_set_ignored( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'recheck':
+				$this->links_recheck( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'purge':
+				$this->links_purge( array_slice( $args, 1 ), $assoc_args );
+				break;
+			default:
+				WP_CLI::error( "Unknown subcommand: {$sub}. Valid: list, set-ignored, recheck, purge" );
+		}
+	}
+
+	/**
+	 * List tracked links with status filter.
+	 *
+	 * @param array $args       Positional arguments (unused).
+	 * @param array $assoc_args Named arguments (status, per_page, paged).
+	 */
+	private function links_list( array $args, array $assoc_args ): void {
 		global $wpdb;
 		$table = MM_Mod_Links::table_name();
 
@@ -624,10 +690,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *   wp metamanager metadata links set-ignored 5 ignore
 	 *   wp metamanager metadata links set-ignored 5 unignore
 	 *
-	 * @subcommand links-set-ignored
+
 	 * @when after_wp_load
 	 */
-	public function links_set_ignored( array $args, array $assoc_args ): void {
+		private function links_set_ignored( array $args, array $assoc_args ): void {
 		global $wpdb;
 		$table = MM_Mod_Links::table_name();
 
@@ -658,10 +724,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 *   wp metamanager metadata links recheck 5
 	 *
-	 * @subcommand links-recheck
+
 	 * @when after_wp_load
 	 */
-	public function links_recheck( array $args, array $assoc_args ): void {
+		private function links_recheck( array $args, array $assoc_args ): void {
 		global $wpdb;
 		$table = MM_Mod_Links::table_name();
 
@@ -698,10 +764,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 *   wp metamanager metadata links purge --yes
 	 *
-	 * @subcommand links-purge
+
 	 * @when after_wp_load
 	 */
-	public function links_purge( array $args, array $assoc_args ): void {
+		private function links_purge( array $args, array $assoc_args ): void {
 		if ( ! \WP_CLI\Utils\get_flag_value( $assoc_args, 'yes' ) ) {
 			WP_CLI::error( 'Add --yes to confirm purging the link table.' );
 		}
@@ -717,21 +783,51 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Retry a failed upload-receipt email by key.
+	 * Manage failed upload-receipt notifications (list, retry, dismiss).
 	 *
 	 * ## OPTIONS
 	 *
-	 * <key>
-	 * : Failed notification key (use `wp metamanager metadata receipts list` to find keys).
+	 * <list|retry|dismiss>
+	 * : Subcommand.
+	 *
+	 * [<key>]
+	 * : For retry/dismiss: failed notification key.
+	 *
+	 * [--format=<format>]
+	 * : For list: output format (table or json).
 	 *
 	 * ## EXAMPLES
 	 *
+	 *   wp metamanager metadata receipts list
 	 *   wp metamanager metadata receipts retry 3
+	 *   wp metamanager metadata receipts dismiss 3
 	 *
-	 * @subcommand receipts-retry
 	 * @when after_wp_load
 	 */
-	public function receipts_retry( array $args, array $assoc_args ): void {
+	public function receipts( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? 'list';
+		switch ( $sub ) {
+			case 'list':
+				$this->receipts_list( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'retry':
+				$this->receipts_retry( array_slice( $args, 1 ), $assoc_args );
+				break;
+			case 'dismiss':
+				$this->receipts_dismiss( array_slice( $args, 1 ), $assoc_args );
+				break;
+			default:
+				WP_CLI::error( "Unknown subcommand: {$sub}. Valid: list, retry, dismiss" );
+		}
+	}
+
+	/**
+	 * Retry a failed upload-receipt email by key.
+	 *
+	 * @param array $args       Positional arguments (key).
+	 * @param array $assoc_args Named arguments (unused).
+	 */
+	private function receipts_retry( array $args, array $assoc_args ): void {
 		$key = (string) ( $args[0] ?? '' );
 		if ( ! $key ) {
 			WP_CLI::error( 'Usage: wp metamanager metadata receipts retry <key>' );
@@ -772,10 +868,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 *   wp metamanager metadata receipts dismiss 3
 	 *
-	 * @subcommand receipts-dismiss
+
 	 * @when after_wp_load
 	 */
-	public function receipts_dismiss( array $args, array $assoc_args ): void {
+		private function receipts_dismiss( array $args, array $assoc_args ): void {
 		$key = (string) ( $args[0] ?? '' );
 		if ( ! $key ) {
 			WP_CLI::error( 'Usage: wp metamanager metadata receipts dismiss <key>' );
@@ -803,10 +899,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 *   wp metamanager metadata receipts list
 	 *
-	 * @subcommand receipts-list
+
 	 * @when after_wp_load
 	 */
-	public function receipts_list( array $args, array $assoc_args ): void {
+		private function receipts_list( array $args, array $assoc_args ): void {
 		$failures = MM_Upload_Notify::get_failed_notices();
 		if ( empty( $failures ) ) {
 			WP_CLI::line( 'No failed notifications.' );
