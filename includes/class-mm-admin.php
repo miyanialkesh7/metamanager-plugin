@@ -402,7 +402,7 @@ class MM_Admin {
 			[ __CLASS__, 'render_bulk_meta_page' ]
 		);
 		add_submenu_page(
-			null,
+			'',
 			esc_html__( 'Set Image Licensing', 'metamanager' ),
 			esc_html__( 'Set Image Licensing', 'metamanager' ),
 			'edit_others_posts',
