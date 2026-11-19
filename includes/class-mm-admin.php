@@ -1001,6 +1001,7 @@ class MM_Admin {
 		$actions['mm_bulk_compress']   = esc_html__( 'Compress Lossless (Metamanager)', 'metamanager' );
 		$actions['mm_bulk_site_info']  = esc_html__( 'Inject Site Info into Metadata (Metamanager)', 'metamanager' );
 		$actions['mm_bulk_licensing']  = esc_html__( 'Set Image Licensing (Metamanager)', 'metamanager' );
+		$actions['mm_bulk_geocode']    = esc_html__( 'Geocode Image Addresses (Metamanager)', 'metamanager' );
 		return $actions;
 	}
 
@@ -1030,6 +1031,10 @@ class MM_Admin {
 					[ 'page' => 'mm-image-licensing', 'ids' => $ids ],
 					admin_url( 'admin.php' )
 				);
+
+			case 'mm_bulk_geocode':
+				$count = self::do_bulk_geocode( $post_ids );
+				return add_query_arg( 'mm_bulk_geocode', $count, $redirect_to );
 		}
 
 		return $redirect_to;
@@ -1248,6 +1253,68 @@ class MM_Admin {
 				}
 			}
 			++$count;
+		}
+		return $count;
+	}
+
+	/**
+	 * Reverse-geocode GPS coordinates to address fields on selected images.
+	 * Only populates empty fields — never overwrites existing values.
+	 * Uses the Google Maps API key from the business profile.
+	 *
+	 * @param int[] $post_ids Attachment IDs.
+	 * @return int Number of attachments updated.
+	 */
+	private static function do_bulk_geocode( array $post_ids ): int {
+		$biz = MM_Site_Settings::get_instance()->all_business();
+		$key = (string) ( $biz['google_maps_api_key'] ?? '' );
+		if ( '' === $key ) {
+			return 0;
+		}
+
+		$count = 0;
+		foreach ( $post_ids as $id ) {
+			$id = (int) $id;
+			if ( ! wp_attachment_is_image( $id ) ) {
+				continue;
+			}
+
+			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
+			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
+			if ( 0.0 === $lat && 0.0 === $lng ) {
+				continue;
+			}
+
+			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
+			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
+			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
+
+			// Only geocode if at least one address field is empty.
+			if ( '' !== $city && '' !== $state && '' !== $country ) {
+				continue;
+			}
+
+			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
+			if ( ! $geo ) {
+				continue;
+			}
+
+			$updated = false;
+			if ( '' === $city && '' !== $geo['city'] ) {
+				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
+				$updated = true;
+			}
+			if ( '' === $state && '' !== $geo['state'] ) {
+				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
+				$updated = true;
+			}
+			if ( '' === $country && '' !== $geo['country'] ) {
+				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
+				$updated = true;
+			}
+			if ( $updated ) {
+				++$count;
+			}
 		}
 		return $count;
 	}

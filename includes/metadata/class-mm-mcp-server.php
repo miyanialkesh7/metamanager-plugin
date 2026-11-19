@@ -24,6 +24,7 @@ class MM_MCP_Server {
 		'metamanager/update-term-meta',
 		'metamanager/get-jobs',
 		'metamanager/manage-jobs',
+		'metamanager/geocode-images',
 	];
 
 	public function register_hooks(): void {

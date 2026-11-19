@@ -94,6 +94,7 @@ class MM_Abilities {
 		$this->register_update_term_meta();
 		$this->register_get_jobs();
 		$this->register_manage_jobs();
+		$this->register_geocode_images();
 		$this->register_report_abilities();
 		// content/* and comments/* abilities moved to GCM Coworker (gcm repo).
 		// General WordPress operations belong in the mu-plugin that's on
@@ -1106,6 +1107,102 @@ class MM_Abilities {
 			default:
 				return new WP_Error( 'invalid_action', 'Valid actions: requeue, scan, compress, embed, set-licensing' );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/geocode-images
+	// -------------------------------------------------------------------------
+
+	private function register_geocode_images(): void {
+		wp_register_ability( 'metamanager/geocode-images', [
+			'label'       => 'Geocode Image Addresses',
+			'description' => 'Reverse-geocode GPS coordinates to address fields (city, state, country) on images. Only populates empty fields — never overwrites existing values. Requires Google Maps API key in business profile.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'attachment_ids' => [
+						'type'        => 'array',
+						'items'       => [ 'type' => 'integer' ],
+						'description' => 'Attachment IDs to geocode. Omit for all images.',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+					'count'   => [ 'type' => 'integer' ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_geocode_images' ],
+		] );
+	}
+
+	public function ability_geocode_images( array $input ) {
+		$biz = MM_Site_Settings::get_instance()->all_business();
+		$key = (string) ( $biz['google_maps_api_key'] ?? '' );
+		if ( '' === $key ) {
+			return new WP_Error( 'no_api_key', 'No Google Maps API key set in business profile.' );
+		}
+
+		$ids = $input['attachment_ids'] ?? [];
+		if ( empty( $ids ) ) {
+			$ids = get_posts( [
+				'post_type'      => 'attachment',
+				'post_mime_type' => 'image',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			] );
+		}
+
+		$count = 0;
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+			if ( ! wp_attachment_is_image( $id ) ) {
+				continue;
+			}
+
+			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
+			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
+			if ( 0.0 === $lat && 0.0 === $lng ) {
+				continue;
+			}
+
+			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
+			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
+			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
+
+			if ( '' !== $city && '' !== $state && '' !== $country ) {
+				continue;
+			}
+
+			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
+			if ( ! $geo ) {
+				continue;
+			}
+
+			$updated = false;
+			if ( '' === $city && '' !== $geo['city'] ) {
+				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
+				$updated = true;
+			}
+			if ( '' === $state && '' !== $geo['state'] ) {
+				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
+				$updated = true;
+			}
+			if ( '' === $country && '' !== $geo['country'] ) {
+				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
+				$updated = true;
+			}
+			if ( $updated ) {
+				++$count;
+			}
+		}
+
+		return [ 'success' => true, 'message' => "Geocoded {$count} images.", 'count' => $count ];
 	}
 
 	// -------------------------------------------------------------------------

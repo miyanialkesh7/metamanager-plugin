@@ -196,6 +196,56 @@ class MM_Site_Settings {
 	}
 
 	/**
+	 * Reverse geocode GPS coordinates to an address using Google Maps API.
+	 *
+	 * @param string $key Google Maps API key.
+	 * @param float  $lat Latitude.
+	 * @param float  $lng Longitude.
+	 * @return array{city: string, state: string, country: string}|false
+	 */
+	public static function reverse_geocode( string $key, float $lat, float $lng ): array|false {
+		$url = add_query_arg( [
+			'latlng' => $lat . ',' . $lng,
+			'key'    => $key,
+		], 'https://maps.googleapis.com/maps/api/geocode/json' );
+
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'Referer' => home_url( '/' ) ],
+		] );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body['results'][0]['address_components'] ) ) {
+			return false;
+		}
+
+		$city = $state = $country = '';
+		foreach ( $body['results'][0]['address_components'] as $comp ) {
+			$types = (array) ( $comp['types'] ?? [] );
+			if ( in_array( 'locality', $types, true ) || in_array( 'administrative_area_level_3', $types, true ) ) {
+				$city = $comp['long_name'] ?? '';
+			}
+			if ( in_array( 'administrative_area_level_1', $types, true ) ) {
+				$state = $comp['short_name'] ?? '';
+			}
+			if ( in_array( 'country', $types, true ) ) {
+				$country = $comp['short_name'] ?? '';
+			}
+		}
+
+		if ( '' === $city && '' === $state && '' === $country ) {
+			return false;
+		}
+		return [
+			'city'    => $city,
+			'state'   => $state,
+			'country' => $country,
+		];
+	}
+
+	/**
 	 * Fallback geocoding using OpenStreetMap Nominatim (no API key required).
 	 *
 	 * @param array $addr Address array.
