@@ -76,6 +76,7 @@ class MM_Abilities {
 		$this->register_update_post_meta();
 		$this->register_get_schema();
 		$this->register_get_business_profile();
+		$this->register_update_business_profile();
 		$this->register_get_navigation();
 		$this->register_get_term_meta();
 		$this->register_report_abilities();
@@ -494,6 +495,7 @@ class MM_Abilities {
 		$entity   = $settings->get( 'schema.knowledge_entity', 'LocalBusiness' );
 		$local    = $settings->all_business();
 		$social   = $settings->get( 'social', [] );
+		$addr     = $local['address'] ?? [];
 
 		$profile = [
 			'type'        => $entity,
@@ -502,16 +504,18 @@ class MM_Abilities {
 			'telephone'   => $local['phone'] ?? '',
 			'email'       => $local['email'] ?? '',
 			'address'     => [
-				'street'  => $local['street'] ?? '',
-				'city'    => $local['city'] ?? '',
-				'region'  => $local['region'] ?? '',
-				'postal'  => $local['postal'] ?? '',
-				'country' => $local['country'] ?? '',
+				'street'  => $addr['street'] ?? '',
+				'city'    => $addr['city'] ?? '',
+				'region'  => $addr['state'] ?? '',
+				'postal'  => $addr['zip'] ?? '',
+				'country' => $addr['country'] ?? '',
 			],
 			'geo' => [
-				'latitude'  => $local['latitude'] ?? '',
-				'longitude' => $local['longitude'] ?? '',
+				'latitude'  => $local['lat'] ?? '',
+				'longitude' => $local['lng'] ?? '',
 			],
+			'location_type' => $local['location_type'] ?? '',
+			'service_areas' => array_values( (array) ( $local['service_areas'] ?? [] ) ),
 			'hours'       => array_values( (array) ( $local['hours'] ?? [] ) ),
 			'price_range' => $local['price_range'] ?? '',
 			'same_as'     => array_values( (array) ( $social['accounts'] ?? [] ) ),
@@ -521,6 +525,95 @@ class MM_Abilities {
 		return array_filter( $profile, function ( $v ) {
 			return is_array( $v ) || $v !== '';
 		} );
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/update-business-profile
+	// -------------------------------------------------------------------------
+
+	private function register_update_business_profile(): void {
+		wp_register_ability( 'metamanager/update-business-profile', [
+			'label'       => 'Update Business Profile',
+			'description' => 'Update business profile fields: name, type, description, address, phone, email, location_type, service_areas, geo coordinates. Goes through save_business() for validation and geocoding.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'name'          => [ 'type' => 'string' ],
+					'type'          => [ 'type' => 'string' ],
+					'description'   => [ 'type' => 'string' ],
+					'phone'         => [ 'type' => 'string' ],
+					'email'         => [ 'type' => 'string' ],
+					'address'       => [
+						'type'       => 'object',
+						'properties' => [
+							'street'  => [ 'type' => 'string' ],
+							'city'    => [ 'type' => 'string' ],
+							'state'   => [ 'type' => 'string' ],
+							'zip'     => [ 'type' => 'string' ],
+							'country' => [ 'type' => 'string' ],
+						],
+					],
+					'location_type' => [ 'type' => 'string', 'enum' => [ 'brick_and_mortar', 'service_area' ] ],
+					'service_areas' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+					'lat'           => [ 'type' => 'string' ],
+					'lng'           => [ 'type' => 'string' ],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'updated' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_edit_meta' ],
+			'execute_callback'    => [ $this, 'ability_update_business_profile' ],
+		] );
+	}
+
+	public function ability_update_business_profile( array $input ) {
+		$settings = MM_Site_Settings::get_instance();
+		$biz      = $settings->all_business();
+		$updated  = [];
+
+		$field_map = [
+			'name'          => 'name',
+			'type'          => 'type',
+			'description'   => 'description',
+			'phone'         => 'phone',
+			'email'         => 'email',
+			'location_type' => 'location_type',
+			'lat'           => 'lat',
+			'lng'           => 'lng',
+		];
+		foreach ( $field_map as $key => $path ) {
+			if ( isset( $input[ $key ] ) ) {
+				$biz[ $path ] = (string) $input[ $key ];
+				$updated[]    = $key;
+			}
+		}
+
+		if ( isset( $input['address'] ) && is_array( $input['address'] ) ) {
+			foreach ( [ 'street', 'city', 'state', 'zip', 'country' ] as $k ) {
+				if ( isset( $input['address'][ $k ] ) ) {
+					$biz['address'][ $k ] = (string) $input['address'][ $k ];
+					$updated[]            = "address.{$k}";
+				}
+			}
+		}
+
+		if ( isset( $input['service_areas'] ) && is_array( $input['service_areas'] ) ) {
+			$biz['service_areas'] = array_values( array_filter( array_map( 'strval', $input['service_areas'] ) ) );
+			$updated[]            = 'service_areas';
+		}
+
+		if ( empty( $updated ) ) {
+			return [ 'success' => false, 'updated' => [] ];
+		}
+
+		$settings->save_business( $biz );
+		return [ 'success' => true, 'updated' => $updated ];
 	}
 
 	// -------------------------------------------------------------------------
