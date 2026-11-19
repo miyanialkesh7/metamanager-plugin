@@ -651,7 +651,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$type    = sanitize_text_field( $biz['type'] ?? 'LocalBusiness' );
 		$schema  = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
 
-		$has_address = ! empty( $addr['street'] );
+		$has_address = ! empty( $addr['street'] ) && ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'none';
 		$show_phone  = ! empty( $biz['show_phone'] ?? true ) && $phone;
 		$show_sms    = ! empty( $biz['show_sms'] )   && $phone;
 		$show_email  = ! empty( $biz['show_email'] ?? true ) && $email;
@@ -767,7 +767,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			<?php echo $this->render_map_links( $biz ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php endif; ?>
 
-			<?php if ( ! empty( $hours ) && is_array( $hours ) ) : ?>
+			<?php if ( ! empty( $hours ) && is_array( $hours ) && ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'none' ) : ?>
 			<div class="gcm-contact-page__hours" itemprop="openingHoursSpecification">
 				<?php foreach ( $hours as $group ) :
 					if ( empty( $group['days'] ) ) continue;
@@ -786,7 +786,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$areas   = $biz['service_areas'] ?? [];
 			$payment = $biz['payment_accepted'] ?? [];
 			?>
-			<?php if ( ! empty( $areas ) ) : ?>
+			<?php if ( ! empty( $areas ) && ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'none' ) : ?>
 			<div class="gcm-contact-page__areas">
 				<h3>Service Areas</h3>
 				<p><?php echo esc_html( implode( ', ', $areas ) ); ?></p>
