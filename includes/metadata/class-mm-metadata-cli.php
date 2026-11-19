@@ -644,9 +644,12 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 		$offset   = ( max( 1, $paged ) - 1 ) * $per_page;
 
 		$conditions = [];
-		$allowed    = [ 'broken', 'ok', 'ignored' ];
-		if ( in_array( $status, $allowed, true ) ) {
-			$conditions[] = $wpdb->prepare( 'status = %s', $status );
+		if ( 'broken' === $status ) {
+			$conditions[] = 'is_broken = 1';
+		} elseif ( 'ok' === $status ) {
+			$conditions[] = 'is_broken = 0 AND is_ignored = 0';
+		} elseif ( 'ignored' === $status ) {
+			$conditions[] = 'is_ignored = 1';
 		}
 		$where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
 
@@ -662,11 +665,12 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 
 		$items = [];
 		foreach ( $rows as $row ) {
+			$status_label = $row->is_ignored ? 'ignored' : ( $row->is_broken ? 'broken' : 'ok' );
 			$items[] = [
 				'ID'      => $row->id,
 				'URL'     => $row->url,
-				'Status'  => $row->status,
-				'Code'    => $row->status_code ?? '',
+				'Status'  => $status_label,
+				'Code'    => $row->http_code ?: '',
 				'Checked' => $row->last_checked ?? '',
 			];
 		}
@@ -703,13 +707,13 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			WP_CLI::error( 'Usage: wp metamanager metadata links set-ignored <id> <ignore|unignore>' );
 		}
 
-		$new_status = 'ignore' === $state ? 'ignored' : 'ok';
+		$new_ignored = 'ignore' === $state ? 1 : 0;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$updated = $wpdb->update( $table, [ 'status' => $new_status ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
+		$updated = $wpdb->update( $table, [ 'is_ignored' => $new_ignored ], [ 'id' => $id ], [ '%d' ], [ '%d' ] );
 		if ( false === $updated ) {
 			WP_CLI::error( "Failed to update link {$id}." );
 		}
-		WP_CLI::success( "Link {$id} set to {$new_status}." );
+		WP_CLI::success( "Link {$id} is_ignored set to {$new_ignored}." );
 	}
 
 	/**
@@ -745,16 +749,17 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 		$response = wp_remote_head( $row->url, [ 'timeout' => 15, 'sslverify' => true ] );
 		if ( is_wp_error( $response ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			$wpdb->update( $table, [ 'status' => 'broken', 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%s', '%s' ], [ '%d' ] );
+			$wpdb->update( $table, [ 'is_broken' => 1, 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%d', '%s' ], [ '%d' ] );
 			WP_CLI::warning( "Link {$id} check failed: " . $response->get_error_message() );
 			return;
 		}
 
-		$code   = (int) wp_remote_retrieve_response_code( $response );
-		$status = ( $code >= 200 && $code < 400 ) ? 'ok' : 'broken';
+		$code     = (int) wp_remote_retrieve_response_code( $response );
+		$is_broken = ( $code >= 200 && $code < 400 ) ? 0 : 1;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->update( $table, [ 'status' => $status, 'status_code' => $code, 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%s', '%d', '%s' ], [ '%d' ] );
-		WP_CLI::success( "Link {$id}: HTTP {$code} → {$status}" );
+		$wpdb->update( $table, [ 'http_code' => $code, 'is_broken' => $is_broken, 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%d', '%d', '%s' ], [ '%d' ] );
+		$label = $is_broken ? 'broken' : 'ok';
+		WP_CLI::success( "Link {$id}: HTTP {$code} → {$label}" );
 	}
 
 	/**
