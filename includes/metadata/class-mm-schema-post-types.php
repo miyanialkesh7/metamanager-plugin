@@ -1449,6 +1449,11 @@ class MM_Schema_Post_Types {
 		if ( ! is_array( $saved ) || empty( $saved ) ) {
 			return;
 		}
+
+		// Fields that are machine-reading only (schema JSON-LD) — never
+		// shown in the human-visible details table.
+		$hidden_fields = array( 'service_type' );
+
 		$fields = MM_Schema_Types::get_fields_by_type()[ $type ] ?? array();
 		$rows = '';
 		$seen = array();
@@ -1457,6 +1462,9 @@ class MM_Schema_Post_Types {
 			$value = trim( (string) ( $saved[ $key ] ?? '' ) );
 			$seen[ $key ] = true;
 			if ( '' === $value ) {
+				continue;
+			}
+			if ( in_array( $key, $hidden_fields, true ) ) {
 				continue;
 			}
 			$label = $field['label'] ?? $key;
@@ -1472,6 +1480,9 @@ class MM_Schema_Post_Types {
 		// piece of schema data the post carries is visible on the page.
 		foreach ( $saved as $key => $value ) {
 			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			if ( in_array( $key, $hidden_fields, true ) ) {
 				continue;
 			}
 			$value = trim( (string) $value );

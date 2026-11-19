@@ -206,8 +206,53 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 			</td>
 		</tr>
 		<tr>
-			<th><label>Contact Page Actions</label></th>
+			<th><label>Contact Form</label></th>
 			<td>
+				<label style="display:block;margin-bottom:8px;">
+					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[contact_form_enabled]" value="1" <?php checked( ! empty( $b['contact_form_enabled'] ?? true ) ); ?>>
+					<strong>Enable contact form on the Contact page</strong>
+				</label>
+
+				<table style="margin:8px 0 12px 0;">
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_to_email">To Email</label></td>
+						<td><input type="email" id="gcm_cf_to_email" name="<?php echo esc_attr($opt); ?>[contact_form_to_email]" value="<?php echo esc_attr( $b['contact_form_to_email'] ?? '' ); ?>" class="regular-text" placeholder="admin@domain.com"></td>
+					</tr>
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_subject_prefix">Subject Prefix</label></td>
+						<td><input type="text" id="gcm_cf_subject_prefix" name="<?php echo esc_attr($opt); ?>[contact_form_subject_prefix]" value="<?php echo esc_attr( $b['contact_form_subject_prefix'] ?? '' ); ?>" class="regular-text" placeholder="<?php echo esc_attr( get_bloginfo('name') ); ?>"></td>
+					</tr>
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_submit_text">Submit Text</label></td>
+						<td><input type="text" id="gcm_cf_submit_text" name="<?php echo esc_attr($opt); ?>[contact_form_submit_text]" value="<?php echo esc_attr( $b['contact_form_submit_text'] ?? 'Submit' ); ?>" class="regular-text"></td>
+					</tr>
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_tos_page">Terms of Service Page</label></td>
+						<td>
+							<?php wp_dropdown_pages( [
+								'name'              => esc_attr( $opt ) . '[contact_form_tos_page_id]',
+								'id'                => 'gcm_cf_tos_page',
+								'selected'          => (int) ( $b['contact_form_tos_page_id'] ?? 0 ),
+								'show_option_none'  => '— Select Page —',
+								'option_none_value' => 0,
+							] ); ?>
+							<p class="description" style="margin:2px 0 0;">Linked from the form agreement checkbox. Privacy Policy uses WordPress core settings.</p>
+						</td>
+					</tr>
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_rc_site">reCAPTCHA Site Key</label></td>
+						<td><input type="text" id="gcm_cf_rc_site" name="<?php echo esc_attr($opt); ?>[contact_form_recaptcha_site]" value="<?php echo esc_attr( $b['contact_form_recaptcha_site'] ?? '' ); ?>" class="regular-text" placeholder="6L..."></td>
+					</tr>
+					<tr>
+						<td style="padding:2px 8px 2px 0;white-space:nowrap;"><label for="gcm_cf_rc_secret">reCAPTCHA Secret Key</label></td>
+						<td>
+							<input type="password" id="gcm_cf_rc_secret" name="<?php echo esc_attr($opt); ?>[contact_form_recaptcha_secret]" value="<?php echo esc_attr( $b['contact_form_recaptcha_secret'] ?? '' ); ?>" class="regular-text" placeholder="6L...">
+							<p class="description" style="margin:2px 0 0;">v2 Invisible. From <a href="https://www.google.com/recaptcha" target="_blank" rel="noopener">Google reCAPTCHA</a>.</p>
+						</td>
+					</tr>
+				</table>
+
+				<p class="description" style="margin-bottom:4px;"><strong>Display buttons on Contact page:</strong></p>
 				<label style="display:block;margin-bottom:4px;">
 					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_phone]" value="1" <?php checked( ! empty( $b['show_phone'] ?? true ) ); ?>>
 					Show phone / click-to-call button
@@ -232,7 +277,6 @@ if ( empty($hours) ) { $hours = $hour_defaults; }
 					<input type="checkbox" name="<?php echo esc_attr($opt); ?>[show_csv]" value="1" <?php checked( ! empty( $b['show_csv'] ?? true ) ); ?>>
 					Show CSV contact download button
 				</label>
-				<p class="description">Choose which action buttons appear on the Contact page template.</p>
 			</td>
 		</tr>
 		<tr>

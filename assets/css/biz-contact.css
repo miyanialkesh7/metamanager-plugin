@@ -688,3 +688,128 @@
 		flex-direction: column;
 	}
 }
+
+/* Contact form layout — two-column on desktop, single on tablet/mobile */
+.mm-contact-layout {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 48px;
+	align-items: start;
+}
+
+.mm-contact-info {
+	min-width: 0;
+}
+
+.mm-contact-form-wrap {
+	background: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	padding: 32px;
+}
+
+.mm-contact-form-heading {
+	margin-top: 0;
+	margin-bottom: 24px;
+	font-size: 1.25rem;
+}
+
+.mm-contact-form .mm-form-field {
+	margin-bottom: 20px;
+}
+
+.mm-contact-form label {
+	display: block;
+	margin-bottom: 6px;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.mm-contact-form .mm-required {
+	color: #d63638;
+}
+
+.mm-contact-form input[type="text"],
+.mm-contact-form input[type="email"],
+.mm-contact-form input[type="tel"],
+.mm-contact-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	font-size: 14px;
+}
+
+.mm-contact-form input:focus,
+.mm-contact-form textarea:focus {
+	border-color: #0073aa;
+	outline: 1px solid #0073aa;
+}
+
+.mm-form-checkbox label {
+	font-weight: 400;
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.mm-form-checkbox input[type="checkbox"] {
+	margin-top: 3px;
+	flex-shrink: 0;
+}
+
+.mm-contact-submit-btn {
+	background: #0073aa;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	padding: 12px 32px;
+	font-size: 15px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.mm-contact-submit-btn:hover {
+	background: #005a87;
+}
+
+.mm-contact-submit-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.mm-form-status {
+	margin-top: 16px;
+	padding: 12px 16px;
+	border-radius: 4px;
+	display: none;
+}
+
+.mm-form-status.success {
+	display: block;
+	background: #d4edda;
+	color: #155724;
+	border: 1px solid #c3e6cb;
+}
+
+.mm-form-status.error {
+	display: block;
+	background: #f8d7da;
+	color: #721c24;
+	border: 1px solid #f5c6cb;
+}
+
+.mm-field-error {
+	display: block;
+	color: #d63638;
+	font-size: 12px;
+	margin-top: 4px;
+	min-height: 16px;
+}
+
+@media (max-width: 960px) {
+	.mm-contact-layout {
+		grid-template-columns: 1fr;
+	}
+}

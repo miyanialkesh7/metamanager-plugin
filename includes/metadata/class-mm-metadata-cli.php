@@ -482,6 +482,27 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * [--lng=<number>]
 	 * : Longitude (auto-geocoded from address if blank).
 	 *
+	 * [--contact-form-enabled=<0|1>]
+	 * : Enable or disable the contact form.
+	 *
+	 * [--contact-form-to-email=<email>]
+	 * : Contact form delivery email (defaults to admin email).
+	 *
+	 * [--contact-form-subject-prefix=<text>]
+	 * : Subject prefix for contact form emails.
+	 *
+	 * [--contact-form-submit-text=<text>]
+	 * : Submit button text.
+	 *
+	 * [--contact-form-tos-page=<id>]
+	 * : Terms of Service page ID (for the agreement checkbox link).
+	 *
+	 * [--contact-form-recaptcha-site=<key>]
+	 * : Google reCAPTCHA v2 invisible site key.
+	 *
+	 * [--contact-form-recaptcha-secret=<key>]
+	 * : Google reCAPTCHA v2 invisible secret key.
+	 *
 	 * [--format=<format>]
 	 * : For get: output format (table or json).
 	 *
@@ -551,6 +572,13 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			'location-type'  => [ 'location_type' ],
 			'lat'            => [ 'lat' ],
 			'lng'            => [ 'lng' ],
+			'contact-form-enabled'         => [ 'contact_form_enabled' ],
+			'contact-form-to-email'        => [ 'contact_form_to_email' ],
+			'contact-form-subject-prefix'  => [ 'contact_form_subject_prefix' ],
+			'contact-form-submit-text'     => [ 'contact_form_submit_text' ],
+			'contact-form-tos-page'        => [ 'contact_form_tos_page_id' ],
+			'contact-form-recaptcha-site'  => [ 'contact_form_recaptcha_site' ],
+			'contact-form-recaptcha-secret' => [ 'contact_form_recaptcha_secret' ],
 		];
 
 		$changes = 0;
