@@ -36,8 +36,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager export
-	 *   wp metamanager export --format=pretty
+	 *   wp metamanager metadata export
+	 *   wp metamanager metadata export --format=pretty
 	 *
 	 * @when after_wp_load
 	 */
@@ -61,7 +61,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	/**
 	 * Import plugin settings from a JSON file or stdin.
 	 *
-	 * Reads a JSON file previously created by `wp metamanager export` and
+	 * Reads a JSON file previously created by `wp metamanager metadata export` and
 	 * applies the settings and/or business profile data. Missing keys are
 	 * filled from factory defaults so the imported data is always complete.
 	 *
@@ -75,8 +75,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager import backup.json
-	 *   wp metamanager import backup.json --dry-run
+	 *   wp metamanager metadata import backup.json
+	 *   wp metamanager metadata import backup.json --dry-run
 	 *   cat backup.json | wp metamanager import
 	 *
 	 * @when after_wp_load
@@ -157,7 +157,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager reset
+	 *   wp metamanager metadata reset
 	 *
 	 * @when after_wp_load
 	 */
@@ -182,8 +182,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager check-links
-	 *   wp metamanager check-links --all
+	 *   wp metamanager metadata check-links
+	 *   wp metamanager metadata check-links --all
 	 *
 	 * @when after_wp_load
 	 */
@@ -225,7 +225,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager ping
+	 *   wp metamanager metadata ping
 	 *
 	 * @when after_wp_load
 	 */
@@ -248,7 +248,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager backfill-links
+	 *   wp metamanager metadata backfill-links
 	 *
 	 * @when after_wp_load
 	 */
@@ -297,7 +297,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager flush-rewrites
+	 *   wp metamanager metadata flush-rewrites
 	 *
 	 * @when after_wp_load
 	 */
@@ -320,7 +320,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *   wp metamanager schema-test https://example.com/about/
+	 *   wp metamanager metadata schema-test https://example.com/about/
 	 *
 	 * @when after_wp_load
 	 */
@@ -423,6 +423,352 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			}
 		}
 		return $result;
+	}
+
+	// -------------------------------------------------------------------------
+	// pref — plugin preferences (mm_* standalone options)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * List all Metamanager preference options and their current values.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format: table or json (default table).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata pref list
+	 *   wp metamanager metadata pref list --format=json
+	 *
+	 * @subcommand pref-list
+	 * @when after_wp_load
+	 */
+	public function pref_list( array $args, array $assoc_args ): void {
+		$format = (string) ( $assoc_args['format'] ?? 'table' );
+		$prefs  = $this->get_pref_map();
+
+		$rows = [];
+		foreach ( $prefs as $label => $key ) {
+			$rows[] = [ 'Option' => $key, 'Label' => $label, 'Value' => get_option( $key, '' ) ];
+		}
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		} else {
+			\WP_CLI\Utils\format_items( 'table', $rows, [ 'Option', 'Label', 'Value' ] );
+		}
+	}
+
+	/**
+	 * Get a single preference value.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <key>
+	 * : Option key (e.g. mm_compress_level, mm_notify_email).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata pref get mm_compress_level
+	 *
+	 * @subcommand pref-get
+	 * @when after_wp_load
+	 */
+	public function pref_get( array $args, array $assoc_args ): void {
+		$key = $args[0] ?? '';
+		if ( ! $key ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata pref get <key>' );
+		}
+		$prefs = $this->get_pref_map();
+		if ( ! in_array( $key, $prefs, true ) ) {
+			WP_CLI::error( "Unknown preference key: {$key}. Valid: " . implode( ', ', $prefs ) );
+		}
+		$value = get_option( $key, '' );
+		WP_CLI::line( is_scalar( $value ) ? (string) $value : wp_json_encode( $value ) );
+	}
+
+	/**
+	 * Set a preference value.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <key>
+	 * : Option key (e.g. mm_compress_level, mm_notify_email).
+	 *
+	 * <value>
+	 * : New value.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata pref set mm_compress_level 3
+	 *   wp metamanager metadata pref set mm_notify_email ops@example.com
+	 *
+	 * @subcommand pref-set
+	 * @when after_wp_load
+	 */
+	public function pref_set( array $args, array $assoc_args ): void {
+		$key   = $args[0] ?? '';
+		$value = $args[1] ?? '';
+		if ( ! $key ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata pref set <key> <value>' );
+		}
+		$prefs = $this->get_pref_map();
+		if ( ! in_array( $key, $prefs, true ) ) {
+			WP_CLI::error( "Unknown preference key: {$key}. Valid: " . implode( ', ', $prefs ) );
+		}
+		update_option( $key, $value );
+		WP_CLI::success( "{$key} set to {$value}" );
+	}
+
+	/**
+	 * Canonical map of preference labels to option keys.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_pref_map(): array {
+		return [
+			'Compress level'              => 'mm_compress_level',
+			'Batch size'                  => 'mm_batch_size',
+			'Max revisions'               => 'mm_max_revisions',
+			'Failure notifications'       => 'mm_notify_enabled',
+			'Notification email'          => 'mm_notify_email',
+			'REST API disabled'           => 'mm_api_disabled',
+			'REST API allowed IPs'        => 'mm_api_allowed_ips',
+			'Upload receipt CC'           => 'mm_upload_notify_extra_email',
+			'Auto provenance'             => 'mm_auto_provenance',
+			'Delete data on uninstall'    => 'mm_delete_data_on_uninstall',
+			'Contact card style'          => 'mm_meta_contact_style',
+		];
+	}
+
+	// -------------------------------------------------------------------------
+	// links — link maintenance
+	// -------------------------------------------------------------------------
+
+	/**
+	 * List tracked links with status filter.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--status=<status>]
+	 * : Filter: broken, ok, ignored, or all (default all).
+	 *
+	 * [--per_page=<n>]
+	 * : Results per page (default 20).
+	 *
+	 * [--paged=<n>]
+	 * : Page number (default 1).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata links list --status=broken
+	 *
+	 * @subcommand links-list
+	 * @when after_wp_load
+	 */
+	public function links_list( array $args, array $assoc_args ): void {
+		global $wpdb;
+		$table = MM_Mod_Links::table_name();
+
+		$status   = (string) ( $assoc_args['status'] ?? 'all' );
+		$per_page = (int) ( $assoc_args['per_page'] ?? 20 );
+		$paged    = (int) ( $assoc_args['paged'] ?? 1 );
+		$offset   = ( max( 1, $paged ) - 1 ) * $per_page;
+
+		$conditions = [];
+		$allowed    = [ 'broken', 'ok', 'ignored' ];
+		if ( in_array( $status, $allowed, true ) ) {
+			$conditions[] = $wpdb->prepare( 'status = %s', $status );
+		}
+		$where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" );
+		$rows  = $wpdb->get_results( "SELECT * FROM {$table} {$where} ORDER BY id DESC LIMIT {$per_page} OFFSET {$offset}" );
+		// phpcs:enable
+
+		if ( empty( $rows ) ) {
+			WP_CLI::line( 'No links found.' );
+			return;
+		}
+
+		$items = [];
+		foreach ( $rows as $row ) {
+			$items[] = [
+				'ID'      => $row->id,
+				'URL'     => $row->url,
+				'Status'  => $row->status,
+				'Code'    => $row->status_code ?? '',
+				'Checked' => $row->last_checked ?? '',
+			];
+		}
+		\WP_CLI\Utils\format_items( 'table', $items, [ 'ID', 'URL', 'Status', 'Code', 'Checked' ] );
+		WP_CLI::line( sprintf( 'Showing %d of %d links.', count( $items ), $total ) );
+	}
+
+	/**
+	 * Ignore or unignore a tracked link.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Link row ID.
+	 *
+	 * <state>
+	 * : "ignore" or "unignore".
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata links set-ignored 5 ignore
+	 *   wp metamanager metadata links set-ignored 5 unignore
+	 *
+	 * @subcommand links-set-ignored
+	 * @when after_wp_load
+	 */
+	public function links_set_ignored( array $args, array $assoc_args ): void {
+		global $wpdb;
+		$table = MM_Mod_Links::table_name();
+
+		$id    = (int) ( $args[0] ?? 0 );
+		$state = (string) ( $args[1] ?? '' );
+		if ( ! $id || ! in_array( $state, [ 'ignore', 'unignore' ], true ) ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata links set-ignored <id> <ignore|unignore>' );
+		}
+
+		$new_status = 'ignore' === $state ? 'ignored' : 'ok';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$updated = $wpdb->update( $table, [ 'status' => $new_status ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
+		if ( false === $updated ) {
+			WP_CLI::error( "Failed to update link {$id}." );
+		}
+		WP_CLI::success( "Link {$id} set to {$new_status}." );
+	}
+
+	/**
+	 * Re-check one tracked link by ID.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Link row ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata links recheck 5
+	 *
+	 * @subcommand links-recheck
+	 * @when after_wp_load
+	 */
+	public function links_recheck( array $args, array $assoc_args ): void {
+		global $wpdb;
+		$table = MM_Mod_Links::table_name();
+
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata links recheck <id>' );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ) );
+		if ( ! $row ) {
+			WP_CLI::error( "Link {$id} not found." );
+		}
+
+		$response = wp_remote_head( $row->url, [ 'timeout' => 15, 'sslverify' => true ] );
+		if ( is_wp_error( $response ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->update( $table, [ 'status' => 'broken', 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%s', '%s' ], [ '%d' ] );
+			WP_CLI::warning( "Link {$id} check failed: " . $response->get_error_message() );
+			return;
+		}
+
+		$code   = (int) wp_remote_retrieve_response_code( $response );
+		$status = ( $code >= 200 && $code < 400 ) ? 'ok' : 'broken';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->update( $table, [ 'status' => $status, 'status_code' => $code, 'last_checked' => current_time( 'mysql' ) ], [ 'id' => $id ], [ '%s', '%d', '%s' ], [ '%d' ] );
+		WP_CLI::success( "Link {$id}: HTTP {$code} → {$status}" );
+	}
+
+	/**
+	 * Purge (truncate) the entire link table.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata links purge --yes
+	 *
+	 * @subcommand links-purge
+	 * @when after_wp_load
+	 */
+	public function links_purge( array $args, array $assoc_args ): void {
+		if ( ! \WP_CLI\Utils\get_flag_value( $assoc_args, 'yes' ) ) {
+			WP_CLI::error( 'Add --yes to confirm purging the link table.' );
+		}
+		global $wpdb;
+		$table = MM_Mod_Links::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+		WP_CLI::success( 'Link table purged.' );
+	}
+
+	// -------------------------------------------------------------------------
+	// receipts — upload receipt failure handling
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Retry a failed upload-receipt email.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Upload notification record ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata receipts retry 3
+	 *
+	 * @subcommand receipts-retry
+	 * @when after_wp_load
+	 */
+	public function receipts_retry( array $args, array $assoc_args ): void {
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata receipts retry <id>' );
+		}
+		if ( ! class_exists( 'MM_Upload_Notify' ) || ! method_exists( 'MM_Upload_Notify', 'retry_notice' ) ) {
+			WP_CLI::error( 'MM_Upload_Notify retry handler not available.' );
+		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInputInput -- integer ID, sanitized above
+		MM_Upload_Notify::retry_notice();
+		WP_CLI::success( "Retry triggered for upload receipt {$id}." );
+	}
+
+	/**
+	 * Dismiss a failed upload-receipt notice.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Upload notification record ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata receipts dismiss 3
+	 *
+	 * @subcommand receipts-dismiss
+	 * @when after_wp_load
+	 */
+	public function receipts_dismiss( array $args, array $assoc_args ): void {
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata receipts dismiss <id>' );
+		}
+		if ( ! class_exists( 'MM_Upload_Notify' ) || ! method_exists( 'MM_Upload_Notify', 'dismiss_notice' ) ) {
+			WP_CLI::error( 'MM_Upload_Notify dismiss handler not available.' );
+		}
+		MM_Upload_Notify::dismiss_notice();
+		WP_CLI::success( "Upload receipt {$id} dismissed." );
 	}
 }
 

@@ -210,31 +210,103 @@ class MM_CLI extends \WP_CLI_Command {
 	 *
 	 * @param array $args Positional arguments (first: subcommand).
 	 */
-	public function queue( array $args ): void {
+	public function queue( array $args, array $assoc_args = [] ): void {
 		$sub = $args[0] ?? 'status';
 
-		if ( 'status' === $sub ) {
-			$pending = MM_Job_Queue::get_pending_jobs();
-			$comp    = count( $pending['compression'] );
-			$meta    = count( $pending['metadata'] );
-			$total   = $comp + $meta;
+		switch ( $sub ) {
+			case 'status':
+				$pending = MM_Job_Queue::get_pending_jobs();
+				$comp    = count( $pending['compression'] );
+				$meta    = count( $pending['metadata'] );
+				$total   = $comp + $meta;
 
-			\WP_CLI\Utils\format_items(
-				'table',
-				[
-					[ 'Type' => 'Compression', 'Pending' => $comp ],
-					[ 'Type' => 'Metadata',    'Pending' => $meta ],
-					[ 'Type' => 'Total',       'Pending' => $total ],
-				],
-				[ 'Type', 'Pending' ]
-			);
+				\WP_CLI\Utils\format_items(
+					'table',
+					[
+						[ 'Type' => 'Compression', 'Pending' => $comp ],
+						[ 'Type' => 'Metadata',    'Pending' => $meta ],
+						[ 'Type' => 'Total',       'Pending' => $total ],
+					],
+					[ 'Type', 'Pending' ]
+				);
 
-			$compress_running = MM_Status::compress_daemon_running();
-			$meta_running     = MM_Status::meta_daemon_running();
-			\WP_CLI::line( 'Compress daemon: ' . ( $compress_running ? "\033[0;32mrunning\033[0m" : "\033[0;31mstopped\033[0m" ) );
-			\WP_CLI::line( 'Metadata daemon: ' . ( $meta_running     ? "\033[0;32mrunning\033[0m" : "\033[0;31mstopped\033[0m" ) );
-		} else {
-			\WP_CLI::error( "Unknown subcommand: {$sub}. Valid: status" );
+				$compress_running = MM_Status::compress_daemon_running();
+				$meta_running     = MM_Status::meta_daemon_running();
+				\WP_CLI::line( 'Compress daemon: ' . ( $compress_running ? "\033[0;32mrunning\033[0m" : "\033[0;31mstopped\033[0m" ) );
+				\WP_CLI::line( 'Metadata daemon: ' . ( $meta_running     ? "\033[0;32mrunning\033[0m" : "\033[0;31mstopped\033[0m" ) );
+				break;
+
+			case 'list':
+				$result = MM_DB::get_jobs( [
+					'search'   => (string) ( $assoc_args['search'] ?? '' ),
+					'status'   => (string) ( $assoc_args['status'] ?? '' ),
+					'orderby'  => (string) ( $assoc_args['orderby'] ?? 'id' ),
+					'order'    => (string) ( $assoc_args['order'] ?? 'DESC' ),
+					'per_page' => (int) ( $assoc_args['per_page'] ?? 20 ),
+					'paged'    => (int) ( $assoc_args['paged'] ?? 1 ),
+				] );
+				$rows = [];
+				foreach ( $result['jobs'] as $job ) {
+					$rows[] = [
+						'ID'          => $job->id,
+						'Type'        => $job->job_type,
+						'Image'       => $job->image_name,
+						'Size'        => $job->size_slug,
+						'Status'      => $job->status,
+						'Submitted'   => $job->submitted_at,
+						'Completed'   => $job->completed_at ?? '',
+						'Before'      => $job->bytes_before ? size_format( (int) $job->bytes_before ) : '',
+						'After'       => $job->bytes_after ? size_format( (int) $job->bytes_after ) : '',
+					];
+				}
+				\WP_CLI\Utils\format_items( 'table', $rows, [ 'ID', 'Type', 'Image', 'Size', 'Status', 'Submitted', 'Completed', 'Before', 'After' ] );
+				\WP_CLI::line( sprintf( 'Showing %d of %d jobs.', count( $rows ), $result['total'] ) );
+				break;
+
+			case 'get':
+				$job_id = (int) ( $args[1] ?? 0 );
+				if ( ! $job_id ) {
+					\WP_CLI::error( 'Usage: wp metamanager queue get <job_id>' );
+				}
+				$job = MM_DB::get_job( $job_id );
+				if ( ! $job ) {
+					\WP_CLI::error( "Job {$job_id} not found." );
+				}
+				\WP_CLI\Utils\format_items( 'table', [ (array) $job ], array_keys( (array) $job ) );
+				break;
+
+			case 'requeue':
+				$job_id = (int) ( $args[1] ?? 0 );
+				if ( ! $job_id ) {
+					\WP_CLI::error( 'Usage: wp metamanager queue requeue <job_id>' );
+				}
+				$job = MM_DB::get_job( $job_id );
+				if ( ! $job ) {
+					\WP_CLI::error( "Job {$job_id} not found." );
+				}
+				if ( 'failed' !== $job->status ) {
+					\WP_CLI::error( "Job {$job_id} is not failed (status: {$job->status}). Only failed jobs can be requeued." );
+				}
+				if ( MM_Job_Queue::requeue( $job_id ) ) {
+					\WP_CLI::success( "Job {$job_id} requeued." );
+				} else {
+					\WP_CLI::error( "Failed to requeue job {$job_id}." );
+				}
+				break;
+
+			case 'clear':
+				if ( ! \WP_CLI\Utils\get_flag_value( $assoc_args, 'yes' ) ) {
+					\WP_CLI::error( 'Add --yes to confirm clearing all job history.' );
+				}
+				global $wpdb;
+				$table = MM_DB::table_name();
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				$wpdb->query( "TRUNCATE TABLE {$table}" );
+				\WP_CLI::success( 'Job history cleared. Media files are not affected.' );
+				break;
+
+			default:
+				\WP_CLI::error( "Unknown subcommand: {$sub}. Valid: status, list, get, requeue" );
 		}
 	}
 
@@ -447,6 +519,343 @@ class MM_CLI extends \WP_CLI_Command {
 			],
 			[ 'Metric', 'Value' ]
 		);
+	}
+
+	// -----------------------------------------------------------------------
+	// set-licensing
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Set licensing metadata (license, creditText, acquireLicensePage) on images.
+	 *
+	 * Mirrors the "Set Image Licensing" bulk action. Values are specified by
+	 * the caller — nothing is auto-derived. The caller is the judgment loop.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <ids>
+	 * : Comma-separated attachment IDs, or "all" for every image in the library.
+	 *
+	 * [--license=<url>]
+	 * : License URL (maps to schema license).
+	 *
+	 * [--credit=<text>]
+	 * : Credit text / photographer name (maps to schema creditText).
+	 *
+	 * [--acquire=<url>]
+	 * : Acquire-license page URL (maps to schema acquireLicensePage).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager set-licensing 42,43 --license=https://creativecommons.org/licenses/by/4.0/ --credit="Jane Photographer" --acquire=https://example.com/contact/
+	 *     wp metamanager set-licensing all --license=https://example.com/terms/ --credit="Acme Studio"
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Named arguments.
+	 */
+	public function set_licensing( array $args, array $assoc_args ): void {
+		$license = (string) ( $assoc_args['license'] ?? '' );
+		$credit  = (string) ( $assoc_args['credit'] ?? '' );
+		$acquire = (string) ( $assoc_args['acquire'] ?? '' );
+
+		if ( '' === $license && '' === $credit && '' === $acquire ) {
+			\WP_CLI::error( 'Provide at least one of --license, --credit, or --acquire.' );
+		}
+
+		$target = $args[0] ?? '';
+		if ( 'all' === strtolower( $target ) ) {
+			$ids = get_posts( [
+				'post_type'      => 'attachment',
+				'post_mime_type' => 'image',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			] );
+		} else {
+			$ids = array_filter( array_map( 'intval', explode( ',', $target ) ) );
+		}
+
+		if ( empty( $ids ) ) {
+			\WP_CLI::error( 'No matching images found.' );
+		}
+
+		$count = 0;
+		foreach ( $ids as $id ) {
+			if ( ! wp_attachment_is_image( $id ) ) {
+				continue;
+			}
+			if ( '' !== $license ) {
+				update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
+			}
+			if ( '' !== $credit ) {
+				update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
+			}
+			if ( '' !== $acquire ) {
+				update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
+			}
+			++$count;
+		}
+
+		\WP_CLI::success( sprintf( 'Licensing applied to %d images.', $count ) );
+	}
+
+	// -----------------------------------------------------------------------
+	// meta — per-object metadata fields
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Set metadata fields on attachments (Creator, Copyright, Owner, Headline, etc.).
+	 *
+	 * Mirrors the Batch Metadata page and per-image attachment editor fields.
+	 * Only the provided fields are updated; blanks are skipped. Queue the
+	 * daemon embed afterward with `wp metamanager embed <id>` to write fields
+	 * back into the file.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <ids>
+	 * : Comma-separated attachment IDs, or "all" for every image in the library.
+	 *
+	 * [--creator=<text>]
+	 * [--copyright=<text>]
+	 * [--owner=<text>]
+	 * [--headline=<text>]
+	 * [--credit=<text>]
+	 * [--keywords=<text>]
+	 * [--date=<YYYY-MM-DD>]
+	 * [--city=<text>]
+	 * [--state=<text>]
+	 * [--country=<text>]
+	 * [--rating=<0-5>]
+	 * : Field value(s) to set.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager meta set 42,43 --creator="Jane Doe" --copyright="2026 Acme"
+	 *     wp metamanager meta set all --keywords="landscape; sunset"
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Named arguments.
+	 */
+	public function meta_set( array $args, array $assoc_args ): void {
+		$field_map = [
+			'creator'   => MM_Metadata::META_CREATOR,
+			'copyright' => MM_Metadata::META_COPYRIGHT,
+			'owner'     => MM_Metadata::META_OWNER,
+			'headline'  => MM_Metadata::META_HEADLINE,
+			'credit'    => MM_Metadata::META_CREDIT,
+			'keywords'  => MM_Metadata::META_KEYWORDS,
+			'date'      => MM_Metadata::META_DATE,
+			'city'      => MM_Metadata::META_CITY,
+			'state'     => MM_Metadata::META_STATE,
+			'country'   => MM_Metadata::META_COUNTRY,
+			'rating'    => MM_Metadata::META_RATING,
+		];
+
+		$updates = [];
+		foreach ( $field_map as $cli_key => $meta_key ) {
+			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {
+				$updates[ $meta_key ] = (string) $assoc_args[ $cli_key ];
+			}
+		}
+		if ( empty( $updates ) ) {
+			\WP_CLI::error( 'Provide at least one field (e.g. --creator, --copyright, --headline, ...).' );
+		}
+
+		$target = $args[0] ?? '';
+		if ( 'all' === strtolower( $target ) ) {
+			$ids = get_posts( [
+				'post_type'      => 'attachment',
+				'post_mime_type' => 'image',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			] );
+		} else {
+			$ids = array_filter( array_map( 'intval', explode( ',', $target ) ) );
+		}
+		if ( empty( $ids ) ) {
+			\WP_CLI::error( 'No matching attachments found.' );
+		}
+
+		$count = 0;
+		foreach ( $ids as $id ) {
+			foreach ( $updates as $meta_key => $value ) {
+				update_post_meta( $id, $meta_key, $value );
+			}
+			++$count;
+		}
+		\WP_CLI::success( sprintf( 'Metadata applied to %d attachments.', $count ) );
+	}
+
+	/**
+	 * Read all Metamanager metadata fields for one attachment.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Attachment ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager meta get 42
+	 *
+	 * @param array $args Positional arguments.
+	 */
+	public function meta_get( array $args ): void {
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			\WP_CLI::error( 'Usage: wp metamanager meta get <attachment_id>' );
+		}
+		if ( ! get_post( $id ) || 'attachment' !== get_post_type( $id ) ) {
+			\WP_CLI::error( "Attachment {$id} not found." );
+		}
+
+		$meta_keys = [
+			'Creator'          => MM_Metadata::META_CREATOR,
+			'Copyright'        => MM_Metadata::META_COPYRIGHT,
+			'Owner'            => MM_Metadata::META_OWNER,
+			'Headline'         => MM_Metadata::META_HEADLINE,
+			'Credit'           => MM_Metadata::META_CREDIT,
+			'Keywords'         => MM_Metadata::META_KEYWORDS,
+			'Date'             => MM_Metadata::META_DATE,
+			'City'             => MM_Metadata::META_CITY,
+			'State'            => MM_Metadata::META_STATE,
+			'Country'          => MM_Metadata::META_COUNTRY,
+			'Rating'           => MM_Metadata::META_RATING,
+			'License'          => MM_Metadata::META_LICENSE,
+			'AcquireLicense'   => MM_Metadata::META_ACQUIRE_LICENSE_PAGE,
+			'GPS Latitude'     => MM_Metadata::META_GPS_LAT,
+			'GPS Longitude'    => MM_Metadata::META_GPS_LON,
+		];
+
+		$rows = [];
+		foreach ( $meta_keys as $label => $key ) {
+			$rows[] = [ 'Field' => $label, 'Value' => (string) get_post_meta( $id, $key, true ) ];
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, [ 'Field', 'Value' ] );
+	}
+
+	/**
+	 * Show metadata version history and field-level diff for an attachment.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Attachment ID.
+	 *
+	 * [--limit=<n>]
+	 * : Number of history entries to show (default 10).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager meta history 42
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Named arguments.
+	 */
+	public function meta_history( array $args, array $assoc_args ): void {
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			\WP_CLI::error( 'Usage: wp metamanager meta history <attachment_id>' );
+		}
+		if ( ! class_exists( 'MM_Metadata_History' ) ) {
+			\WP_CLI::error( 'MM_Metadata_History is not available.' );
+		}
+
+		$limit = (int) ( $assoc_args['limit'] ?? 10 );
+		$rows  = MM_Metadata_History::get_history( $id );
+		if ( empty( $rows ) ) {
+			\WP_CLI::line( 'No history entries found.' );
+			return;
+		}
+		$rows = array_slice( $rows, 0, $limit );
+
+		$items = [];
+		foreach ( $rows as $row ) {
+			$items[] = [
+				'ID'        => $row->id ?? '',
+				'Changed'   => $row->changed_at ?? '',
+				'Fields'    => is_string( $row->changed_fields ?? '' ) ? $row->changed_fields : json_encode( $row->changed_fields ?? [] ),
+			];
+		}
+		\WP_CLI\Utils\format_items( 'table', $items, [ 'ID', 'Changed', 'Fields' ] );
+	}
+
+	// -----------------------------------------------------------------------
+	// attachment — per-attachment status
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Show compression and metadata-sync status for one attachment.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Attachment ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager attachment 42
+	 *
+	 * @param array $args Positional arguments.
+	 */
+	public function attachment( array $args ): void {
+		$id = (int) ( $args[0] ?? 0 );
+		if ( ! $id ) {
+			\WP_CLI::error( 'Usage: wp metamanager attachment <attachment_id>' );
+		}
+		if ( ! get_post( $id ) || 'attachment' !== get_post_type( $id ) ) {
+			\WP_CLI::error( "Attachment {$id} not found." );
+		}
+
+		$mime       = (string) get_post_mime_type( $id );
+		$compressed = MM_DB::has_completed_compression( $id, 'full' );
+		$synced     = MM_DB::has_any_completed_metadata( $id );
+		$pending    = MM_DB::get_pending_job_types( $id );
+
+		$rows = [
+			[ 'Field' => 'ID',              'Value' => $id ],
+			[ 'Field' => 'File',            'Value' => (string) get_attached_file( $id ) ],
+			[ 'Field' => 'MIME',            'Value' => $mime ],
+			[ 'Field' => 'Compressed',      'Value' => $compressed ? 'yes' : 'no' ],
+			[ 'Field' => 'Meta synced',     'Value' => $synced ? 'yes' : 'no' ],
+			[ 'Field' => 'Pending jobs',    'Value' => $pending ? implode( ', ', $pending ) : 'none' ],
+		];
+		\WP_CLI\Utils\format_items( 'table', $rows, [ 'Field', 'Value' ] );
+	}
+
+	// -----------------------------------------------------------------------
+	// status — full system status
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Output the full Metamanager status JSON (daemons, tools, queues, cron).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format: table or json (default json).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager status
+	 *     wp metamanager status --format=table
+	 *
+	 * @param array $args       Positional arguments (unused).
+	 * @param array $assoc_args Named arguments.
+	 */
+	public function status( array $args, array $assoc_args ): void {
+		$format = (string) ( $assoc_args['format'] ?? 'json' );
+		$status = MM_Status::get_status();
+
+		if ( 'table' === $format ) {
+			$rows = [];
+			foreach ( $status as $key => $value ) {
+				$rows[] = [ 'Key' => $key, 'Value' => is_scalar( $value ) ? (string) $value : json_encode( $value ) ];
+			}
+			\WP_CLI\Utils\format_items( 'table', $rows, [ 'Key', 'Value' ] );
+		} else {
+			\WP_CLI::line( json_encode( $status, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		}
 	}
 }
 
