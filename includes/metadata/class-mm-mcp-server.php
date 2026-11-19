@@ -17,8 +17,13 @@ class MM_MCP_Server {
 		'metamanager/get-schema',
 		'metamanager/get-business-profile',
 		'metamanager/update-business-profile',
+		'metamanager/get-settings',
+		'metamanager/update-settings',
 		'metamanager/get-navigation',
 		'metamanager/get-term-meta',
+		'metamanager/update-term-meta',
+		'metamanager/get-jobs',
+		'metamanager/manage-jobs',
 	];
 
 	public function register_hooks(): void {

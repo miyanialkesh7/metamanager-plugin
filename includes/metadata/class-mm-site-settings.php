@@ -553,6 +553,7 @@ class MM_Site_Settings {
 				'og_default_image_id'   => 0,
 				'og_locale'             => 'en_US',
 				'fb_app_id'             => '',
+				'fb_page_id'            => '',
 				'twitter_site'          => '',
 				'twitter_card_type'     => 'summary_large_image',
 				'accounts'              => [

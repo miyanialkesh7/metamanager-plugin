@@ -87,8 +87,13 @@ class MM_Abilities {
 		$this->register_get_schema();
 		$this->register_get_business_profile();
 		$this->register_update_business_profile();
+		$this->register_get_settings();
+		$this->register_update_settings();
 		$this->register_get_navigation();
 		$this->register_get_term_meta();
+		$this->register_update_term_meta();
+		$this->register_get_jobs();
+		$this->register_manage_jobs();
 		$this->register_report_abilities();
 		// content/* and comments/* abilities moved to GCM Coworker (gcm repo).
 		// General WordPress operations belong in the mu-plugin that's on
@@ -331,11 +336,17 @@ class MM_Abilities {
 					'canonical'    => [ 'type' => 'string', 'description' => 'Canonical URL.' ],
 					'noindex'      => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
 					'nofollow'     => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+					'noarchive'    => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+					'nosnippet'    => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+					'noimageindex' => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
 					'og_title'     => [ 'type' => 'string' ],
 					'og_description' => [ 'type' => 'string' ],
+					'og_image_id'  => [ 'type' => 'integer', 'description' => 'OG image attachment ID.' ],
 					'og_image_url' => [ 'type' => 'string', 'description' => 'OG image URL or attachment ID.' ],
 					'schema_type'  => [ 'type' => 'string', 'description' => 'Schema.org type.' ],
+					'schema_fields' => [ 'type' => 'object', 'description' => 'Schema field overrides.' ],
 					'breadcrumb_label' => [ 'type' => 'string' ],
+					'exclude_sitemap' => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
 				],
 				'required' => [ 'post_id' ],
 			],
@@ -372,7 +383,8 @@ class MM_Abilities {
 		// Merge only provided fields.
 		$updatable = [ 'title', 'description', 'canonical', 'noindex', 'nofollow',
 			'noarchive', 'nosnippet', 'noimageindex', 'og_title', 'og_description',
-			'og_image_id', 'og_image_url', 'schema_type', 'breadcrumb_label', 'schema_fields' ];
+			'og_image_id', 'og_image_url', 'schema_type', 'breadcrumb_label', 'schema_fields',
+			'exclude_sitemap' ];
 
 		foreach ( $updatable as $field ) {
 			if ( array_key_exists( $field, $input ) ) {
@@ -528,7 +540,10 @@ class MM_Abilities {
 			'service_areas' => array_values( (array) ( $local['service_areas'] ?? [] ) ),
 			'hours'       => array_values( (array) ( $local['hours'] ?? [] ) ),
 			'price_range' => $local['price_range'] ?? '',
-			'same_as'     => array_values( (array) ( $social['accounts'] ?? [] ) ),
+			'same_as'     => array_values( array_filter( array_map( 'esc_url_raw', array_merge(
+				array_filter( (array) ( $social['accounts'] ?? [] ) ),
+				array_filter( (array) ( $local['accounts'] ?? [] ) )
+			) ) ) ),
 		];
 
 		// Remove empty values.
@@ -624,6 +639,115 @@ class MM_Abilities {
 
 		$settings->save_business( $biz );
 		return [ 'success' => true, 'updated' => $updated ];
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/get-settings
+	// -------------------------------------------------------------------------
+
+	private function register_get_settings(): void {
+		wp_register_ability( 'metamanager/get-settings', [
+			'label'       => 'Get Site Settings',
+			'description' => 'Read MetaManager settings sections: titles, social, schema, sitemap, robots, authors, hygiene, feed, links. Provide a section name or omit for all.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'section' => [
+						'type'        => 'string',
+						'description' => 'Section to read: titles, social, schema, sitemap, robots, authors, hygiene, feed, links, discovery, media, templates, listing.',
+					],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'settings' => [ 'type' => 'object' ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_get_settings' ],
+		] );
+	}
+
+	public function ability_get_settings( array $input ) {
+		$settings = MM_Site_Settings::get_instance();
+		$section  = $input['section'] ?? '';
+
+		if ( '' !== $section ) {
+			return [ 'settings' => [ $section => $settings->get( $section, [] ) ] ];
+		}
+
+		$sections = [ 'titles', 'social', 'schema', 'sitemap', 'robots', 'authors', 'hygiene', 'feed', 'links', 'discovery', 'media', 'templates', 'listing' ];
+		$out = [];
+		foreach ( $sections as $s ) {
+			$out[ $s ] = $settings->get( $s, [] );
+		}
+		return [ 'settings' => $out ];
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/update-settings
+	// -------------------------------------------------------------------------
+
+	private function register_update_settings(): void {
+		wp_register_ability( 'metamanager/update-settings', [
+			'label'       => 'Update Site Settings',
+			'description' => 'Update MetaManager settings sections: titles, social, schema, sitemap, robots, authors, hygiene, feed, links. Merges provided keys into existing settings.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'section' => [
+						'type'        => 'string',
+						'description' => 'Section to update: titles, social, schema, sitemap, robots, authors, hygiene, feed, links, discovery, media, templates, listing.',
+					],
+					'values' => [
+						'type'        => 'object',
+						'description' => 'Key-value pairs to set within the section. Merged into existing values.',
+					],
+				],
+				'required' => [ 'section', 'values' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'updated' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_update_settings' ],
+		] );
+	}
+
+	public function ability_update_settings( array $input ) {
+		$section = $input['section'] ?? '';
+		$values  = $input['values'] ?? [];
+
+		$valid_sections = [ 'titles', 'social', 'schema', 'sitemap', 'robots', 'authors', 'hygiene', 'feed', 'links', 'discovery', 'media', 'templates', 'listing' ];
+		if ( ! in_array( $section, $valid_sections, true ) ) {
+			return new WP_Error( 'invalid_section', 'Invalid section. Valid: ' . implode( ', ', $valid_sections ) );
+		}
+		if ( ! is_array( $values ) || empty( $values ) ) {
+			return new WP_Error( 'invalid_values', 'Values must be a non-empty object.' );
+		}
+
+		$settings = MM_Site_Settings::get_instance();
+		$current  = $settings->get( $section, [] );
+		if ( ! is_array( $current ) ) {
+			$current = [];
+		}
+		$current = array_merge( $current, $values );
+
+		// Merge into full settings and save.
+		$raw  = get_option( MM_META_OPT_SETTINGS, [] );
+		$full = is_array( $raw ) ? $raw : [];
+		$full = MM_Site_Settings::deep_merge( MM_Site_Settings::settings_defaults(), $full );
+		$full[ $section ] = $current;
+		$settings->save_settings( $full );
+
+		return [ 'success' => true, 'updated' => array_keys( $values ) ];
 	}
 
 	// -------------------------------------------------------------------------
@@ -734,6 +858,242 @@ class MM_Abilities {
 			'term_id'  => $term_id,
 			'taxonomy' => $taxonomy,
 		], $meta );
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/update-term-meta
+	// -------------------------------------------------------------------------
+
+	private function register_update_term_meta(): void {
+		wp_register_ability( 'metamanager/update-term-meta', [
+			'label'       => 'Update Term Metadata',
+			'description' => 'Write SEO metadata for a taxonomy term (category, tag, etc.). Only provided fields are updated.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'term_id'     => [ 'type' => 'integer' ],
+					'taxonomy'    => [ 'type' => 'string' ],
+					'og_title'    => [ 'type' => 'string' ],
+					'og_description' => [ 'type' => 'string' ],
+					'og_image_id' => [ 'type' => 'integer' ],
+					'noindex'     => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+					'nofollow'    => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+					'breadcrumb_label' => [ 'type' => 'string' ],
+					'exclude_sitemap' => [ 'type' => 'string', 'enum' => [ 'yes', 'no' ] ],
+				],
+				'required' => [ 'term_id', 'taxonomy' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'term_id' => [ 'type' => 'integer' ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_update_term_meta' ],
+		] );
+	}
+
+	public function ability_update_term_meta( array $input ) {
+		$term_id  = absint( $input['term_id'] ?? 0 );
+		$taxonomy = sanitize_key( $input['taxonomy'] ?? '' );
+		if ( ! $term_id || ! get_term( $term_id, $taxonomy ) ) {
+			return new WP_Error( 'invalid_term', 'Term not found.' );
+		}
+
+		$settings = MM_Site_Settings::get_instance();
+		$existing = $settings->get_term_meta( $term_id );
+		$updatable = [ 'og_title', 'og_description', 'og_image_id', 'noindex', 'nofollow', 'breadcrumb_label', 'exclude_sitemap' ];
+
+		$updated = [];
+		foreach ( $updatable as $field ) {
+			if ( array_key_exists( $field, $input ) ) {
+				$existing[ $field ] = $input[ $field ];
+				$updated[]          = $field;
+			}
+		}
+		if ( empty( $updated ) ) {
+			return [ 'success' => false, 'term_id' => $term_id ];
+		}
+		$settings->save_term_meta( $term_id, $existing );
+		return [ 'success' => true, 'term_id' => $term_id ];
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/get-jobs
+	// -------------------------------------------------------------------------
+
+	private function register_get_jobs(): void {
+		wp_register_ability( 'metamanager/get-jobs', [
+			'label'       => 'Get Processing Jobs',
+			'description' => 'List media processing jobs (compression, metadata, import) with search and status filters.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'search'   => [ 'type' => 'string', 'description' => 'Search by image name or job type.' ],
+					'status'   => [ 'type' => 'string', 'enum' => [ 'pending', 'completed', 'failed', 'not_pending' ] ],
+					'per_page' => [ 'type' => 'integer', 'default' => 20 ],
+					'paged'    => [ 'type' => 'integer', 'default' => 1 ],
+				],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'jobs'  => [ 'type' => 'array' ],
+					'total' => [ 'type' => 'integer' ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_get_jobs' ],
+		] );
+	}
+
+	public function ability_get_jobs( array $input ) {
+		$result = MM_DB::get_jobs( [
+			'search'   => (string) ( $input['search'] ?? '' ),
+			'status'   => (string) ( $input['status'] ?? '' ),
+			'per_page' => (int) ( $input['per_page'] ?? 20 ),
+			'paged'    => (int) ( $input['paged'] ?? 1 ),
+		] );
+		return [
+			'jobs'  => array_map( fn( $j ) => (array) $j, $result['jobs'] ),
+			'total' => $result['total'],
+		];
+	}
+
+	// -------------------------------------------------------------------------
+	// metamanager/manage-jobs
+	// -------------------------------------------------------------------------
+
+	private function register_manage_jobs(): void {
+		wp_register_ability( 'metamanager/manage-jobs', [
+			'label'       => 'Manage Processing Jobs',
+			'description' => 'Requeue failed jobs, trigger library scan, queue compression or metadata embed for attachments.',
+			'category'    => 'site',
+			'input_schema'  => [
+				'type'       => 'object',
+				'properties' => [
+					'action'      => [
+						'type'        => 'string',
+						'enum'        => [ 'requeue', 'scan', 'compress', 'embed', 'set-licensing' ],
+						'description' => 'Action to perform.',
+					],
+					'job_id'      => [ 'type' => 'integer', 'description' => 'For requeue: the job ID.' ],
+					'attachment_ids' => [ 'type' => 'array', 'items' => [ 'type' => 'integer' ], 'description' => 'For compress/embed/set-licensing: attachment IDs.' ],
+					'license'     => [ 'type' => 'string', 'description' => 'For set-licensing: license URL.' ],
+					'credit'      => [ 'type' => 'string', 'description' => 'For set-licensing: credit text.' ],
+					'acquire'     => [ 'type' => 'string', 'description' => 'For set-licensing: acquire license URL.' ],
+				],
+				'required' => [ 'action' ],
+			],
+			'output_schema' => [
+				'type'       => 'object',
+				'properties' => [
+					'success' => [ 'type' => 'boolean' ],
+					'message' => [ 'type' => 'string' ],
+					'count'   => [ 'type' => 'integer' ],
+				],
+			],
+			'permission_callback' => [ $this, 'can_manage_site' ],
+			'execute_callback'    => [ $this, 'ability_manage_jobs' ],
+		] );
+	}
+
+	public function ability_manage_jobs( array $input ) {
+		$action = $input['action'] ?? '';
+
+		switch ( $action ) {
+			case 'requeue':
+				$job_id = absint( $input['job_id'] ?? 0 );
+				if ( ! $job_id ) {
+					return new WP_Error( 'missing_job_id', 'job_id is required for requeue.' );
+				}
+				$job = MM_DB::get_job( $job_id );
+				if ( ! $job ) {
+					return new WP_Error( 'not_found', "Job {$job_id} not found." );
+				}
+				if ( 'failed' !== $job->status ) {
+					return new WP_Error( 'not_failed', "Job {$job_id} is not failed (status: {$job->status})." );
+				}
+				MM_Job_Queue::requeue( $job_id );
+				return [ 'success' => true, 'message' => "Job {$job_id} requeued.", 'count' => 1 ];
+
+			case 'scan':
+				// Delegate to the same logic as `wp metamanager scan`.
+				$ids = get_posts( [
+					'post_type'      => 'attachment',
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_query'     => [
+						'relation' => 'OR',
+						[ 'key' => '_mm_imported', 'compare' => 'NOT EXISTS' ],
+						[ 'key' => '_mm_imported', 'value' => '1', 'compare' => '!=' ],
+					],
+				] );
+				$count = 0;
+				foreach ( $ids as $id ) {
+					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'ability_scan' ] );
+					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'ability_scan' ] );
+					++$count;
+				}
+				return [ 'success' => true, 'message' => "Library scan queued for {$count} attachments.", 'count' => $count ];
+
+			case 'compress':
+				$ids = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
+				if ( empty( $ids ) ) {
+					return new WP_Error( 'missing_ids', 'attachment_ids is required for compress.' );
+				}
+				$count = 0;
+				foreach ( $ids as $id ) {
+					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'ability_compress' ] );
+					++$count;
+				}
+				return [ 'success' => true, 'message' => "Compression queued for {$count} attachments.", 'count' => $count ];
+
+			case 'embed':
+				$ids = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
+				if ( empty( $ids ) ) {
+					return new WP_Error( 'missing_ids', 'attachment_ids is required for embed.' );
+				}
+				$count = 0;
+				foreach ( $ids as $id ) {
+					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'ability_embed' ] );
+					++$count;
+				}
+				return [ 'success' => true, 'message' => "Metadata embed queued for {$count} attachments.", 'count' => $count ];
+
+			case 'set-licensing':
+				$ids     = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
+				$license = (string) ( $input['license'] ?? '' );
+				$credit  = (string) ( $input['credit'] ?? '' );
+				$acquire = (string) ( $input['acquire'] ?? '' );
+				if ( empty( $ids ) ) {
+					return new WP_Error( 'missing_ids', 'attachment_ids is required for set-licensing.' );
+				}
+				$count = 0;
+				foreach ( $ids as $id ) {
+					if ( ! wp_attachment_is_image( $id ) ) {
+						continue;
+					}
+					if ( '' !== $license ) {
+						update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
+					}
+					if ( '' !== $credit ) {
+						update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
+					}
+					if ( '' !== $acquire ) {
+						update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
+					}
+					++$count;
+				}
+				return [ 'success' => true, 'message' => "Licensing applied to {$count} images.", 'count' => $count ];
+
+			default:
+				return new WP_Error( 'invalid_action', 'Valid actions: requeue, scan, compress, embed, set-licensing' );
+		}
 	}
 
 	// -------------------------------------------------------------------------
