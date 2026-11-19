@@ -426,6 +426,252 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	}
 
 	// -------------------------------------------------------------------------
+	// business — business profile settings (goes through save_business)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Get or set business profile settings.
+	 *
+	 * Goes through MM_Site_Settings::save_business() for proper validation
+	 * and geocoding. Single source of truth for business data.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <get|set>
+	 * : Subcommand: get or set.
+	 *
+	 * [--name=<text>]
+	 * [--type=<text>]
+	 * [--description=<text>]
+	 * [--street=<text>]
+	 * [--city=<text>]
+	 * [--state=<text>]
+	 * [--zip=<text>]
+	 * [--country=<text>]
+	 * [--phone=<text>]
+	 * [--email=<text>]
+	 * [--location-type=<brick_and_mortar|service_area>]
+	 * [--service-areas=<semicolon-separated>]
+	 * [--lat=<number>]
+	 * [--lng=<number>]
+	 * : Fields to set.
+	 *
+	 * [--format=<format>]
+	 * : For get: output format (table or json).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata business get
+	 *   wp metamanager metadata business set --street="91 Ready Ave Ste D" --city="Fort Walton Beach" --state=FL --zip=32548
+	 *   wp metamanager metadata business set --location-type=service_area --service-areas="Destin, FL; Fort Walton Beach, FL"
+	 *
+	 * @when after_wp_load
+	 */
+	public function business( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? 'get';
+		switch ( $sub ) {
+			case 'get':
+				$this->business_get( $assoc_args );
+				break;
+			case 'set':
+				$this->business_set( $assoc_args );
+				break;
+			default:
+				WP_CLI::error( "Unknown subcommand: {$sub}. Valid: get, set" );
+		}
+	}
+
+	/**
+	 * Display current business profile.
+	 */
+	private function business_get( array $assoc_args ): void {
+		$settings = MM_Site_Settings::get_instance();
+		$biz      = $settings->all_business();
+		$format   = (string) ( $assoc_args['format'] ?? 'table' );
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $biz, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			return;
+		}
+
+		$rows = [];
+		foreach ( $biz as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$value = wp_json_encode( $value );
+			}
+			$rows[] = [ 'Key' => $key, 'Value' => (string) $value ];
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, [ 'Key', 'Value' ] );
+	}
+
+	/**
+	 * Update business profile fields through the settings layer.
+	 */
+	private function business_set( array $assoc_args ): void {
+		$settings = MM_Site_Settings::get_instance();
+		$biz      = $settings->all_business();
+
+		$field_map = [
+			'name'           => [ 'name' ],
+			'type'           => [ 'type' ],
+			'description'    => [ 'description' ],
+			'street'         => [ 'address', 'street' ],
+			'city'           => [ 'address', 'city' ],
+			'state'          => [ 'address', 'state' ],
+			'zip'            => [ 'address', 'zip' ],
+			'country'        => [ 'address', 'country' ],
+			'phone'          => [ 'phone' ],
+			'email'          => [ 'email' ],
+			'location-type'  => [ 'location_type' ],
+			'lat'            => [ 'lat' ],
+			'lng'            => [ 'lng' ],
+		];
+
+		$changes = 0;
+		foreach ( $field_map as $cli_key => $path ) {
+			if ( ! isset( $assoc_args[ $cli_key ] ) ) {
+				continue;
+			}
+			$value = (string) $assoc_args[ $cli_key ];
+			$ref   = & $biz;
+			$last  = array_pop( $path );
+			foreach ( $path as $k ) {
+				if ( ! isset( $ref[ $k ] ) || ! is_array( $ref[ $k ] ) ) {
+					$ref[ $k ] = [];
+				}
+				$ref = & $ref[ $k ];
+			}
+			$ref[ $last ] = $value;
+			++$changes;
+		}
+
+		if ( isset( $assoc_args['service-areas'] ) ) {
+			$areas = array_filter( array_map( 'trim', explode( ';', (string) $assoc_args['service-areas'] ) ) );
+			$biz['service_areas'] = array_values( $areas );
+			++$changes;
+		}
+
+		if ( 0 === $changes ) {
+			WP_CLI::error( 'No fields specified. Use --help to see available fields.' );
+		}
+
+		$settings->save_business( $biz );
+		WP_CLI::success( sprintf( 'Business profile updated (%d fields).', $changes ) );
+	}
+
+	// -------------------------------------------------------------------------
+	// titles — title and description templates
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Get or set title and description templates.
+	 *
+	 * Page/post descriptions derive from excerpts. These settings control
+	 * the homepage title/description and global title templates.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <get|set>
+	 * : Subcommand: get or set.
+	 *
+	 * [--home-title=<template>]
+	 * [--home-description=<text>]
+	 * [--separator=<char>]
+	 * [--search-title=<template>]
+	 * [--404-title=<template>]
+	 * : Fields to set. Templates support %%sitetitle%%, %%sep%%, %%tagline%%, %%page%%, %%search_query%%.
+	 *
+	 * [--format=<format>]
+	 * : For get: output format (table or json).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata titles get
+	 *   wp metamanager metadata titles set --home-description="Payroll and HR services in Destin, Florida"
+	 *   wp metamanager metadata titles set --separator="-"
+	 *
+	 * @when after_wp_load
+	 */
+	public function titles( array $args, array $assoc_args ): void {
+		$sub = $args[0] ?? 'get';
+		switch ( $sub ) {
+			case 'get':
+				$this->titles_get( $assoc_args );
+				break;
+			case 'set':
+				$this->titles_set( $assoc_args );
+				break;
+			default:
+				WP_CLI::error( "Unknown subcommand: {$sub}. Valid: get, set" );
+		}
+	}
+
+	/**
+	 * Display current title/description settings.
+	 */
+	private function titles_get( array $assoc_args ): void {
+		$settings = MM_Site_Settings::get_instance();
+		$format   = (string) ( $assoc_args['format'] ?? 'table' );
+		$keys     = [ 'separator', 'home_title', 'home_description', 'search_title', '404_title', 'date_archive_noindex', 'search_noindex', 'paginate_append' ];
+
+		if ( 'json' === $format ) {
+			$out = [];
+			foreach ( $keys as $k ) {
+				$out[ $k ] = $settings->get( "titles.{$k}", '' );
+			}
+			WP_CLI::line( wp_json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			return;
+		}
+
+		$rows = [];
+		foreach ( $keys as $k ) {
+			$rows[] = [ 'Key' => $k, 'Value' => (string) $settings->get( "titles.{$k}", '' ) ];
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, [ 'Key', 'Value' ] );
+	}
+
+	/**
+	 * Update title/description settings.
+	 */
+	private function titles_set( array $assoc_args ): void {
+		$settings = MM_Site_Settings::get_instance();
+		$titles   = [];
+		foreach ( [ 'separator', 'home_title', 'home_description', 'search_title', '404_title' ] as $k ) {
+			$titles[ $k ] = (string) $settings->get( "titles.{$k}", '' );
+		}
+
+		$field_map = [
+			'home-title'        => 'home_title',
+			'home-description'  => 'home_description',
+			'separator'         => 'separator',
+			'search-title'      => 'search_title',
+			'404-title'         => '404_title',
+		];
+
+		$changes = 0;
+		foreach ( $field_map as $cli_key => $path ) {
+			if ( ! isset( $assoc_args[ $cli_key ] ) ) {
+				continue;
+			}
+			$titles[ $path ] = (string) $assoc_args[ $cli_key ];
+			++$changes;
+		}
+
+		if ( 0 === $changes ) {
+			WP_CLI::error( 'No fields specified. Use --help to see available fields.' );
+		}
+
+		// Merge into existing settings, preserving all other sections.
+		$raw  = get_option( MM_META_OPT_SETTINGS, [] );
+		$full = is_array( $raw ) ? $raw : [];
+		// Ensure defaults are present for all sections.
+		$full = MM_Site_Settings::deep_merge( MM_Site_Settings::settings_defaults(), $full );
+		$full['titles'] = array_merge( $full['titles'] ?? [], $titles );
+		$settings->save_settings( $full );
+		WP_CLI::success( sprintf( 'Title settings updated (%d fields).', $changes ) );
+	}
+
+	// -------------------------------------------------------------------------
 	// pref — plugin preferences (mm_* standalone options)
 	// -------------------------------------------------------------------------
 
