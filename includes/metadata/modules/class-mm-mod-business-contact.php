@@ -673,6 +673,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 					<span><?php echo esc_html( $phone ); ?></span>
 				</a>
 				<?php endif; ?>
+				<?php if ( $show_email ) : ?>
+				<a href="mailto:<?php echo esc_attr( $email ); ?>" class="gcm-contact-page__btn gcm-contact-page__btn--email">
+					<span class="dashicons dashicons-email-alt" aria-hidden="true"></span>
+					<span><?php echo esc_html( $email ); ?></span>
+				</a>
+				<?php endif; ?>
 				<?php
 				$booking_link  = $biz['booking_link'] ?? '';
 				$booking_label = sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' );
