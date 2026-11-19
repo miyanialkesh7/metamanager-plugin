@@ -483,7 +483,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * : Longitude (auto-geocoded from address if blank).
 	 *
 	 * [--contact-form-enabled=<0|1>]
-	 * : Contact form on/off (1 or 0).
+	 * : Toggle contact form (1 or 0).
 	 *
 	 * : Contact form delivery email (defaults to admin email).
 	 *
@@ -497,16 +497,16 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * : Terms of Service page ID (for the agreement checkbox link).
 	 *
 	 * [--contact-form-recaptcha-site=<key>]
-	 * : Google reCAPTCHA v2 invisible site key.
+	 * : reCAPTCHA site key (v2 invisible).
 	 *
 	 * [--contact-form-recaptcha-secret=<key>]
-	 * : Google reCAPTCHA v2 invisible secret key.
+	 * : reCAPTCHA secret key (v2 invisible).
 	 *
 	 * [--booking-link=<url>]
-	 * : Booking service URL (FareHarbor, Vagaro, Lodgify, etc.).
+	 * : External booking URL.
 	 *
 	 * [--booking-label=<text>]
-	 * : Booking button label (default: Book Now).
+	 * : Booking button label.
 	 *
 	 * [--format=<format>]
 	 * : For get: output format (table or json).
