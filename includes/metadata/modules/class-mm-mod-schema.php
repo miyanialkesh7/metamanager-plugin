@@ -270,9 +270,16 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				'@id'   => $url . '#primaryimage',
 				'url'   => $og_image['url'],
 			);
-			// Google Image Metadata requirements.
-			$license_fields = $this->get_image_license_fields( $settings );
-			$image_node = array_merge( $image_node, $license_fields );
+			// Google Image Metadata requirements — per-image fields only.
+			$og_att_id = attachment_url_to_postid( $og_image['url'] );
+			if ( $og_att_id ) {
+				$license = (string) get_post_meta( $og_att_id, MM_Metadata::META_LICENSE, true );
+				if ( '' !== $license ) { $image_node['license'] = $license; }
+				$acquire = (string) get_post_meta( $og_att_id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
+				if ( '' !== $acquire ) { $image_node['acquireLicensePage'] = $acquire; }
+				$credit = (string) get_post_meta( $og_att_id, MM_Metadata::META_CREDIT, true );
+				if ( '' !== $credit ) { $image_node['creditText'] = $credit; }
+			}
 			// Only emit width/height as QuantitativeValue when valid positive integers.
 			if ( ! empty( $og_image['width'] ) && is_numeric( $og_image['width'] ) && (int) $og_image['width'] > 0 ) {
 				$image_node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $og_image['width'], 'unitCode' => 'PIX' );
@@ -849,33 +856,6 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	}
 
 	/**
-	 * Get image licensing fields for ImageObject nodes.
-	 * Google requires license, acquireLicensePage, and creditText.
-	 */
-	private function get_image_license_fields( MM_Site_Settings $settings ): array {
-		$biz  = $settings->all_business();
-		$name = $biz['name'] ?? get_bloginfo( 'name' );
-
-		// Find terms-of-service page for license URL.
-		$license_url = home_url( '/terms-of-service/' );
-		$terms = get_page_by_path( 'terms-of-service' );
-		if ( ! $terms ) { $terms = get_page_by_path( 'terms-of-services' ); }
-		if ( $terms ) { $license_url = get_permalink( $terms->ID ); }
-
-		// Find contact page for acquireLicensePage.
-		$contact_url = home_url( '/contact/' );
-		$contact = get_page_by_path( 'contact' );
-		if ( ! $contact ) { $contact = get_page_by_path( 'contact-us' ); }
-		if ( $contact ) { $contact_url = get_permalink( $contact->ID ); }
-
-		return [
-			'license'            => $license_url,
-			'acquireLicensePage' => $contact_url,
-			'creditText'         => $name,
-		];
-	}
-
-	/**
 	 * Emit an ImageObject schema node for a detected image.
 	 */
 	private function add_image_schema( array &$data, array $item, \WP_Post $post ): void {
@@ -898,9 +878,19 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			'contentUrl' => $schema_url,
 		];
 
-		// Google Image Metadata requirements: license, acquireLicensePage, creditText.
-		$license_fields = $this->get_image_license_fields( MM_Site_Settings::get_instance() );
-		$node = array_merge( $node, $license_fields );
+		// Google Image Metadata requirements — sourced from per-image fields only.
+		$license = $meta( MM_Metadata::META_LICENSE );
+		if ( '' !== $license ) {
+			$node['license'] = $license;
+		}
+		$acquire = $meta( MM_Metadata::META_ACQUIRE_LICENSE_PAGE );
+		if ( '' !== $acquire ) {
+			$node['acquireLicensePage'] = $acquire;
+		}
+		$credit = $meta( MM_Metadata::META_CREDIT );
+		if ( '' !== $credit ) {
+			$node['creditText'] = $credit;
+		}
 
 		if ( $item['width'] && is_numeric( $item['width'] ) && (int) $item['width'] > 0 ) {
 			$node['width'] = array( '@type' => 'QuantitativeValue', 'value' => (int) $item['width'], 'unitCode' => 'PIX' );
