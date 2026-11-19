@@ -401,6 +401,14 @@ class MM_Admin {
 			'metamanager-bulk-meta',
 			[ __CLASS__, 'render_bulk_meta_page' ]
 		);
+		add_submenu_page(
+			'',
+			esc_html__( 'Set Image Licensing', 'metamanager' ),
+			esc_html__( 'Set Image Licensing', 'metamanager' ),
+			'edit_others_posts',
+			'mm-image-licensing',
+			[ __CLASS__, 'render_licensing_page' ]
+		);
 	}
 
 	// -----------------------------------------------------------------------
@@ -990,8 +998,9 @@ class MM_Admin {
 	 * @return array
 	 */
 	public static function register_bulk_actions( array $actions ): array {
-		$actions['mm_bulk_compress']  = esc_html__( 'Compress Lossless (Metamanager)', 'metamanager' );
-		$actions['mm_bulk_site_info'] = esc_html__( 'Inject Site Info into Metadata (Metamanager)', 'metamanager' );
+		$actions['mm_bulk_compress']   = esc_html__( 'Compress Lossless (Metamanager)', 'metamanager' );
+		$actions['mm_bulk_site_info']  = esc_html__( 'Inject Site Info into Metadata (Metamanager)', 'metamanager' );
+		$actions['mm_bulk_licensing']  = esc_html__( 'Set Image Licensing (Metamanager)', 'metamanager' );
 		return $actions;
 	}
 
@@ -1014,6 +1023,13 @@ class MM_Admin {
 			case 'mm_bulk_site_info':
 				$count = self::do_bulk_inject_site_info( $post_ids );
 				return add_query_arg( 'mm_bulk_site_info', $count, $redirect_to );
+
+			case 'mm_bulk_licensing':
+				$ids = implode( ',', array_map( 'intval', $post_ids ) );
+				return add_query_arg(
+					[ 'page' => 'mm-image-licensing', 'ids' => $ids ],
+					admin_url( 'admin.php' )
+				);
 		}
 
 		return $redirect_to;
@@ -1236,9 +1252,110 @@ class MM_Admin {
 		return $count;
 	}
 
-	// -----------------------------------------------------------------------
-	// Scripts & styles
-	// -----------------------------------------------------------------------
+	/**
+	 * Render the image licensing interstitial page.
+	 * Reached via the "Set Image Licensing" bulk action. The human specifies
+	 * license URL, creditText, and acquireLicensePage — the judgment loop for
+	 * third-party images where we cannot auto-derive credit.
+	 */
+	public static function render_licensing_page(): void {
+		if ( ! current_user_can( 'edit_others_posts' ) ) {
+			wp_die( esc_html__( 'You do not have permission to set image licensing.', 'metamanager' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification -- IDs arrive via GET from the bulk action redirect; CSRF is handled by the form nonce below.
+		$raw_ids = isset( $_GET['ids'] ) ? sanitize_text_field( wp_unslash( $_GET['ids'] ) ) : '';
+		$ids     = array_filter( array_map( 'intval', explode( ',', $raw_ids ) ) );
+		if ( empty( $ids ) ) {
+			wp_die( esc_html__( 'No images selected.', 'metamanager' ) );
+		}
+
+		// Process form submission.
+		if ( isset( $_POST['mm_licensing_submit'] ) ) {
+			check_admin_referer( 'mm_licensing_' . implode( '_', $ids ) );
+
+			$license  = esc_url_raw( wp_unslash( $_POST['mm_license'] ?? '' ) );
+			$credit   = sanitize_text_field( wp_unslash( $_POST['mm_credit'] ?? '' ) );
+			$acquire  = esc_url_raw( wp_unslash( $_POST['mm_acquire_license_page'] ?? '' ) );
+
+			$count = 0;
+			foreach ( $ids as $id ) {
+				if ( ! wp_attachment_is_image( $id ) ) {
+					continue;
+				}
+				if ( '' !== $license ) {
+					update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
+				}
+				if ( '' !== $credit ) {
+					update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
+				}
+				if ( '' !== $acquire ) {
+					update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
+				}
+				++$count;
+			}
+
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html( sprintf(
+					/* translators: %d: number of images updated */
+					__( 'Licensing applied to %d images.', 'metamanager' ),
+					$count
+				) )
+			);
+			printf(
+				'<p><a href="%s">&larr; %s</a></p>',
+				esc_url( admin_url( 'upload.php' ) ),
+				esc_html__( 'Back to Media Library', 'metamanager' )
+			);
+			return;
+		}
+
+		// Prefill from the first selected image (if it already has values).
+		$first = $ids[0];
+		$pre_license = (string) get_post_meta( $first, MM_Metadata::META_LICENSE, true );
+		$pre_credit  = (string) get_post_meta( $first, MM_Metadata::META_CREDIT, true );
+		$pre_acquire = (string) get_post_meta( $first, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
+
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Set Image Licensing', 'metamanager' ); ?></h1>
+			<p><?php esc_html_e( 'Apply licensing metadata to the selected images. All values are specified by you — nothing is auto-derived. Leave a field blank to skip it.', 'metamanager' ); ?></p>
+			<p><strong><?php printf( esc_html__( '%d images selected.', 'metamanager' ), count( $ids ) ); ?></strong></p>
+			<form method="post">
+				<?php wp_nonce_field( 'mm_licensing_' . implode( '_', $ids ) ); ?>
+				<table class="form-table">
+					<tr>
+						<th><label for="mm_license"><?php esc_html_e( 'License URL', 'metamanager' ); ?></label></th>
+						<td>
+							<input type="url" name="mm_license" id="mm_license" class="regular-text" value="<?php echo esc_attr( $pre_license ); ?>" placeholder="https://creativecommons.org/licenses/by/4.0/" />
+							<p class="description"><?php esc_html_e( 'URL of the license governing these images. Maps to schema license.', 'metamanager' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="mm_credit"><?php esc_html_e( 'Credit Text', 'metamanager' ); ?></label></th>
+						<td>
+							<input type="text" name="mm_credit" id="mm_credit" class="regular-text" value="<?php echo esc_attr( $pre_credit ); ?>" placeholder="Jane Photographer" />
+							<p class="description"><?php esc_html_e( 'Photographer or rights holder name. Maps to schema creditText.', 'metamanager' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="mm_acquire_license_page"><?php esc_html_e( 'Acquire License Page', 'metamanager' ); ?></label></th>
+						<td>
+							<input type="url" name="mm_acquire_license_page" id="mm_acquire_license_page" class="regular-text" value="<?php echo esc_attr( $pre_acquire ); ?>" placeholder="https://example.com/contact/" />
+							<p class="description"><?php esc_html_e( 'URL where a license can be obtained. Maps to schema acquireLicensePage.', 'metamanager' ); ?></p>
+						</td>
+					</tr>
+				</table>
+				<p class="submit">
+					<input type="hidden" name="ids" value="<?php echo esc_attr( implode( ',', $ids ) ); ?>" />
+					<input type="submit" name="mm_licensing_submit" class="button button-primary" value="<?php esc_attr_e( 'Apply Licensing', 'metamanager' ); ?>" />
+					<a href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'metamanager' ); ?></a>
+				</p>
+			</form>
+		</div>
+		<?php
+	}
 
 	/**
 	 * @param string $hook Current admin page hook.
