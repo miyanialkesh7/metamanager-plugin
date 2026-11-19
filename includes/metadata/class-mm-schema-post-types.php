@@ -1486,15 +1486,15 @@ class MM_Schema_Post_Types {
 		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
 		// only — never shown in the human-visible details table.
 		$hidden_fields_by_type = [
-			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name', 'service_booking_url' ],
-			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode', 'event_ticket_url' ],
+			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name' ],
+			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
 			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
 			'Product'    => [ 'product_currency' ],
-			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency', 'trip_booking_url' ],
-			'Course'     => [ 'course_duration', 'course_currency', 'course_code', 'course_enrollment_url' ],
+			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency' ],
+			'Course'     => [ 'course_duration', 'course_currency', 'course_code' ],
 			'LocalBusiness' => [ 'business_type', 'business_hours' ],
 			'Organization'  => [ 'org_type' ],
-			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
+			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 
