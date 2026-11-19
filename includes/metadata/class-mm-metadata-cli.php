@@ -502,6 +502,12 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * [--contact-form-recaptcha-secret=<key>]
 	 * : Google reCAPTCHA v2 invisible secret key.
 	 *
+	 * [--booking-link=<url>]
+	 * : Booking service URL (FareHarbor, Vagaro, Lodgify, etc.).
+	 *
+	 * [--booking-label=<text>]
+	 * : Booking button label (default: Book Now).
+	 *
 	 * [--format=<format>]
 	 * : For get: output format (table or json).
 	 *
@@ -578,6 +584,8 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			'contact-form-tos-page'        => [ 'contact_form_tos_page_id' ],
 			'contact-form-recaptcha-site'  => [ 'contact_form_recaptcha_site' ],
 			'contact-form-recaptcha-secret' => [ 'contact_form_recaptcha_secret' ],
+			'booking-link'  => [ 'booking_link' ],
+			'booking-label' => [ 'booking_link_label' ],
 		];
 
 		$changes = 0;

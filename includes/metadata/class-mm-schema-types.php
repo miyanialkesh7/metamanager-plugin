@@ -912,6 +912,149 @@ class MM_Schema_Types {
 					'description' => 'Comma-separated areas.',
 				],
 			],
+			// ── VacationRental ─────────────────────────────────────────────────
+			'VacationRental' => [
+				[
+					'key'         => 'rental_property_type',
+					'label'       => 'Property Type',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Type of rental property.',
+					'options'     => [
+						'House'          => 'House',
+						'Apartment'      => 'Apartment',
+						'Condominium'    => 'Condominium',
+						'Villa'          => 'Villa',
+						'Cabin'          => 'Cabin',
+						'Cottage'        => 'Cottage',
+						'Townhouse'      => 'Townhouse',
+					],
+				],
+				[
+					'key'         => 'rental_address',
+					'label'       => 'Address',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_lat',
+					'label'       => 'Latitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '30.3935',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_lng',
+					'label'       => 'Longitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '-86.5085',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_phone',
+					'label'       => 'Telephone',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_price_range',
+					'label'       => 'Price Range',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. $$$ or 150-300 per night',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_checkin_time',
+					'label'       => 'Check-in Time',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 16:00',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_checkout_time',
+					'label'       => 'Check-out Time',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 10:00',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_pets_allowed',
+					'label'       => 'Pets Allowed',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+					'options'     => [
+						''     => '— Not specified —',
+						'yes'  => 'Yes',
+						'no'   => 'No',
+					],
+				],
+				[
+					'key'         => 'rental_amenities',
+					'label'       => 'Amenities',
+					'type'        => 'textarea',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. WiFi, Pool, Parking, Kitchen',
+					'description' => 'Comma-separated list of amenities.',
+				],
+				[
+					'key'         => 'rental_max_guests',
+					'label'       => 'Max Guests',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '8',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_bedrooms',
+					'label'       => 'Bedrooms',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_bathrooms',
+					'label'       => 'Bathrooms',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_booking_url',
+					'label'       => 'Booking URL',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Link to book this rental (Lodgify, etc.).',
+				],
+			],
 		];
 	}
 
@@ -1340,6 +1483,66 @@ class MM_Schema_Types {
 			if ( $str( 'org_area_served' ) ) {
 				$areas = array_map( 'trim', explode( ',', $str( 'org_area_served' ) ) );
 				$out['areaServed'] = count( $areas ) === 1 ? $areas[0] : array_values( $areas );
+			}
+		}
+
+		// ── VacationRental ───────────────────────────────────────────────────
+		if ( 'VacationRental' === $type ) {
+			if ( $str( 'rental_property_type' ) ) {
+				$out['additionalType'] = $str( 'rental_property_type' );
+			}
+			if ( $str( 'rental_address' ) ) {
+				$out['address'] = $str( 'rental_address' );
+			}
+			$lat = $str( 'rental_lat' );
+			$lng = $str( 'rental_lng' );
+			if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
+				$out['latitude'] = (float) $lat;
+				$out['longitude'] = (float) $lng;
+			}
+			if ( $str( 'rental_phone' ) ) {
+				$out['telephone'] = $str( 'rental_phone' );
+			}
+			if ( $str( 'rental_price_range' ) ) {
+				$out['priceRange'] = $str( 'rental_price_range' );
+			}
+			if ( $str( 'rental_checkin_time' ) ) {
+				$out['checkinTime'] = $str( 'rental_checkin_time' );
+			}
+			if ( $str( 'rental_checkout_time' ) ) {
+				$out['checkoutTime'] = $str( 'rental_checkout_time' );
+			}
+			if ( '' !== $str( 'rental_pets_allowed' ) ) {
+				$out['petsAllowed'] = 'yes' === $str( 'rental_pets_allowed' );
+			}
+			if ( $str( 'rental_amenities' ) ) {
+				$amenities = array_map( 'trim', explode( ',', $str( 'rental_amenities' ) ) );
+				$out['amenityFeature'] = array_map( function ( $a ) {
+					return [
+						'@type' => 'LocationFeatureSpecification',
+						'name'  => $a,
+						'value' => true,
+					];
+				}, array_filter( $amenities ) );
+			}
+			if ( $str( 'rental_max_guests' ) && is_numeric( $str( 'rental_max_guests' ) ) ) {
+				$out['containsPlace'] = [
+					'@type'     => 'Accommodation',
+					'occupancy' => [ '@type' => 'QuantitativeValue', 'value' => (int) $str( 'rental_max_guests' ) ],
+				];
+				if ( $str( 'rental_bedrooms' ) && is_numeric( $str( 'rental_bedrooms' ) ) ) {
+					$out['containsPlace']['numberOfRooms'] = (int) $str( 'rental_bedrooms' );
+				}
+			}
+			if ( $str( 'rental_booking_url' ) ) {
+				$booking = esc_url_raw( $str( 'rental_booking_url' ) );
+				if ( $booking ) {
+					$out['potentialAction'] = [
+						'@type'    => 'ReserveAction',
+						'target'   => $booking,
+						'result'   => [ '@type' => 'LodgingReservation' ],
+					];
+				}
 			}
 		}
 

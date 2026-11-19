@@ -24,6 +24,7 @@ class MM_Schema_Post_Types {
 		'mm_course'      => [ 'Course',              'Courses',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'welcome-learn-more' ],
 		'mm_business'     => [ 'LocalBusiness',      'Businesses',         [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'store' ],
 		'mm_organization' => [ 'Organization',       'Organizations',      [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'groups' ],
+		'mm_rental'       => [ 'VacationRental',     'Rentals',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'building' ],
 		// AboutPage, ContactPage, Calendar are WordPress Page Templates — not CPTs.
 		// WebPage maps to default `page` type — not a separate CPT.
 		// BlogPosting maps to default `post` type — not a separate CPT.
@@ -1453,7 +1454,7 @@ class MM_Schema_Post_Types {
 		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
 		// only — never shown in the human-visible details table.
 		$hidden_fields_by_type = [
-			'Service'    => [ 'service_type', 'service_currency' ],
+			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name' ],
 			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
 			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
 			'Product'    => [ 'product_currency' ],
@@ -1461,6 +1462,7 @@ class MM_Schema_Post_Types {
 			'Course'     => [ 'course_duration', 'course_currency', 'course_code' ],
 			'LocalBusiness' => [ 'business_type', 'business_hours' ],
 			'Organization'  => [ 'org_type' ],
+			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 
