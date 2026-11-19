@@ -16,6 +16,7 @@ class MM_MCP_Server {
 		'metamanager/update-post-meta',
 		'metamanager/get-schema',
 		'metamanager/get-business-profile',
+		'metamanager/update-business-profile',
 		'metamanager/get-navigation',
 		'metamanager/get-term-meta',
 	];
