@@ -42,6 +42,16 @@ class MM_Abilities {
 		);
 	}
 
+	public function can_manage_site() {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		return new WP_Error(
+			'mm_cannot_manage_site',
+			__( 'You are not allowed to manage site settings.', 'metamanager' )
+		);
+	}
+
 	public function register_hooks(): void {
 		if ( ! function_exists( 'wp_register_ability' ) ) {
 			return;
@@ -567,7 +577,7 @@ class MM_Abilities {
 					'updated' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
 				],
 			],
-			'permission_callback' => [ $this, 'can_edit_meta' ],
+			'permission_callback' => [ $this, 'can_manage_site' ],
 			'execute_callback'    => [ $this, 'ability_update_business_profile' ],
 		] );
 	}
