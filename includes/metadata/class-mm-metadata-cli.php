@@ -441,20 +441,46 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * : Subcommand: get or set.
 	 *
 	 * [--name=<text>]
+	 * : Business name.
+	 *
 	 * [--type=<text>]
+	 * : Business type (e.g. LocalBusiness, ProfessionalService).
+	 *
 	 * [--description=<text>]
+	 * : Business description.
+	 *
 	 * [--street=<text>]
+	 * : Street address.
+	 *
 	 * [--city=<text>]
+	 * : City.
+	 *
 	 * [--state=<text>]
+	 * : State or province.
+	 *
 	 * [--zip=<text>]
+	 * : Postal code.
+	 *
 	 * [--country=<text>]
+	 * : Country code (default US).
+	 *
 	 * [--phone=<text>]
+	 * : Phone number.
+	 *
 	 * [--email=<text>]
+	 * : Email address.
+	 *
 	 * [--location-type=<brick_and_mortar|service_area>]
+	 * : Location type: brick_and_mortar or service_area.
+	 *
 	 * [--service-areas=<semicolon-separated>]
+	 * : Semicolon-separated service areas (e.g. "Destin, FL; Fort Walton Beach, FL").
+	 *
 	 * [--lat=<number>]
+	 * : Latitude (auto-geocoded from address if blank).
+	 *
 	 * [--lng=<number>]
-	 * : Fields to set.
+	 * : Longitude (auto-geocoded from address if blank).
 	 *
 	 * [--format=<format>]
 	 * : For get: output format (table or json).
@@ -575,11 +601,19 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * : Subcommand: get or set.
 	 *
 	 * [--home-title=<template>]
+	 * : Homepage title template. Supports %%sitetitle%%, %%sep%%, %%tagline%%.
+	 *
 	 * [--home-description=<text>]
+	 * : Homepage meta description.
+	 *
 	 * [--separator=<char>]
+	 * : Title separator character (e.g. |, -, ·).
+	 *
 	 * [--search-title=<template>]
+	 * : Search results title template. Supports %%search_query%%, %%sep%%, %%sitetitle%%.
+	 *
 	 * [--404-title=<template>]
-	 * : Fields to set. Templates support %%sitetitle%%, %%sep%%, %%tagline%%, %%page%%, %%search_query%%.
+	 * : 404 page title template.
 	 *
 	 * [--format=<format>]
 	 * : For get: output format (table or json).
