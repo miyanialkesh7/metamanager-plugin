@@ -583,6 +583,13 @@ class MM_Abilities {
 					'service_areas' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
 					'lat'           => [ 'type' => 'string' ],
 					'lng'           => [ 'type' => 'string' ],
+					'contact_form_enabled' => [ 'type' => 'boolean' ],
+					'contact_form_to_email' => [ 'type' => 'string' ],
+					'contact_form_subject_prefix' => [ 'type' => 'string' ],
+					'contact_form_submit_text' => [ 'type' => 'string' ],
+					'contact_form_tos_page_id' => [ 'type' => 'integer' ],
+					'contact_form_recaptcha_site' => [ 'type' => 'string' ],
+					'contact_form_recaptcha_secret' => [ 'type' => 'string' ],
 				],
 			],
 			'output_schema' => [
@@ -611,6 +618,13 @@ class MM_Abilities {
 			'location_type' => 'location_type',
 			'lat'           => 'lat',
 			'lng'           => 'lng',
+			'contact_form_enabled'          => 'contact_form_enabled',
+			'contact_form_to_email'         => 'contact_form_to_email',
+			'contact_form_subject_prefix'   => 'contact_form_subject_prefix',
+			'contact_form_submit_text'      => 'contact_form_submit_text',
+			'contact_form_tos_page_id'      => 'contact_form_tos_page_id',
+			'contact_form_recaptcha_site'   => 'contact_form_recaptcha_site',
+			'contact_form_recaptcha_secret' => 'contact_form_recaptcha_secret',
 		];
 		foreach ( $field_map as $key => $path ) {
 			if ( isset( $input[ $key ] ) ) {

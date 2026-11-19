@@ -31,7 +31,11 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		add_action( 'template_redirect',  [ $this, 'maybe_serve_download' ] );
 		add_action( 'widgets_init',       [ $this, 'register_widget' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
-			}
+
+		// Contact form AJAX.
+		add_action( 'wp_ajax_mm_contact_submit',       [ $this, 'handle_contact_form' ] );
+		add_action( 'wp_ajax_nopriv_mm_contact_submit', [ $this, 'handle_contact_form' ] );
+	}
 
 	// -------------------------------------------------------------------------
 	// Download endpoints
@@ -475,6 +479,15 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		if ( $css ) {
 			wp_add_inline_style( 'mm-meta-biz-contact', $css );
 		}
+
+		// Contact form JS (only on pages with the form).
+		wp_enqueue_script(
+			'mm-contact-form',
+			MM_META_URL . 'assets/js/contact-form.js',
+			[],
+			MM_META_VERSION,
+			true
+		);
 	}
 
 	// -------------------------------------------------------------------------
@@ -1164,6 +1177,113 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'name_font_size' => '20px',
 			'body_font_size' => '14px',
 		];
+	}
+
+	// -------------------------------------------------------------------------
+	// Contact form handler
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Process contact form submission via AJAX.
+	 * Validates input, verifies reCAPTCHA v2 invisible, sends email.
+	 */
+	public function handle_contact_form(): void {
+		$biz = MM_Site_Settings::get_instance()->all_business();
+
+		if ( empty( $biz['contact_form_enabled'] ) ) {
+			wp_send_json_error( __( 'Contact form is disabled.', 'metamanager' ) );
+		}
+
+		// Verify nonce.
+		$nonce = sanitize_text_field( wp_unslash( $_POST['mm_contact_nonce'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'mm_contact_form' ) ) {
+			wp_send_json_error( __( 'Security check failed.', 'metamanager' ) );
+		}
+
+		// Honeypot check (hidden field).
+		if ( ! empty( $_POST['mm_cf_website'] ) ) {
+			wp_send_json_success( __( 'Thank you. Your message has been sent.', 'metamanager' ) );
+		}
+
+		// Validate fields.
+		$name    = sanitize_text_field( wp_unslash( $_POST['mm_cf_name'] ?? '' ) );
+		$email   = sanitize_email( wp_unslash( $_POST['mm_cf_email'] ?? '' ) );
+		$phone   = sanitize_text_field( wp_unslash( $_POST['mm_cf_phone'] ?? '' ) );
+		$message = sanitize_textarea_field( wp_unslash( $_POST['mm_cf_message'] ?? '' ) );
+		$terms   = ! empty( $_POST['mm_cf_terms'] );
+
+		if ( '' === $name ) {
+			wp_send_json_error( __( 'Please enter your name.', 'metamanager' ) );
+		}
+		if ( '' === $email || ! is_email( $email ) ) {
+			wp_send_json_error( __( 'Please enter a valid email address.', 'metamanager' ) );
+		}
+		if ( '' === $message ) {
+			wp_send_json_error( __( 'Please write something.', 'metamanager' ) );
+		}
+		if ( ! $terms ) {
+			wp_send_json_error( __( 'Please accept the Terms of Service and Privacy Policy.', 'metamanager' ) );
+		}
+
+		// Verify reCAPTCHA v2 invisible.
+		$rc_secret = (string) ( $biz['contact_form_recaptcha_secret'] ?? '' );
+		$rc_token  = sanitize_text_field( wp_unslash( $_POST['mm_recaptcha_token'] ?? '' ) );
+		if ( $rc_secret && '' === $rc_token ) {
+			wp_send_json_error( __( 'reCAPTCHA verification failed. Please try again.', 'metamanager' ) );
+		}
+		if ( $rc_secret && '' !== $rc_token ) {
+			$verify = wp_remote_post( 'https://www.google.com/recaptcha/api/siteverify', [
+				'timeout' => 10,
+				'body'    => [
+					'secret'   => $rc_secret,
+					'response' => $rc_token,
+					'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+				],
+			] );
+			if ( is_wp_error( $verify ) ) {
+				wp_send_json_error( __( 'reCAPTCHA verification failed. Please try again.', 'metamanager' ) );
+			}
+			$verify_body = json_decode( wp_remote_retrieve_body( $verify ), true );
+			if ( empty( $verify_body['success'] ) ) {
+				wp_send_json_error( __( 'reCAPTCHA verification failed. Please try again.', 'metamanager' ) );
+			}
+		}
+
+		// Build email.
+		$to = $biz['contact_form_to_email'] ?? get_option( 'admin_email' );
+		if ( '' === trim( (string) $to ) ) {
+			$to = get_option( 'admin_email' );
+		}
+
+		$prefix = $biz['contact_form_subject_prefix'] ?? '';
+		if ( '' === trim( (string) $prefix ) ) {
+			$prefix = get_bloginfo( 'name' );
+		}
+		$subject = sprintf( '[%s] Contact Form Submission', $prefix );
+
+		$body  = "Name: {$name}\n";
+		$body .= "Email: {$email}\n";
+		if ( '' !== $phone ) {
+			$body .= "Phone: {$phone}\n";
+		}
+		$body .= "\nMessage:\n{$message}\n";
+
+		// From: no-reply@<domain> (universal email standard).
+		$domain    = wp_parse_url( home_url(), PHP_URL_HOST );
+		$from_addr = 'no-reply@' . $domain;
+		$headers   = [
+			'Content-Type: text/plain; charset=UTF-8',
+			"From: " . get_bloginfo( 'name' ) . " <{$from_addr}>",
+			"Reply-To: {$name} <{$email}>",
+		];
+
+		$sent = wp_mail( $to, $subject, $body, $headers );
+
+		if ( $sent ) {
+			wp_send_json_success( __( 'Thank you. Your message has been sent.', 'metamanager' ) );
+		} else {
+			wp_send_json_error( __( 'Could not send your message. Please try again later.', 'metamanager' ) );
+		}
 	}
 }
 
