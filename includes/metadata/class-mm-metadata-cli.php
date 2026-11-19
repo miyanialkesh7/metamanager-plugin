@@ -485,7 +485,6 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * [--contact-form-enabled=<0|1>]
 	 * : Enable or disable the contact form.
 	 *
-	 * [--contact-form-to-email=<email>]
 	 * : Contact form delivery email (defaults to admin email).
 	 *
 	 * [--contact-form-subject-prefix=<text>]
@@ -573,7 +572,7 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			'lat'            => [ 'lat' ],
 			'lng'            => [ 'lng' ],
 			'contact-form-enabled'         => [ 'contact_form_enabled' ],
-			'contact-form-to-email'        => [ 'contact_form_to_email' ],
+			
 			'contact-form-subject-prefix'  => [ 'contact_form_subject_prefix' ],
 			'contact-form-submit-text'     => [ 'contact_form_submit_text' ],
 			'contact-form-tos-page'        => [ 'contact_form_tos_page_id' ],

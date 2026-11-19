@@ -44,7 +44,7 @@ class Test_MM_Contact_Form_Unit extends WP_UnitTestCase {
 	private function enable_form(): void {
 		$biz = $this->settings->all_business();
 		$biz['contact_form_enabled'] = true;
-		$biz['contact_form_to_email'] = 'test@example.com';
+		$biz['email'] = 'test@example.com';
 		$biz['contact_form_subject_prefix'] = 'Test Site';
 		$biz['contact_form_recaptcha_secret'] = '';
 		$this->settings->save_business( $biz );
@@ -86,7 +86,7 @@ class Test_MM_Contact_Form_Unit extends WP_UnitTestCase {
 	public function test_business_defaults_include_contact_form_fields(): void {
 		$defaults = MM_Site_Settings::business_defaults();
 		$this->assertArrayHasKey( 'contact_form_enabled', $defaults );
-		$this->assertArrayHasKey( 'contact_form_to_email', $defaults );
+		$this->assertArrayHasKey( 'email', $defaults );
 		$this->assertArrayHasKey( 'contact_form_subject_prefix', $defaults );
 		$this->assertArrayHasKey( 'contact_form_submit_text', $defaults );
 		$this->assertArrayHasKey( 'contact_form_tos_page_id', $defaults );
