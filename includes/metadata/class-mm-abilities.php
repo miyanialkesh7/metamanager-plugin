@@ -904,7 +904,7 @@ class MM_Abilities {
 		}
 
 		$settings = MM_Site_Settings::get_instance();
-		$existing = $settings->get_term_meta( $term_id, $taxonomy );
+		$existing = $settings->get_term_meta( $term_id );
 		$updatable = [ 'og_title', 'og_description', 'og_image_id', 'noindex', 'nofollow', 'breadcrumb_label', 'exclude_sitemap' ];
 
 		$updated = [];
@@ -917,7 +917,7 @@ class MM_Abilities {
 		if ( empty( $updated ) ) {
 			return [ 'success' => false, 'term_id' => $term_id ];
 		}
-		$settings->save_term_meta( $term_id, $taxonomy, $existing );
+		$settings->save_term_meta( $term_id, $existing );
 		return [ 'success' => true, 'term_id' => $term_id ];
 	}
 
