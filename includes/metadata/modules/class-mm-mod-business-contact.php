@@ -129,7 +129,13 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			$lines[] = 'GEO:' . $lat . ';' . $lng;
 		}
 
-		if ( $logo ) { $lines[] = 'PHOTO;VALUE=URI:' . $logo; }
+		// Logo: base64-embedded PHOTO for vCard (offline-capable).
+		if ( $logo ) {
+			$logo_data = $this->fetch_image_base64( $logo );
+			if ( $logo_data ) {
+				$lines[] = 'PHOTO;ENCODING=b;TYPE=JPEG:' . $logo_data;
+			}
+		}
 
 		// Social URLs
 		$accounts = $biz['accounts'] ?? [];
@@ -171,6 +177,35 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		exit;
 	}
 
+	/**
+	 * Fetch an image from a URL and return base64-encoded data for vCard PHOTO.
+	 * Returns empty string on failure — vCard still valid without PHOTO.
+	 */
+	private function fetch_image_base64( string $url ): string {
+		// Try local file first (same-server URLs).
+		$upload_dir = wp_get_upload_dir();
+		$upload_url = $upload_dir['baseurl'];
+		if ( str_starts_with( $url, $upload_url ) ) {
+			$local_path = $upload_dir['basedir'] . substr( $url, strlen( $upload_url ) );
+			if ( file_exists( $local_path ) ) {
+				$data = file_get_contents( $local_path );
+				if ( $data ) {
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- vCard PHOTO embedding, not obfuscation
+					return chunk_split( base64_encode( $data ), 75, "\r\n " );
+				}
+			}
+		}
+
+		// Fallback: HTTP fetch.
+		$response = wp_remote_get( $url, [ 'timeout' => 10 ] );
+		if ( is_wp_error( $response ) ) {
+			return '';
+		}
+		$data = wp_remote_retrieve_body( $response );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- vCard PHOTO embedding, not obfuscation
+		return $data ? chunk_split( base64_encode( $data ), 75, "\r\n " ) : '';
+	}
+
 	private function serve_json( array $biz ): void {
 		$name = sanitize_text_field( $biz['name'] ?? '' );
 		$addr = $biz['address'] ?? [];
@@ -184,6 +219,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			'phone'   => sanitize_text_field( $biz['phone'] ?? '' ),
 			'email'   => sanitize_email( $biz['email'] ?? '' ),
 			'url'     => trailingslashit( home_url() ),
+			'logo'    => esc_url_raw( $biz['logo_url'] ?? '' ),
 			'address' => array_filter( [
 				'street'  => sanitize_text_field( $addr['street']  ?? '' ),
 				'city'    => sanitize_text_field( $addr['city']    ?? '' ),
@@ -275,12 +311,13 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		}
 		$hours_str = implode( '; ', $hours_parts );
 
-		$headers = [ 'Name', 'Phone', 'Email', 'Website', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude', 'Hours', 'Social', 'Description', 'Price Range', 'Service Areas' ];
+		$headers = [ 'Name', 'Phone', 'Email', 'Website', 'Logo', 'Street', 'City', 'State', 'ZIP', 'Country', 'Latitude', 'Longitude', 'Hours', 'Social', 'Description', 'Price Range', 'Service Areas' ];
 		$row     = [
 			$name,
 			sanitize_text_field( $biz['phone'] ?? '' ),
 			sanitize_email( $biz['email'] ?? '' ),
 			trailingslashit( home_url() ),
+			esc_url_raw( $biz['logo_url'] ?? '' ),
 			sanitize_text_field( $addr['street']  ?? '' ),
 			sanitize_text_field( $addr['city']    ?? '' ),
 			sanitize_text_field( $addr['state']   ?? '' ),
