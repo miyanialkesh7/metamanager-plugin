@@ -717,12 +717,12 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Retry a failed upload-receipt email.
+	 * Retry a failed upload-receipt email by key.
 	 *
 	 * ## OPTIONS
 	 *
-	 * <id>
-	 * : Upload notification record ID.
+	 * <key>
+	 * : Failed notification key (use `wp metamanager metadata receipts list` to find keys).
 	 *
 	 * ## EXAMPLES
 	 *
@@ -732,25 +732,41 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * @when after_wp_load
 	 */
 	public function receipts_retry( array $args, array $assoc_args ): void {
-		$id = (int) ( $args[0] ?? 0 );
-		if ( ! $id ) {
-			WP_CLI::error( 'Usage: wp metamanager metadata receipts retry <id>' );
+		$key = (string) ( $args[0] ?? '' );
+		if ( ! $key ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata receipts retry <key>' );
 		}
-		if ( ! class_exists( 'MM_Upload_Notify' ) || ! method_exists( 'MM_Upload_Notify', 'retry_notice' ) ) {
-			WP_CLI::error( 'MM_Upload_Notify retry handler not available.' );
+
+		$failures = MM_Upload_Notify::get_failed_notices();
+		if ( ! isset( $failures[ $key ] ) ) {
+			WP_CLI::error( "Failed notification '{$key}' not found." );
 		}
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInputInput -- integer ID, sanitized above
-		MM_Upload_Notify::retry_notice();
-		WP_CLI::success( "Retry triggered for upload receipt {$id}." );
+
+		$entry = $failures[ $key ];
+		$sent  = MM_Upload_Notify::send_mail(
+			(string) ( $entry['to'] ?? '' ),
+			(string) ( $entry['subject'] ?? '' ),
+			(string) ( $entry['body'] ?? '' )
+		);
+
+		if ( $sent ) {
+			unset( $failures[ $key ] );
+			update_option( MM_Upload_Notify::FAILED_OPTION, $failures, false );
+			WP_CLI::success( "Notification '{$key}' resent." );
+		} else {
+			$failures[ $key ]['retry_count'] = ( (int) ( $failures[ $key ]['retry_count'] ?? 0 ) ) + 1;
+			update_option( MM_Upload_Notify::FAILED_OPTION, $failures, false );
+			WP_CLI::error( "Email still could not be delivered. Check your site's email configuration." );
+		}
 	}
 
 	/**
-	 * Dismiss a failed upload-receipt notice.
+	 * Dismiss a failed upload-receipt notification.
 	 *
 	 * ## OPTIONS
 	 *
-	 * <id>
-	 * : Upload notification record ID.
+	 * <key>
+	 * : Failed notification key.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -760,15 +776,59 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * @when after_wp_load
 	 */
 	public function receipts_dismiss( array $args, array $assoc_args ): void {
-		$id = (int) ( $args[0] ?? 0 );
-		if ( ! $id ) {
-			WP_CLI::error( 'Usage: wp metamanager metadata receipts dismiss <id>' );
+		$key = (string) ( $args[0] ?? '' );
+		if ( ! $key ) {
+			WP_CLI::error( 'Usage: wp metamanager metadata receipts dismiss <key>' );
 		}
-		if ( ! class_exists( 'MM_Upload_Notify' ) || ! method_exists( 'MM_Upload_Notify', 'dismiss_notice' ) ) {
-			WP_CLI::error( 'MM_Upload_Notify dismiss handler not available.' );
+
+		$failures = MM_Upload_Notify::get_failed_notices();
+		if ( ! isset( $failures[ $key ] ) ) {
+			WP_CLI::error( "Failed notification '{$key}' not found." );
 		}
-		MM_Upload_Notify::dismiss_notice();
-		WP_CLI::success( "Upload receipt {$id} dismissed." );
+
+		unset( $failures[ $key ] );
+		update_option( MM_Upload_Notify::FAILED_OPTION, $failures, false );
+		WP_CLI::success( "Notification '{$key}' dismissed." );
+	}
+
+	/**
+	 * List failed upload-receipt notifications.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format: table or json (default table).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *   wp metamanager metadata receipts list
+	 *
+	 * @subcommand receipts-list
+	 * @when after_wp_load
+	 */
+	public function receipts_list( array $args, array $assoc_args ): void {
+		$failures = MM_Upload_Notify::get_failed_notices();
+		if ( empty( $failures ) ) {
+			WP_CLI::line( 'No failed notifications.' );
+			return;
+		}
+
+		$format = (string) ( $assoc_args['format'] ?? 'table' );
+		$rows   = [];
+		foreach ( $failures as $key => $entry ) {
+			$rows[] = [
+				'Key'      => $key,
+				'To'       => (string) ( $entry['to'] ?? '' ),
+				'Subject'  => (string) ( $entry['subject'] ?? '' ),
+				'Retries'  => (int) ( $entry['retry_count'] ?? 0 ),
+			];
+		}
+
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		} else {
+			\WP_CLI\Utils\format_items( 'table', $rows, [ 'Key', 'To', 'Subject', 'Retries' ] );
+		}
 	}
 }
 

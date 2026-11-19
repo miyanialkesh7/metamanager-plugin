@@ -250,8 +250,8 @@ class MM_CLI extends \WP_CLI_Command {
 					$rows[] = [
 						'ID'          => $job->id,
 						'Type'        => $job->job_type,
-						'Image'       => $job->image_name,
-						'Size'        => $job->size_slug,
+					'Image'       => $job->image_name,
+					'Size'        => $job->size,
 						'Status'      => $job->status,
 						'Submitted'   => $job->submitted_at,
 						'Completed'   => $job->completed_at ?? '',
@@ -301,12 +301,12 @@ class MM_CLI extends \WP_CLI_Command {
 				global $wpdb;
 				$table = MM_DB::table_name();
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$wpdb->query( "TRUNCATE TABLE {$table}" );
+				$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
 				\WP_CLI::success( 'Job history cleared. Media files are not affected.' );
 				break;
 
 			default:
-				\WP_CLI::error( "Unknown subcommand: {$sub}. Valid: status, list, get, requeue" );
+				\WP_CLI::error( "Unknown subcommand: {$sub}. Valid: status, list, get, requeue, clear" );
 		}
 	}
 
@@ -772,12 +772,13 @@ class MM_CLI extends \WP_CLI_Command {
 		$items = [];
 		foreach ( $rows as $row ) {
 			$items[] = [
-				'ID'        => $row->id ?? '',
-				'Changed'   => $row->changed_at ?? '',
-				'Fields'    => is_string( $row->changed_fields ?? '' ) ? $row->changed_fields : json_encode( $row->changed_fields ?? [] ),
+				'Version'      => $row['version'],
+				'Created'      => $row['created_at'],
+				'Source'       => $row['change_source'],
+				'Meta values'  => wp_json_encode( $row['meta_values'] ),
 			];
 		}
-		\WP_CLI\Utils\format_items( 'table', $items, [ 'ID', 'Changed', 'Fields' ] );
+		\WP_CLI\Utils\format_items( 'table', $items, [ 'Version', 'Created', 'Source', 'Meta values' ] );
 	}
 
 	// -----------------------------------------------------------------------
@@ -845,7 +846,7 @@ class MM_CLI extends \WP_CLI_Command {
 	 */
 	public function status( array $args, array $assoc_args ): void {
 		$format = (string) ( $assoc_args['format'] ?? 'json' );
-		$status = MM_Status::get_status();
+		$status = MM_Status::system_status();
 
 		if ( 'table' === $format ) {
 			$rows = [];

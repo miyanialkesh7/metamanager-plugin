@@ -260,7 +260,7 @@ class MM_Upload_Notify {
 	 * @param string $body    Plain-text body.
 	 * @return bool True on success.
 	 */
-	private static function send_mail( string $to, string $subject, string $body ): bool {
+	public static function send_mail( string $to, string $subject, string $body ): bool {
 		try {
 			$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
 			$sent    = wp_mail( $to, $subject, $body, $headers );
