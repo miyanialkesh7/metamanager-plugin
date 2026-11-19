@@ -1162,6 +1162,23 @@ class MM_Schema_Post_Types {
 		}
 		update_post_meta( $post_id, 'mm_schema_fields', $fields );
 
+		// Auto-populate booking URL from business profile if empty.
+		$booking_key = match ( $post->post_type ) {
+			'mm_service' => 'service_booking_url',
+			'mm_trip'    => 'trip_booking_url',
+			'mm_rental'  => 'rental_booking_url',
+			default      => '',
+		};
+		if ( $booking_key && empty( $fields[ $booking_key ] ) ) {
+			$biz         = MM_Site_Settings::get_instance()->all_business();
+			$booking_url = (string) ( $biz['booking_link'] ?? '' );
+			if ( '' === $booking_url ) {
+				$booking_url = home_url( '/contact/' );
+			}
+			$fields[ $booking_key ] = $booking_url;
+			update_post_meta( $post_id, 'mm_schema_fields', $fields );
+		}
+
 		$bc_label = sanitize_text_field( wp_unslash( $_POST['mm_breadcrumb_label'] ?? '' ) );
 		update_post_meta( $post_id, 'mm_breadcrumb_label', $bc_label );
 
