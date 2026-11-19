@@ -1450,9 +1450,12 @@ class MM_Schema_Post_Types {
 			return;
 		}
 
-		// Fields that are machine-reading only (schema JSON-LD) — never
-		// shown in the human-visible details table.
-		$hidden_fields = array( 'service_type' );
+		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
+		// only — never shown in the human-visible details table.
+		$hidden_fields_by_type = [
+			'Service' => [ 'service_type' ],
+		];
+		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 
 		$fields = MM_Schema_Types::get_fields_by_type()[ $type ] ?? array();
 		$rows = '';
