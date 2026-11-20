@@ -526,10 +526,11 @@ class MM_CLI extends \WP_CLI_Command {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Set licensing metadata (license, creditText, acquireLicensePage) on images.
+	 * Set attribution and licensing metadata on images.
 	 *
-	 * Mirrors the "Set Image Licensing" bulk action. Values are specified by
-	 * the caller — nothing is auto-derived. The caller is the judgment loop.
+	 * Mirrors the "Set Image Licensing" bulk action. All five fields are
+	 * an all-or-nothing group for Google Image Metadata validation.
+	 * Values are specified by the caller — nothing is auto-derived.
 	 *
 	 * ## OPTIONS
 	 *
@@ -545,22 +546,30 @@ class MM_CLI extends \WP_CLI_Command {
 	 * [--acquire=<url>]
 	 * : Acquire-license page URL (maps to schema acquireLicensePage).
 	 *
+	 * [--creator=<text>]
+	 * : Creator / photographer name (maps to schema creator).
+	 *
+	 * [--copyright=<text>]
+	 * : Copyright notice (maps to schema copyrightNotice).
+	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp metamanager set-licensing 42,43 --license=https://creativecommons.org/licenses/by/4.0/ --credit="Jane Photographer" --acquire=https://example.com/contact/
-	 *     wp metamanager set-licensing all --license=https://example.com/terms/ --credit="Acme Studio"
+	 *     wp metamanager set-licensing 42,43 --license=https://creativecommons.org/licenses/by/4.0/ --credit="Jane Photographer" --acquire=https://example.com/contact/ --creator="Jane Photographer" --copyright="© 2025 Jane Photographer"
+	 *     wp metamanager set-licensing all --license=https://example.com/terms/ --credit="Acme Studio" --creator="Acme Studio" --copyright="© 2025 Acme Studio"
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
 	 * @subcommand set-licensing
 	 */
 	public function set_licensing( array $args, array $assoc_args ): void {
-		$license = (string) ( $assoc_args['license'] ?? '' );
-		$credit  = (string) ( $assoc_args['credit'] ?? '' );
-		$acquire = (string) ( $assoc_args['acquire'] ?? '' );
+		$license   = (string) ( $assoc_args['license'] ?? '' );
+		$credit    = (string) ( $assoc_args['credit'] ?? '' );
+		$acquire   = (string) ( $assoc_args['acquire'] ?? '' );
+		$creator   = (string) ( $assoc_args['creator'] ?? '' );
+		$copyright = (string) ( $assoc_args['copyright'] ?? '' );
 
-		if ( '' === $license && '' === $credit && '' === $acquire ) {
-			\WP_CLI::error( 'Provide at least one of --license, --credit, or --acquire.' );
+		if ( '' === $license && '' === $credit && '' === $acquire && '' === $creator && '' === $copyright ) {
+			\WP_CLI::error( 'Provide at least one of --license, --credit, --acquire, --creator, or --copyright.' );
 		}
 
 		$target = $args[0] ?? '';
@@ -593,10 +602,18 @@ class MM_CLI extends \WP_CLI_Command {
 			if ( '' !== $acquire ) {
 				update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
 			}
+			if ( '' !== $creator ) {
+				update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
+			}
+			if ( '' !== $copyright ) {
+				update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
+			}
+			// Queue daemon job to write synced fields to file metadata.
+			MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'cli' ] );
 			++$count;
 		}
 
-		\WP_CLI::success( sprintf( 'Licensing applied to %d images.', $count ) );
+		\WP_CLI::success( sprintf( 'Attribution applied to %d images. Metadata sync jobs queued.', $count ) );
 	}
 
 	// -----------------------------------------------------------------------

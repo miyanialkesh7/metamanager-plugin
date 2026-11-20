@@ -1344,6 +1344,8 @@ class MM_Admin {
 			$license  = esc_url_raw( wp_unslash( $_POST['mm_license'] ?? '' ) );
 			$credit   = sanitize_text_field( wp_unslash( $_POST['mm_credit'] ?? '' ) );
 			$acquire  = esc_url_raw( wp_unslash( $_POST['mm_acquire_license_page'] ?? '' ) );
+			$creator  = sanitize_text_field( wp_unslash( $_POST['mm_creator'] ?? '' ) );
+			$copyright = sanitize_text_field( wp_unslash( $_POST['mm_copyright'] ?? '' ) );
 
 			$count = 0;
 			foreach ( $ids as $id ) {
@@ -1359,6 +1361,15 @@ class MM_Admin {
 				if ( '' !== $acquire ) {
 					update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
 				}
+				if ( '' !== $creator ) {
+					update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
+				}
+				if ( '' !== $copyright ) {
+					update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
+				}
+				// Queue daemon job to write synced fields (Creator, Copyright, Credit)
+				// to file metadata via two-way sync.
+				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'bulk' ] );
 				++$count;
 			}
 
@@ -1366,7 +1377,7 @@ class MM_Admin {
 				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
 				esc_html( sprintf(
 					/* translators: %d: number of images updated */
-					__( 'Licensing applied to %d images.', 'metamanager' ),
+					__( 'Attribution applied to %d images. Metadata sync jobs queued.', 'metamanager' ),
 					$count
 				) )
 			);
@@ -1378,17 +1389,75 @@ class MM_Admin {
 			return;
 		}
 
+		// Collect unique EXIF attribution datasets from selected images.
+		// Different images may carry different creators/copyrights — present
+		// each unique set as a radio option for the admin to choose from.
+		$exif_sets = [];
+		foreach ( $ids as $id ) {
+			if ( ! wp_attachment_is_image( $id ) ) {
+				continue;
+			}
+			$att_meta  = wp_get_attachment_metadata( $id );
+			$img_meta  = $att_meta['image_meta'] ?? [];
+			$e_creator   = trim( (string) ( $img_meta['credit'] ?? '' ) );
+			$e_copyright = trim( (string) ( $img_meta['copyright'] ?? '' ) );
+			// Also check mm_* fields (may have been set by previous import).
+			if ( '' === $e_creator ) {
+				$e_creator = trim( (string) get_post_meta( $id, MM_Metadata::META_CREATOR, true ) );
+			}
+			if ( '' === $e_copyright ) {
+				$e_copyright = trim( (string) get_post_meta( $id, MM_Metadata::META_COPYRIGHT, true ) );
+			}
+			if ( '' === $e_creator && '' === $e_copyright ) {
+				continue;
+			}
+			$set_key = $e_creator . '|' . $e_copyright;
+			if ( ! isset( $exif_sets[ $set_key ] ) ) {
+				$exif_sets[ $set_key ] = [
+					'creator'   => $e_creator,
+					'copyright' => $e_copyright,
+					'count'     => 0,
+				];
+			}
+			$exif_sets[ $set_key ]['count']++;
+		}
+
 		// Prefill from the first selected image (if it already has values).
 		$first = $ids[0];
-		$pre_license = (string) get_post_meta( $first, MM_Metadata::META_LICENSE, true );
-		$pre_credit  = (string) get_post_meta( $first, MM_Metadata::META_CREDIT, true );
-		$pre_acquire = (string) get_post_meta( $first, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
+		$pre_license   = (string) get_post_meta( $first, MM_Metadata::META_LICENSE, true );
+		$pre_credit    = (string) get_post_meta( $first, MM_Metadata::META_CREDIT, true );
+		$pre_acquire   = (string) get_post_meta( $first, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
+		$pre_creator   = (string) get_post_meta( $first, MM_Metadata::META_CREATOR, true );
+		$pre_copyright = (string) get_post_meta( $first, MM_Metadata::META_COPYRIGHT, true );
 
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Set Image Licensing', 'metamanager' ); ?></h1>
-			<p><?php esc_html_e( 'Apply licensing metadata to the selected images. All values are specified by you — nothing is auto-derived. Leave a field blank to skip it.', 'metamanager' ); ?></p>
+			<p><?php esc_html_e( 'Apply attribution and licensing metadata to the selected images. All values are specified by you — nothing is auto-derived. Review every value before submitting.', 'metamanager' ); ?></p>
 			<p><strong><?php printf( esc_html__( '%d images selected.', 'metamanager' ), count( $ids ) ); ?></strong></p>
+
+			<?php if ( $exif_sets ) : ?>
+			<div class="mm-exif-sets" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px;margin:16px 0;">
+				<h2 style="margin-top:0;"><?php esc_html_e( 'EXIF Attribution Data Found', 'metamanager' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Select which attribution set to apply. The form below will populate from your selection — review and edit before submitting.', 'metamanager' ); ?></p>
+				<div style="max-height:200px;overflow-y:auto;border:1px solid #ddd;padding:8px;">
+					<?php $first_key = array_key_first( $exif_sets ); ?>
+					<?php foreach ( $exif_sets as $set_key => $set ) : ?>
+					<label style="display:block;padding:8px;border-bottom:1px solid #eee;cursor:pointer;">
+						<input type="radio" name="mm_exif_set" value="<?php echo esc_attr( $set_key ); ?>"
+							<?php checked( $set_key, $first_key ); ?>
+							data-creator="<?php echo esc_attr( $set['creator'] ); ?>"
+							data-copyright="<?php echo esc_attr( $set['copyright'] ); ?>"
+							onchange="document.getElementById('mm_creator').value=this.dataset.creator;document.getElementById('mm_copyright').value=this.dataset.copyright;">
+						<strong><?php echo esc_html( $set['creator'] ?: __( '(no creator)', 'metamanager' ) ); ?></strong>
+						— <?php echo esc_html( $set['copyright'] ?: __( '(no copyright)', 'metamanager' ) ); ?>
+						<span style="color:#888;font-size:12px;">(<?php printf( esc_html__( '%d images', 'metamanager' ), $set['count'] ); ?>)</span>
+					</label>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+
 			<form method="post">
 				<?php wp_nonce_field( 'mm_licensing_' . implode( '_', $ids ) ); ?>
 				<table class="form-table">
@@ -1413,10 +1482,24 @@ class MM_Admin {
 							<p class="description"><?php esc_html_e( 'URL where a license can be obtained. Maps to schema acquireLicensePage.', 'metamanager' ); ?></p>
 						</td>
 					</tr>
+					<tr>
+						<th><label for="mm_creator"><?php esc_html_e( 'Creator', 'metamanager' ); ?></label></th>
+						<td>
+							<input type="text" name="mm_creator" id="mm_creator" class="regular-text" value="<?php echo esc_attr( $pre_creator ); ?>" placeholder="Jane Photographer" />
+							<p class="description"><?php esc_html_e( 'Photographer or creator name. Maps to schema creator. Google recommends this field when any attribution field is set.', 'metamanager' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="mm_copyright"><?php esc_html_e( 'Copyright Notice', 'metamanager' ); ?></label></th>
+						<td>
+							<input type="text" name="mm_copyright" id="mm_copyright" class="regular-text" value="<?php echo esc_attr( $pre_copyright ); ?>" placeholder="© 2025 Jane Photographer" />
+							<p class="description"><?php esc_html_e( 'Copyright notice. Maps to schema copyrightNotice. Google recommends this field when any attribution field is set.', 'metamanager' ); ?></p>
+						</td>
+					</tr>
 				</table>
 				<p class="submit">
 					<input type="hidden" name="ids" value="<?php echo esc_attr( implode( ',', $ids ) ); ?>" />
-					<input type="submit" name="mm_licensing_submit" class="button button-primary" value="<?php esc_attr_e( 'Apply Licensing', 'metamanager' ); ?>" />
+					<input type="submit" name="mm_licensing_submit" class="button button-primary" value="<?php esc_attr_e( 'Apply Attribution & Licensing', 'metamanager' ); ?>" />
 					<a href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'metamanager' ); ?></a>
 				</p>
 			</form>
