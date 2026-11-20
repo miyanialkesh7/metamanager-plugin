@@ -96,25 +96,25 @@ class MM_Mod_Rss extends MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Prepend the featured image to the feed content (excerpt).
+	 * Prepend the featured image to the feed excerpt.
 	 *
-	 * @param string $content Feed item content.
-	 * @param string $type    Feed type.
-	 * @return string Content with featured image prepended.
+	 * @param string   $excerpt Feed excerpt text.
+	 * @param int|null $post_id Post ID (passed by the_excerpt_rss filter).
+	 * @return string Excerpt with featured image prepended.
 	 */
-	public function prepend_featured_image( string $content, string $type ): string {
+	public function prepend_featured_image( string $excerpt, $post_id = null ): string {
 		if ( ! is_feed() ) {
-			return $content;
+			return $excerpt;
 		}
-		$post_id = get_the_ID();
+		$post_id = $post_id ?: get_the_ID();
 		if ( ! $post_id || ! has_post_thumbnail( $post_id ) ) {
-			return $content;
+			return $excerpt;
 		}
 		$image = get_the_post_thumbnail( $post_id, 'large', [ 'alt' => '' ] );
 		if ( ! $image ) {
-			return $content;
+			return $excerpt;
 		}
-		return '<p>' . $image . '</p>' . $content;
+		return '<p>' . $image . '</p>' . $excerpt;
 	}
 
 	// -------------------------------------------------------------------------
