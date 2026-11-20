@@ -1451,7 +1451,7 @@ class MM_Admin {
 							onchange="document.getElementById('mm_creator').value=this.dataset.creator;document.getElementById('mm_copyright').value=this.dataset.copyright;">
 						<strong><?php echo esc_html( $set['creator'] ?: __( '(no creator)', 'metamanager' ) ); ?></strong>
 						— <?php echo esc_html( $set['copyright'] ?: __( '(no copyright)', 'metamanager' ) ); ?>
-						<span style="color:#888;font-size:12px;">(<?php printf( esc_html__( '%d images', 'metamanager' ), $set['count'] ); ?>)</span>
+						<span style="color:#888;font-size:12px;">(<?php printf( esc_html__( '%d images', 'metamanager' ), (int) $set['count'] ); ?>)</span>
 					</label>
 					<?php endforeach; ?>
 				</div>
