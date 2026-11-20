@@ -1052,6 +1052,8 @@ class MM_Abilities {
 					'license'     => [ 'type' => 'string', 'description' => 'For set-licensing: license URL.' ],
 					'credit'      => [ 'type' => 'string', 'description' => 'For set-licensing: credit text.' ],
 					'acquire'     => [ 'type' => 'string', 'description' => 'For set-licensing: acquire license URL.' ],
+					'creator'     => [ 'type' => 'string', 'description' => 'For set-licensing: creator / photographer name.' ],
+					'copyright'   => [ 'type' => 'string', 'description' => 'For set-licensing: copyright notice.' ],
 				],
 				'required' => [ 'action' ],
 			],
@@ -1132,10 +1134,12 @@ class MM_Abilities {
 				return [ 'success' => true, 'message' => "Metadata embed queued for {$count} attachments.", 'count' => $count ];
 
 			case 'set-licensing':
-				$ids     = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
-				$license = (string) ( $input['license'] ?? '' );
-				$credit  = (string) ( $input['credit'] ?? '' );
-				$acquire = (string) ( $input['acquire'] ?? '' );
+				$ids      = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
+				$license  = (string) ( $input['license'] ?? '' );
+				$credit   = (string) ( $input['credit'] ?? '' );
+				$acquire  = (string) ( $input['acquire'] ?? '' );
+				$creator  = (string) ( $input['creator'] ?? '' );
+				$copyright = (string) ( $input['copyright'] ?? '' );
 				if ( empty( $ids ) ) {
 					return new WP_Error( 'missing_ids', 'attachment_ids is required for set-licensing.' );
 				}
@@ -1153,9 +1157,17 @@ class MM_Abilities {
 					if ( '' !== $acquire ) {
 						update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
 					}
+					if ( '' !== $creator ) {
+						update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
+					}
+					if ( '' !== $copyright ) {
+						update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
+					}
+					// Queue daemon job to write synced fields to file metadata.
+					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'rest_api' ] );
 					++$count;
 				}
-				return [ 'success' => true, 'message' => "Licensing applied to {$count} images.", 'count' => $count ];
+				return [ 'success' => true, 'message' => "Attribution applied to {$count} images. Metadata sync jobs queued.", 'count' => $count ];
 
 			default:
 				return new WP_Error( 'invalid_action', 'Valid actions: requeue, scan, compress, embed, set-licensing' );

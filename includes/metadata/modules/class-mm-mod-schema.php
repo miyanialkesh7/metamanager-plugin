@@ -914,7 +914,11 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				$node['caption'] = $item['caption'];
 			}
 
-			// Attribution.
+			// Attribution — per-image fields only. NEVER auto-derived.
+			// Attribution is a human-in-the-loop management task via bulk actions.
+			// Third-party media exists on our sites — auto-attribution is illegal.
+			// The bulk action (Set Image Licensing) is the management tool.
+			// Using it is a regular management task, not automation.
 			$creator = $meta( MM_Metadata::META_CREATOR );
 			if ( '' !== $creator ) {
 				$node['creator'] = [ '@type' => 'Person', 'name' => $creator ];
