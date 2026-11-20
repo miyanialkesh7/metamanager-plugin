@@ -584,6 +584,32 @@ class MM_Abilities {
 					'service_areas' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
 					'lat'           => [ 'type' => 'string' ],
 					'lng'           => [ 'type' => 'string' ],
+					'show_phone'    => [ 'type' => 'boolean' ],
+					'show_sms'      => [ 'type' => 'boolean' ],
+					'show_email'    => [ 'type' => 'boolean' ],
+					'show_vcard'    => [ 'type' => 'boolean' ],
+					'show_json'     => [ 'type' => 'boolean' ],
+					'show_csv'      => [ 'type' => 'boolean' ],
+					'booking_link'  => [ 'type' => 'string' ],
+					'booking_link_label' => [ 'type' => 'string' ],
+					'booking_link_new_tab' => [ 'type' => 'boolean' ],
+					'price_range'   => [ 'type' => 'string' ],
+					'founding_date' => [ 'type' => 'string' ],
+					'number_of_employees' => [ 'type' => 'string' ],
+					'google_maps_api_key' => [ 'type' => 'string' ],
+					'payment_accepted' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+					'accounts'      => [
+						'type'       => 'object',
+						'properties' => [
+							'facebook'  => [ 'type' => 'string' ],
+							'instagram' => [ 'type' => 'string' ],
+							'linkedin'  => [ 'type' => 'string' ],
+							'youtube'   => [ 'type' => 'string' ],
+							'twitter'   => [ 'type' => 'string' ],
+							'bluesky'   => [ 'type' => 'string' ],
+							'pinterest' => [ 'type' => 'string' ],
+						],
+					],
 					'contact_form_enabled' => [ 'type' => 'boolean' ],
 					'contact_form_subject_prefix' => [ 'type' => 'string' ],
 					'contact_form_submit_text' => [ 'type' => 'string' ],
@@ -618,6 +644,19 @@ class MM_Abilities {
 			'location_type' => 'location_type',
 			'lat'           => 'lat',
 			'lng'           => 'lng',
+			'show_phone'    => 'show_phone',
+			'show_sms'      => 'show_sms',
+			'show_email'    => 'show_email',
+			'show_vcard'    => 'show_vcard',
+			'show_json'     => 'show_json',
+			'show_csv'      => 'show_csv',
+			'booking_link'  => 'booking_link',
+			'booking_link_label' => 'booking_link_label',
+			'booking_link_new_tab' => 'booking_link_new_tab',
+			'price_range'   => 'price_range',
+			'founding_date' => 'founding_date',
+			'number_of_employees' => 'number_of_employees',
+			'google_maps_api_key' => 'google_maps_api_key',
 			'contact_form_enabled'          => 'contact_form_enabled',
 			'contact_form_subject_prefix'   => 'contact_form_subject_prefix',
 			'contact_form_submit_text'      => 'contact_form_submit_text',
@@ -644,6 +683,20 @@ class MM_Abilities {
 		if ( isset( $input['service_areas'] ) && is_array( $input['service_areas'] ) ) {
 			$biz['service_areas'] = array_values( array_filter( array_map( 'strval', $input['service_areas'] ) ) );
 			$updated[]            = 'service_areas';
+		}
+
+		if ( isset( $input['payment_accepted'] ) && is_array( $input['payment_accepted'] ) ) {
+			$biz['payment_accepted'] = array_values( array_filter( array_map( 'strval', $input['payment_accepted'] ) ) );
+			$updated[]               = 'payment_accepted';
+		}
+
+		if ( isset( $input['accounts'] ) && is_array( $input['accounts'] ) ) {
+			foreach ( [ 'facebook', 'instagram', 'linkedin', 'youtube', 'twitter', 'bluesky', 'pinterest' ] as $platform ) {
+				if ( isset( $input['accounts'][ $platform ] ) ) {
+					$biz['accounts'][ $platform ] = esc_url_raw( (string) $input['accounts'][ $platform ] );
+					$updated[]                    = "accounts.{$platform}";
+				}
+			}
 		}
 
 		if ( empty( $updated ) ) {

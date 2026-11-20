@@ -23,9 +23,10 @@ while ( have_posts() ) {
 		<div class="mm-contact-info">
 			<h1 class="entry-title"><?php echo esc_html( get_the_title() ); ?></h1>
 			<?php
-			remove_filter( 'the_content', 'wpautop' );
-			the_content();
-			add_filter( 'the_content', 'wpautop' );
+			// Render contact content dynamically so settings changes take
+			// effect immediately (no page regeneration needed).
+			$contact = new MM_Mod_Business_Contact( MM_Site_Settings::get_instance() );
+			echo $contact->render_contact_page(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered HTML from module
 			?>
 		</div>
 

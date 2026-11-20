@@ -296,7 +296,12 @@ class MM_Mod_Head_Meta extends MM_Mod_Base {
 	 */
 	private function resolve_flag( array $meta, string $key, bool $default ): bool {
 		if ( array_key_exists( $key, $meta ) && $meta[ $key ] !== null && $meta[ $key ] !== '' ) {
-			return (bool) $meta[ $key ];
+			$val = $meta[ $key ];
+			// Handle string 'yes'/'no' values (from HTML form fields).
+			if ( is_string( $val ) ) {
+				return in_array( strtolower( $val ), [ 'yes', 'true', '1' ], true );
+			}
+			return (bool) $val;
 		}
 		return $default;
 	}
