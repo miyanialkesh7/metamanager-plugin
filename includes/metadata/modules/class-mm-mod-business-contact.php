@@ -117,7 +117,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		];
 
 		if ( $phone ) { $lines[] = 'TEL;TYPE=WORK,VOICE:' . $phone; }
-		if ( $email ) { $lines[] = 'EMAIL;TYPE=WORK:' . $email; }
+		if ( $email && ! empty( $biz['show_email'] ?? true ) ) { $lines[] = 'EMAIL;TYPE=WORK:' . $email; }
 		if ( $url   ) { $lines[] = 'URL:' . $url; }
 
 		if ( ! empty( $addr['street'] ) ) {
@@ -221,7 +221,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$data = [
 			'name'    => $name,
 			'phone'   => sanitize_text_field( $biz['phone'] ?? '' ),
-			'email'   => sanitize_email( $biz['email'] ?? '' ),
+			'email'   => ( ! empty( $biz['show_email'] ?? true ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
 			'url'     => trailingslashit( home_url() ),
 			'logo'    => esc_url_raw( $biz['logo_url'] ?? '' ),
 			'address' => array_filter( [
@@ -319,7 +319,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$row     = [
 			$name,
 			sanitize_text_field( $biz['phone'] ?? '' ),
-			sanitize_email( $biz['email'] ?? '' ),
+			( ! empty( $biz['show_email'] ?? true ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
 			trailingslashit( home_url() ),
 			esc_url_raw( $biz['logo_url'] ?? '' ),
 			sanitize_text_field( $addr['street']  ?? '' ),
@@ -1061,10 +1061,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			];
 		}
 
-		if ( ! empty( $style['show_phone'] ) && ! empty( $biz['phone'] ) ) {
+		if ( ! empty( $biz['show_phone'] ?? true ) && ! empty( $biz['phone'] ) ) {
 			$schema['telephone'] = sanitize_text_field( $biz['phone'] );
 		}
-		if ( ! empty( $style['show_email'] ) && ! empty( $biz['email'] ) ) {
+		if ( ! empty( $biz['show_email'] ?? true ) && ! empty( $biz['email'] ) ) {
 			$schema['email'] = sanitize_email( $biz['email'] );
 		}
 
@@ -1085,14 +1085,14 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 		// ContactPoint nodes for rendered actions.
 		$contact_points = [];
-		if ( ! empty( $style['show_phone'] ) && ! empty( $biz['phone'] ) ) {
+		if ( ! empty( $biz['show_phone'] ?? true ) && ! empty( $biz['phone'] ) ) {
 			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'telephone'   => sanitize_text_field( $biz['phone'] ),
 				'contactType' => 'customer service',
 			];
 		}
-		if ( ! empty( $style['show_email'] ) && ! empty( $biz['email'] ) ) {
+		if ( ! empty( $biz['show_email'] ?? true ) && ! empty( $biz['email'] ) ) {
 			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'email'       => sanitize_email( $biz['email'] ),
@@ -1145,13 +1145,6 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 	/** Full set of style defaults. */
 	public static function style_defaults(): array {
 		return [
-			// Visibility toggles
-			'show_phone' => true,
-			'show_sms'   => true,
-			'show_email' => true,
-			'show_vcard' => true,
-			'show_json'  => false,
-			'show_csv'   => false,
 			// Card appearance
 			'card_bg'           => '#ffffff',
 			'card_text'         => '#333333',
