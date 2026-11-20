@@ -54,7 +54,7 @@ class MM_Mod_Rss extends MM_Mod_Base {
 		add_filter( 'rss_use_excerpt', '__return_true' );
 
 		// Prepend featured image to the excerpt content.
-		add_filter( 'the_content_feed', [ $this, 'prepend_featured_image' ], 10, 2 );
+		add_filter( 'the_excerpt_rss', [ $this, 'prepend_featured_image' ], 10, 2 );
 
 		// Override the feed channel title.
 		$title = trim( (string) $this->settings->get( 'feed.feed_title', '' ) );
