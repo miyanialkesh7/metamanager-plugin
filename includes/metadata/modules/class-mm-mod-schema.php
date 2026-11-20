@@ -861,6 +861,13 @@ class MM_Mod_Schema extends MM_Mod_Base {
 	private function add_image_schema( array &$data, array $item, \WP_Post $post ): void {
 		$meta = static fn( string $key ): string => (string) get_post_meta( $item['attachment_id'], $key, true );
 
+		// EXIF fallback: if mm_creator/mm_copyright are empty, use image_meta
+		// credit/copyright from the file's embedded EXIF data.
+		$att_meta = wp_get_attachment_metadata( $item['attachment_id'] );
+		$img_meta = $att_meta['image_meta'] ?? [];
+		$exif_credit    = (string) ( $img_meta['credit'] ?? '' );
+		$exif_copyright = (string) ( $img_meta['copyright'] ?? '' );
+
 		// Check if media is protected (S-10): use watermarked preview for schema.
 		$is_protected = 'yes' === get_post_meta( $item['attachment_id'], '_mm_media_protected', true );
 		$schema_url   = $item['url'];
@@ -914,12 +921,18 @@ class MM_Mod_Schema extends MM_Mod_Base {
 				$node['caption'] = $item['caption'];
 			}
 
-			// Attribution.
+			// Attribution — falls back to EXIF image_meta when mm_* is empty.
 			$creator = $meta( MM_Metadata::META_CREATOR );
+			if ( '' === $creator && '' !== $exif_credit ) {
+				$creator = $exif_credit;
+			}
 			if ( '' !== $creator ) {
 				$node['creator'] = [ '@type' => 'Person', 'name' => $creator ];
 			}
 			$copyright = $meta( MM_Metadata::META_COPYRIGHT );
+			if ( '' === $copyright && '' !== $exif_copyright ) {
+				$copyright = $exif_copyright;
+			}
 			if ( '' !== $copyright ) {
 				$node['copyrightNotice'] = $copyright;
 			}
