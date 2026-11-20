@@ -482,10 +482,47 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * [--lng=<number>]
 	 * : Longitude (auto-geocoded from address if blank).
 	 *
+	 * [--show-phone=<0|1>]
+	 * : Display phone button on contact page.
+	 *
+	 * [--show-sms=<0|1>]
+	 * : Display SMS button on contact page.
+	 *
+	 * [--show-email=<0|1>]
+	 * : Display email button on contact page.
+	 *
+	 * [--show-vcard=<0|1>]
+	 * : Display vCard download button.
+	 *
+	 * [--show-json=<0|1>]
+	 * : Display JSON download button.
+	 *
+	 * [--show-csv=<0|1>]
+	 * : Display CSV download button.
+	 *
+	 * [--booking-link=<url>]
+	 * : External booking URL (FareHarbor, Vagaro, etc.).
+	 *
+	 * [--booking-label=<text>]
+	 * : Booking button label.
+	 *
+	 * [--booking-new-tab=<0|1>]
+	 * : Open booking link in new tab.
+	 *
+	 * [--price-range=<text>]
+	 * : Price range (e.g. $$ or 50-150).
+	 *
+	 * [--founding-date=<date>]
+	 * : Founding date.
+	 *
+	 * [--employees=<number>]
+	 * : Number of employees.
+	 *
+	 * [--google-maps-key=<key>]
+	 * : Google Maps API key (for geocoding).
+	 *
 	 * [--contact-form-enabled=<0|1>]
 	 * : Toggle contact form (1 or 0).
-	 *
-	 * : Contact form delivery email (defaults to admin email).
 	 *
 	 * [--contact-form-subject-prefix=<text>]
 	 * : Subject prefix for contact form emails.
@@ -577,15 +614,25 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 			'location-type'  => [ 'location_type' ],
 			'lat'            => [ 'lat' ],
 			'lng'            => [ 'lng' ],
+			'show-phone'     => [ 'show_phone' ],
+			'show-sms'       => [ 'show_sms' ],
+			'show-email'     => [ 'show_email' ],
+			'show-vcard'     => [ 'show_vcard' ],
+			'show-json'      => [ 'show_json' ],
+			'show-csv'       => [ 'show_csv' ],
+			'booking-link'   => [ 'booking_link' ],
+			'booking-label'  => [ 'booking_link_label' ],
+			'booking-new-tab' => [ 'booking_link_new_tab' ],
+			'price-range'    => [ 'price_range' ],
+			'founding-date'  => [ 'founding_date' ],
+			'employees'      => [ 'number_of_employees' ],
+			'google-maps-key' => [ 'google_maps_api_key' ],
 			'contact-form-enabled'         => [ 'contact_form_enabled' ],
-			
 			'contact-form-subject-prefix'  => [ 'contact_form_subject_prefix' ],
 			'contact-form-submit-text'     => [ 'contact_form_submit_text' ],
 			'contact-form-tos-page'        => [ 'contact_form_tos_page_id' ],
 			'contact-form-recaptcha-site'  => [ 'contact_form_recaptcha_site' ],
 			'contact-form-recaptcha-secret' => [ 'contact_form_recaptcha_secret' ],
-			'booking-link'  => [ 'booking_link' ],
-			'booking-label' => [ 'booking_link_label' ],
 		];
 
 		$changes = 0;
