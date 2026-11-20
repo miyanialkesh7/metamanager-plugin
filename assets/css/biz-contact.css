@@ -813,3 +813,11 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* reCAPTCHA invisible badge — must float above all content including footer */
+.grecaptcha-badge {
+	z-index: 999999 !important;
+	position: fixed !important;
+	bottom: 12px !important;
+	right: 12px !important;
+}
