@@ -48,6 +48,8 @@ class MM_Settings {
 	const OPTION_AUTO_PROVENANCE        = 'mm_auto_provenance';
 	const OPTION_BATCH_SIZE             = 'mm_batch_size';
 	const OPTION_MAX_REVISIONS          = 'mm_max_revisions';
+	const OPTION_SHOW_PROVIDER_ARCHIVE  = 'mm_show_provider_archive';
+	const OPTION_SHOW_PROVIDER_SINGLE   = 'mm_show_provider_single';
 
 	// -----------------------------------------------------------------------
 	// Boot
@@ -211,6 +213,51 @@ class MM_Settings {
 			[ __CLASS__, 'field_notify_email' ],
 			'metamanager-settings',
 			'mm_section_notifications'
+		);
+
+		// --- CPT Display ---
+
+		add_settings_section(
+			'mm_section_cpt_display',
+			esc_html__( 'CPT Display', 'metamanager' ),
+			fn() => esc_html_e( 'Control how provider information appears on CPT archive and single pages.', 'metamanager' ),
+			'metamanager-settings'
+		);
+
+		register_setting(
+			'mm_settings_group',
+			self::OPTION_SHOW_PROVIDER_ARCHIVE,
+			[
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => false,
+			]
+		);
+
+		add_settings_field(
+			'mm_show_provider_archive',
+			esc_html__( 'Show provider on archive pages', 'metamanager' ),
+			[ __CLASS__, 'field_show_provider_archive' ],
+			'metamanager-settings',
+			'mm_section_cpt_display'
+		);
+
+		register_setting(
+			'mm_settings_group',
+			self::OPTION_SHOW_PROVIDER_SINGLE,
+			[
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => false,
+			]
+		);
+
+		add_settings_field(
+			'mm_show_provider_single',
+			esc_html__( 'Show provider on individual CPT pages', 'metamanager' ),
+			[ __CLASS__, 'field_show_provider_single' ],
+			'metamanager-settings',
+			'mm_section_cpt_display'
 		);
 
 		// --- REST API ---
@@ -446,6 +493,28 @@ class MM_Settings {
 		);
 		echo ' <label for="mm_auto_provenance">' . esc_html__( 'Embed site name and URL in image metadata', 'metamanager' ) . '</label>';
 		echo '<p class="description">' . esc_html__( 'When enabled (default), the Publisher (site name) and Website (site URL) fields are embedded as neutral provenance in every metadata job and on upload. This is not an authorship or copyright claim &mdash; it simply marks where the file was published. Disable if you want Metamanager to leave those fields untouched.', 'metamanager' ) . '</p>';
+	}
+
+	public static function field_show_provider_archive(): void {
+		$checked = (bool) get_option( self::OPTION_SHOW_PROVIDER_ARCHIVE, false );
+		printf(
+			'<input type="checkbox" id="mm_show_provider_archive" name="%s" value="1"%s>',
+			esc_attr( self::OPTION_SHOW_PROVIDER_ARCHIVE ),
+			checked( $checked, true, false )
+		);
+		echo ' <label for="mm_show_provider_archive">' . esc_html__( 'Show provider name on CPT archive pages', 'metamanager' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'When enabled, the Provider Name field appears in the detail rows on archive listing cards. Off by default.', 'metamanager' ) . '</p>';
+	}
+
+	public static function field_show_provider_single(): void {
+		$checked = (bool) get_option( self::OPTION_SHOW_PROVIDER_SINGLE, false );
+		printf(
+			'<input type="checkbox" id="mm_show_provider_single" name="%s" value="1"%s>',
+			esc_attr( self::OPTION_SHOW_PROVIDER_SINGLE ),
+			checked( $checked, true, false )
+		);
+		echo ' <label for="mm_show_provider_single">' . esc_html__( 'Show provider name on individual CPT pages', 'metamanager' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'When enabled, the Provider Name field appears in the detail table on single CPT pages. Off by default.', 'metamanager' ) . '</p>';
 	}
 
 	public static function field_delete_data(): void {
