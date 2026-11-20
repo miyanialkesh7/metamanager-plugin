@@ -1245,7 +1245,7 @@ class MM_Schema_Post_Types {
 						}
 						// Per-type hidden fields: machine-reading only, not shown in display.
 						$hidden_by_type = [
-							'Service'    => [ 'service_type', 'service_currency', 'service_provider_name', 'service_booking_url' ],
+							'Service'    => [ 'service_type', 'service_currency', 'service_booking_url' ],
 							'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode', 'event_ticket_url' ],
 							'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
 							'Product'    => [ 'product_currency' ],
@@ -1256,6 +1256,10 @@ class MM_Schema_Post_Types {
 							'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
 						];
 						$hidden = $hidden_by_type[ $type ] ?? [];
+						// Provider name visibility is a user setting (Preferences > CPT Display).
+						if ( ! get_option( 'mm_show_provider_archive', false ) ) {
+							$hidden[] = 'service_provider_name';
+						}
 						foreach ( $saved_fields as $fkey => $fval ) {
 							$fval = trim( (string) $fval );
 							if ( '' === $fval ) continue;
@@ -1486,7 +1490,7 @@ class MM_Schema_Post_Types {
 		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
 		// only — never shown in the human-visible details table.
 		$hidden_fields_by_type = [
-			'Service'    => [ 'service_type', 'service_currency', 'service_provider_name' ],
+			'Service'    => [ 'service_type', 'service_currency' ],
 			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
 			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
 			'Product'    => [ 'product_currency' ],
@@ -1497,6 +1501,10 @@ class MM_Schema_Post_Types {
 			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
+		// Provider name visibility is a user setting (Preferences > CPT Display).
+		if ( ! get_option( 'mm_show_provider_single', false ) ) {
+			$hidden_fields[] = 'service_provider_name';
+		}
 
 		$fields = MM_Schema_Types::get_fields_by_type()[ $type ] ?? array();
 		$rows = '';
