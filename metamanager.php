@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.375
+ * Version:      2.3.376
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.375' );
+define( 'MM_VERSION',     '2.3.376' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -156,6 +156,14 @@ add_filter( 'style_loader_tag', function ( string $html, string $handle, string 
 	}
 	return $html;
 }, 10, 4 );
+
+// Fix robots.txt Content-Type — WordPress serves it as text/html by default,
+// but robots.txt must be text/plain (Lighthouse robots.txt validation).
+add_action( 'send_headers', function (): void {
+	if ( isset( $_SERVER['REQUEST_URI'] ) && '/robots.txt' === $_SERVER['REQUEST_URI'] ) {
+		header( 'Content-Type: text/plain; charset=utf-8' );
+	}
+} );
 
 // Apply max revisions setting from Metamanager preferences.
 add_filter( 'wp_revisions_to_keep', function( $num, $post ) {
