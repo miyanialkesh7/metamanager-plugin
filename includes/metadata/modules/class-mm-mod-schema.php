@@ -273,6 +273,10 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			// Google Image Metadata requirements — per-image fields only.
 			$og_att_id = attachment_url_to_postid( $og_image['url'] );
 			if ( $og_att_id ) {
+				$creator = (string) get_post_meta( $og_att_id, MM_Metadata::META_CREATOR, true );
+				if ( '' !== $creator ) { $image_node['creator'] = [ '@type' => 'Person', 'name' => $creator ]; }
+				$copyright = (string) get_post_meta( $og_att_id, MM_Metadata::META_COPYRIGHT, true );
+				if ( '' !== $copyright ) { $image_node['copyrightNotice'] = $copyright; }
 				$license = (string) get_post_meta( $og_att_id, MM_Metadata::META_LICENSE, true );
 				if ( '' !== $license ) { $image_node['license'] = $license; }
 				$acquire = (string) get_post_meta( $og_att_id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
