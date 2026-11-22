@@ -141,6 +141,22 @@ MM_Schema_Post_Types::init();
 // Register page generator hooks (auto-regeneration on data changes).
 MM_Page_Generator::init();
 
+// Ensure webfonts load with font-display: swap (Lighthouse font-display audit).
+// Google Fonts URLs may carry display=block or display=fallback — rewrite to swap.
+add_filter( 'style_loader_tag', function ( string $html, string $handle, string $href, string $media ): string {
+	if ( false === strpos( $href, 'fonts.googleapis.com' ) && false === strpos( $href, 'fonts.gstatic.com' ) ) {
+		return $html;
+	}
+	// Rewrite display=block or display=fallback to display=swap.
+	$html = preg_replace( '/display=(block|fallback|auto)/', 'display=swap', $html );
+	// If no display param exists, add it to the @import or link URL.
+	if ( false === strpos( $html, 'display=swap' ) ) {
+		$sep  = ( false !== strpos( $href, '?' ) ) ? '&' : '?';
+		$html = str_replace( esc_url( $href ), esc_url( $href . $sep . 'display=swap' ), $html );
+	}
+	return $html;
+}, 10, 4 );
+
 // Apply max revisions setting from Metamanager preferences.
 add_filter( 'wp_revisions_to_keep', function( $num, $post ) {
 	$max = MM_Settings::get_max_revisions();
