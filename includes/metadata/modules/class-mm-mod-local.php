@@ -184,6 +184,12 @@ class MM_Mod_Local extends MM_Mod_Base {
 			];
 		}
 
+		// makesOffer — link to published service CPTs (derived from posts, no UI field).
+		$offers = $this->build_makes_offer();
+		if ( $offers ) {
+			$node['makesOffer'] = $offers;
+		}
+
 		$this->add_node( $data, $node );
 
 		// Multiple locations — each as a separate node.
@@ -197,6 +203,63 @@ class MM_Mod_Local extends MM_Mod_Base {
 		if ( $context->is_front_page() && $settings->get( 'social.og_enabled', true ) ) {
 			$this->emit_og_business( $data, $biz, $node );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// makesOffer — published service CPTs as Offer/Service on the business node
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Build the makesOffer array from published mm_service posts.
+	 *
+	 * Each published service becomes an Offer with itemOffered = Service.
+	 * Derived from CPT data — no Business Profile field needed.
+	 *
+	 * @return array<int, array<string, mixed>> Offer nodes, or empty array.
+	 */
+	private function build_makes_offer(): array {
+		$service_ids = get_posts( [
+			'post_type'      => 'mm_service',
+			'post_status'    => 'publish',
+			'posts_per_page' => 50,
+			'fields'         => 'ids',
+			'orderby'        => 'menu_order',
+			'order'          => 'ASC',
+		] );
+
+		if ( empty( $service_ids ) ) {
+			return [];
+		}
+
+		$offers = [];
+		foreach ( $service_ids as $sid ) {
+			$sfields = get_post_meta( $sid, 'mm_schema_fields', true );
+			if ( ! is_array( $sfields ) ) {
+				$sfields = [];
+			}
+
+			$service_obj = [
+				'@type' => 'Service',
+				'name'  => get_the_title( $sid ),
+				'url'   => get_permalink( $sid ),
+			];
+			if ( ! empty( $sfields['service_type'] ) ) {
+				$service_obj['serviceType'] = sanitize_text_field( $sfields['service_type'] );
+			}
+
+			$offer = [
+				'@type'       => 'Offer',
+				'itemOffered' => $service_obj,
+			];
+			if ( ! empty( $sfields['service_price'] ) ) {
+				$offer['price']         = sanitize_text_field( $sfields['service_price'] );
+				$offer['priceCurrency'] = sanitize_text_field( $sfields['service_currency'] ?? 'USD' );
+			}
+
+			$offers[] = $offer;
+		}
+
+		return $offers;
 	}
 
 	// -------------------------------------------------------------------------
