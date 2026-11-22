@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.374
+ * Version:      2.3.375
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.374' );
+define( 'MM_VERSION',     '2.3.375' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -140,6 +140,22 @@ MM_Schema_Post_Types::init();
 
 // Register page generator hooks (auto-regeneration on data changes).
 MM_Page_Generator::init();
+
+// Ensure webfonts load with font-display: swap (Lighthouse font-display audit).
+// Google Fonts URLs may carry display=block or display=fallback — rewrite to swap.
+add_filter( 'style_loader_tag', function ( string $html, string $handle, string $href, string $media ): string {
+	if ( false === strpos( $href, 'fonts.googleapis.com' ) && false === strpos( $href, 'fonts.gstatic.com' ) ) {
+		return $html;
+	}
+	// Rewrite display=block or display=fallback to display=swap.
+	$html = preg_replace( '/display=(block|fallback|auto)/', 'display=swap', $html );
+	// If no display param exists, add it to the @import or link URL.
+	if ( false === strpos( $html, 'display=swap' ) ) {
+		$sep  = ( false !== strpos( $href, '?' ) ) ? '&' : '?';
+		$html = str_replace( esc_url( $href ), esc_url( $href . $sep . 'display=swap' ), $html );
+	}
+	return $html;
+}, 10, 4 );
 
 // Apply max revisions setting from Metamanager preferences.
 add_filter( 'wp_revisions_to_keep', function( $num, $post ) {
