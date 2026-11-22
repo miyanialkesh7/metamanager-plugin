@@ -240,7 +240,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 
 			$service_obj = [
 				'@type' => 'Service',
-				'name'  => get_the_title( $sid ),
+				'name'  => html_entity_decode( get_the_title( $sid ), ENT_QUOTES, 'UTF-8' ),
 				'url'   => get_permalink( $sid ),
 			];
 			if ( ! empty( $sfields['service_type'] ) ) {
