@@ -81,7 +81,40 @@ Real workflows: `ci.yml`, `promote-to-test.yml`, `promote-to-main.yml` only.
 
 ## Open Items
 
-### Author Settings Simplification
+### HIGH — `mm_business` LocalBusiness CPT (for Ouachita.online business directory)
+
+New CPT for per-business pages with LocalBusiness schema output. Same fields as Business Profile settings minus contact form (privacy liability). Detail output at page bottom like other CPTs — no shortcode contact page.
+
+**Fields** (mirror `MM_Site_Settings::business_defaults()`): `name`, `type` (45 LocalBusiness subtypes), `address`, `phone`, `email`, `description`, `hours`, `service_areas`, `price_range`, `payment_accepted`, `logo`, `social accounts`, `booking_link`, `lat`/`lng`. NO `contact_form_*` fields.
+
+**Available on page:** vCard (`.vcf`) download, JSON download, CSV export, map links (Google/Bing/Apple/geo), `show_*` toggles — same as Business Profile contact page features minus form.
+
+**Schema output:** Each business page generates its own `LocalBusiness`/subtype node with full properties. Reuses `MM_Mod_Local::populate()` node building logic (per-CPT instead of site-wide).
+
+**Rendering:** Detail card at page bottom like `mm_service`/`mm_event` CPTs — respects each business's `show_*` values and settings. NO shortcode.
+
+**Files:**
+- `includes/metadata/class-mm-schema-post-types.php` — register `mm_business` CPT + metabox fields
+- `includes/metadata/class-mm-schema-types.php` — field definitions for business type
+- `includes/metadata/modules/class-mm-mod-schema.php` — content node building for `mm_business` type
+- `includes/metadata/modules/class-mm-mod-local.php` — reuse node building for per-CPT output
+- `includes/metadata/modules/class-mm-mod-business-contact.php` — contact card rendering minus form
+
+### HIGH — FAQ Page schema conversions
+
+Convert FAQ content pages to `FAQPage` schema across sites. Sites: Sun Dogs (Parasailing FAQ), Event Room (FAQs), and any others with FAQ content. Uses existing `FAQPage` type in `MM_Schema_Types` (already has dynamic field rendering).
+
+### HIGH — Prime Time legal schema: boat rental + hired captain (NOT charter)
+
+Prime Time rents boats and connects customers with captains for hire. Florida requires licensed boat drivers (not something tourists do). This is a legal distinction — schema must reflect **boat rental + hired captain**, NOT `FishingCharter`.
+
+Schema approach: `BoatRental` (or `LocalBusiness` subtype) for the business + `Service` CPT for captain hire. Avoid `FishingCharter` which implies charter operation.
+
+### HIGH — Surfside property schema: preserve hand schema exactly
+
+Surfside has very articulated hand schema for vacation rental properties (Beach Blessing, Paradise, Stairway to Heaven). Must examine and implement **exactly** (or improved) — output must pass schema validation via Google's API. **NO local business CPTs** — follow the existing hand schema pattern. Team members (Jane Buckle, Jim Buckle) → Person schema.
+
+### MEDIUM — Author Settings Simplification
 
 **Current state:** User profile has SEO Title Override, Meta Description textarea, and noindex radio buttons (Default/Force noindex/Force index). These overrides are not saving correctly and are unnecessary — WordPress already has titles and the author bio field for description.
 

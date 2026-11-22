@@ -786,12 +786,66 @@ class MM_Schema_Types {
 					'options'     => $business_type_options,
 				],
 				[
-					'key'         => 'business_address',
-					'label'       => 'Address',
+					'key'         => 'business_email',
+					'label'       => 'Email',
+					'type'        => 'email',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. info@example.com',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_telephone',
+					'label'       => 'Telephone',
+					'type'        => 'tel',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 318-555-0100',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_street',
+					'label'       => 'Street Address',
 					'type'        => 'text',
 					'required'    => false,
 					'auto_label'  => null,
-					'placeholder' => 'e.g. 820 Kiroli Road, West Monroe, LA 71291',
+					'placeholder' => 'e.g. 820 Kiroli Road',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_city',
+					'label'       => 'City',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. West Monroe',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_state',
+					'label'       => 'State',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. LA',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_zip',
+					'label'       => 'ZIP Code',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 71291',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_country',
+					'label'       => 'Country',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'US',
 					'description' => '',
 				],
 				[
@@ -813,13 +867,18 @@ class MM_Schema_Types {
 					'description' => '',
 				],
 				[
-					'key'         => 'business_telephone',
-					'label'       => 'Telephone',
-					'type'        => 'tel',
+					'key'         => 'business_location_type',
+					'label'       => 'Location Type',
+					'type'        => 'select',
 					'required'    => false,
 					'auto_label'  => null,
-					'placeholder' => 'e.g. 318-555-0100',
-					'description' => '',
+					'placeholder' => '',
+					'description' => 'Controls address/geo visibility in schema and detail output.',
+					'options'     => [
+						'brick_and_mortar' => 'Brick & Mortar',
+						'service_area'     => 'Service Area (no exact coordinates)',
+						'none'             => 'None (online only)',
+					],
 				],
 				[
 					'key'         => 'business_url',
@@ -847,6 +906,15 @@ class MM_Schema_Types {
 					],
 				],
 				[
+					'key'         => 'business_payment_accepted',
+					'label'       => 'Payment Accepted',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Cash, Credit Card, Check',
+					'description' => 'Comma-separated.',
+				],
+				[
 					'key'         => 'business_hours',
 					'label'       => 'Opening Hours',
 					'type'        => 'text',
@@ -854,6 +922,164 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Mo-Fr 09:00-17:00; Sa 10:00-14:00',
 					'description' => 'Schema.org openingHours syntax.',
+				],
+				[
+					'key'         => 'business_service_areas',
+					'label'       => 'Service Areas',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Ouachita Parish LA, Monroe LA',
+					'description' => 'Comma-separated.',
+				],
+				[
+					'key'         => 'business_booking_link',
+					'label'       => 'Booking Link',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_booking_link_label',
+					'label'       => 'Booking Link Label',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'Book Now',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_founding_date',
+					'label'       => 'Founding Date',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 2015',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_number_of_employees',
+					'label'       => 'Number of Employees',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 10',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_show_phone',
+					'label'       => 'Show Phone',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display phone in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_email',
+					'label'       => 'Show Email',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display email in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_vcard',
+					'label'       => 'Show vCard Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer .vcf download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_json',
+					'label'       => 'Show JSON Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer JSON download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_csv',
+					'label'       => 'Show CSV Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer CSV download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_facebook',
+					'label'       => 'Facebook',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_instagram',
+					'label'       => 'Instagram',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_linkedin',
+					'label'       => 'LinkedIn',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_youtube',
+					'label'       => 'YouTube',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_twitter',
+					'label'       => 'Twitter / X',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_bluesky',
+					'label'       => 'Bluesky',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_pinterest',
+					'label'       => 'Pinterest',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
 				],
 			],
 
@@ -1437,11 +1663,27 @@ class MM_Schema_Types {
 			if ( $subtype ) {
 				$out['@type'] = $subtype;
 			}
-			if ( $str( 'business_address' ) ) {
-				$out['address'] = $str( 'business_address' );
+			// Structured PostalAddress from individual fields.
+			$street  = $str( 'business_street' );
+			$city    = $str( 'business_city' );
+			$state   = $str( 'business_state' );
+			$zip     = $str( 'business_zip' );
+			$country = $str( 'business_country' );
+			if ( $street || $city || $state || $zip || $country ) {
+				$addr = [ '@type' => 'PostalAddress' ];
+				if ( $street )  { $addr['streetAddress']   = $street; }
+				if ( $city )    { $addr['addressLocality']  = $city; }
+				if ( $state )   { $addr['addressRegion']    = $state; }
+				if ( $zip )     { $addr['postalCode']       = $zip; }
+				if ( $country ) { $addr['addressCountry']   = $country; }
+				$out['address'] = $addr;
 			}
 			if ( $str( 'business_telephone' ) ) {
 				$out['telephone'] = $str( 'business_telephone' );
+			}
+			$biz_email = sanitize_email( $str( 'business_email' ) );
+			if ( $biz_email ) {
+				$out['email'] = $biz_email;
 			}
 			$biz_url = esc_url_raw( $str( 'business_url' ) );
 			if ( $biz_url ) {
@@ -1457,6 +1699,56 @@ class MM_Schema_Types {
 			$lng = $str( 'business_lng' );
 			if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
 				$out['geo'] = [ '@type' => 'GeoCoordinates', 'latitude' => (float) $lat, 'longitude' => (float) $lng ];
+			}
+			// areaServed from comma-separated service areas.
+			$areas_raw = $str( 'business_service_areas' );
+			if ( $areas_raw ) {
+				$areas = array_map( 'trim', explode( ',', $areas_raw ) );
+				$areas = array_filter( $areas );
+				if ( count( $areas ) === 1 ) {
+					$out['areaServed'] = [ '@type' => 'City', 'name' => $areas[0] ];
+				} elseif ( $areas ) {
+					$out['areaServed'] = array_map( fn( $a ) => [ '@type' => 'City', 'name' => $a ], array_values( $areas ) );
+				}
+			}
+			if ( $str( 'business_payment_accepted' ) ) {
+				$out['paymentAccepted'] = $str( 'business_payment_accepted' );
+			}
+			// Social profiles → sameAs.
+			$same_as = [];
+			foreach ( [ 'facebook', 'instagram', 'linkedin', 'youtube', 'twitter', 'bluesky', 'pinterest' ] as $network ) {
+				$social_url = esc_url_raw( $str( 'business_' . $network ) );
+				if ( $social_url ) {
+					$same_as[] = $social_url;
+				}
+			}
+			if ( $same_as ) {
+				$out['sameAs'] = $same_as;
+			}
+			// Booking link → ReserveAction potentialAction.
+			$booking = esc_url_raw( $str( 'business_booking_link' ) );
+			if ( $booking ) {
+				$out['potentialAction'] = [
+					'@type'  => 'ReserveAction',
+					'target' => [
+						'@type'           => 'EntryPoint',
+						'urlTemplate'     => $booking,
+						'actionPlatform'  => [
+							'http://schema.org/DesktopWebPlatform',
+							'http://schema.org/MobileWebPlatform',
+						],
+					],
+					'reservationFor' => [
+						'@type' => 'Service',
+						'name'  => sanitize_text_field( $str( 'business_booking_link_label' ) ?: 'Book Now' ),
+					],
+				];
+			}
+			if ( $str( 'business_founding_date' ) ) {
+				$out['foundingDate'] = $str( 'business_founding_date' );
+			}
+			if ( $str( 'business_number_of_employees' ) ) {
+				$out['numberOfEmployees'] = $str( 'business_number_of_employees' );
 			}
 		}
 
