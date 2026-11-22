@@ -157,6 +157,14 @@ add_filter( 'style_loader_tag', function ( string $html, string $handle, string 
 	return $html;
 }, 10, 4 );
 
+// Fix robots.txt Content-Type — WordPress serves it as text/html by default,
+// but robots.txt must be text/plain (Lighthouse robots.txt validation).
+add_action( 'send_headers', function (): void {
+	if ( isset( $_SERVER['REQUEST_URI'] ) && '/robots.txt' === $_SERVER['REQUEST_URI'] ) {
+		header( 'Content-Type: text/plain; charset=utf-8' );
+	}
+} );
+
 // Apply max revisions setting from Metamanager preferences.
 add_filter( 'wp_revisions_to_keep', function( $num, $post ) {
 	$max = MM_Settings::get_max_revisions();
