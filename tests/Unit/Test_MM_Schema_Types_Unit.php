@@ -465,8 +465,9 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$fields = MM_Schema_Types::get_fields_by_type();
 		$this->assertArrayHasKey( 'LocalBusiness', $fields );
 		$keys = array_column( $fields['LocalBusiness'], 'key' );
-		foreach ( [ 'business_type', 'business_address', 'business_lat', 'business_lng',
-			'business_telephone', 'business_url', 'business_price_range', 'business_hours' ] as $key ) {
+		foreach ( [ 'business_type', 'business_street', 'business_city', 'business_state', 'business_zip', 'business_country',
+			'business_lat', 'business_lng', 'business_telephone', 'business_email', 'business_url',
+			'business_price_range', 'business_hours', 'business_service_areas', 'business_payment_accepted' ] as $key ) {
 			$this->assertContains( $key, $keys, "LocalBusiness should have {$key}" );
 		}
 	}
@@ -489,8 +490,13 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 	public function test_build_node_additions_localbusiness(): void {
 		$fields = [
 			'business_type'      => 'BeautySalon',
-			'business_address'   => '123 Main St, Monroe, LA 71201',
+			'business_street'    => '123 Main St',
+			'business_city'      => 'Monroe',
+			'business_state'     => 'LA',
+			'business_zip'       => '71201',
+			'business_country'   => 'US',
 			'business_telephone' => '318-555-0100',
+			'business_email'     => 'info@example.com',
 			'business_url'       => 'https://example.com',
 			'business_price_range' => '$$',
 			'business_hours'     => 'Mo-Fr 09:00-17:00',
@@ -500,8 +506,14 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$result = MM_Schema_Types::build_node_additions( $fields, 'LocalBusiness' );
 
 		$this->assertSame( 'BeautySalon', $result['@type'] );
-		$this->assertSame( '123 Main St, Monroe, LA 71201', $result['address'] );
+		$this->assertSame( 'PostalAddress', $result['address']['@type'] );
+		$this->assertSame( '123 Main St', $result['address']['streetAddress'] );
+		$this->assertSame( 'Monroe', $result['address']['addressLocality'] );
+		$this->assertSame( 'LA', $result['address']['addressRegion'] );
+		$this->assertSame( '71201', $result['address']['postalCode'] );
+		$this->assertSame( 'US', $result['address']['addressCountry'] );
 		$this->assertSame( '318-555-0100', $result['telephone'] );
+		$this->assertSame( 'info@example.com', $result['email'] );
 		$this->assertSame( 'https://example.com', $result['url'] );
 		$this->assertSame( '$$', $result['priceRange'] );
 		$this->assertSame( 'Mo-Fr 09:00-17:00', $result['openingHours'] );

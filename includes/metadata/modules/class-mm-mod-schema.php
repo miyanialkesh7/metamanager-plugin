@@ -441,6 +441,23 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$node['image'] = [ '@id' => $url . '#primaryimage' ];
 		}
 
+		// LocalBusiness: featured image as logo.
+		if ( 'LocalBusiness' === $type ) {
+			$thumb_id = get_post_thumbnail_id( $post );
+			if ( $thumb_id ) {
+				$logo_url    = wp_get_attachment_image_url( $thumb_id, 'full' );
+				$logo_meta   = wp_get_attachment_metadata( $thumb_id );
+				if ( $logo_url ) {
+					$node['logo'] = [
+						'@type'  => 'ImageObject',
+						'url'    => $logo_url,
+						'width'  => $logo_meta['width']  ?? null,
+						'height' => $logo_meta['height'] ?? null,
+					];
+				}
+			}
+		}
+
 		// Author — link to Person node (added by Author module or built inline).
 		if ( in_array( $type, [ 'BlogPosting', 'Article' ], true ) ) {
 			$author = get_userdata( (int) $post->post_author );

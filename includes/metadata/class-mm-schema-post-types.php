@@ -46,6 +46,7 @@ class MM_Schema_Post_Types {
 		add_action( 'init', [ __CLASS__, 'register_post_types' ] );
 		add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_boxes' ] );
 		add_action( 'save_post', [ __CLASS__, 'save_meta' ], 10, 2 );
+		add_action( 'template_redirect', [ __CLASS__, 'maybe_serve_download' ] );
 		add_filter( 'template_include', [ __CLASS__, 'load_page_template' ] );
 		add_action( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
 		add_action( 'wp_ajax_mm_search_vessels', [ __CLASS__, 'ajax_search_vessels' ] );
@@ -1251,7 +1252,7 @@ class MM_Schema_Post_Types {
 							'Product'    => [ 'product_currency' ],
 							'TouristTrip' => [ 'trip_duration_iso', 'trip_currency', 'trip_booking_url' ],
 							'Course'     => [ 'course_duration', 'course_currency', 'course_code', 'course_enrollment_url' ],
-							'LocalBusiness' => [ 'business_type', 'business_hours' ],
+			'LocalBusiness' => [ 'business_type', 'business_hours', 'business_location_type', 'business_show_phone', 'business_show_email', 'business_show_vcard', 'business_show_json', 'business_show_csv' ],
 							'Organization'  => [ 'org_type' ],
 							'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
 						];
@@ -1473,6 +1474,124 @@ class MM_Schema_Post_Types {
 	 * list of the filled fields in field-definition order — because these
 	 * are details, not decoration. URL fields render as links.
 	 */
+	/**
+	 * Serve vCard / JSON / CSV downloads for mm_business posts.
+	 *
+	 * Fired on template_redirect when ?mm_vcard=, ?mm_json=, or ?mm_csv= is present.
+	 * Respects the per-post show_* toggles.
+	 */
+	public static function maybe_serve_download(): void {
+		foreach ( [ 'mm_vcard' => 'vcard', 'mm_json' => 'json', 'mm_csv' => 'csv' ] as $param => $kind ) {
+			if ( ! isset( $_GET[ $param ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				continue;
+			}
+			$post_id = (int) $_GET[ $param ]; // phpcs:ignore WordPress.Security.NonceVerification
+			$post    = get_post( $post_id );
+			if ( ! $post || 'mm_business' !== $post->post_type ) {
+				return;
+			}
+			$saved = get_post_meta( $post_id, 'mm_schema_fields', true );
+			if ( ! is_array( $saved ) ) {
+				$saved = [];
+			}
+			// Respect show_* toggles.
+			$toggle_key = 'business_show_' . $kind;
+			if ( isset( $saved[ $toggle_key ] ) && '0' === $saved[ $toggle_key ] ) {
+				return;
+			}
+			$name = get_the_title( $post_id );
+			if ( 'vcard' === $kind ) {
+				self::serve_vcard( $post_id, $name, $saved );
+			} elseif ( 'json' === $kind ) {
+				self::serve_json( $post_id, $name, $saved );
+			} elseif ( 'csv' === $kind ) {
+				self::serve_csv( $post_id, $name, $saved );
+			}
+			exit;
+		}
+	}
+
+	private static function serve_vcard( int $post_id, string $name, array $saved ): void {
+		$phone  = $saved['business_telephone'] ?? '';
+		$email  = $saved['business_email'] ?? '';
+		$street = $saved['business_street'] ?? '';
+		$city   = $saved['business_city'] ?? '';
+		$state  = $saved['business_state'] ?? '';
+		$zip    = $saved['business_zip'] ?? '';
+		$country = $saved['business_country'] ?? 'US';
+		$vcf  = "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+		$vcf .= 'FN:' . $name . "\r\n";
+		$vcf .= 'N:;' . $name . ";;;\r\n";
+		if ( $phone ) { $vcf .= 'TEL;TYPE=WORK,VOICE:' . $phone . "\r\n"; }
+		if ( $email ) { $vcf .= 'EMAIL;TYPE=WORK:' . $email . "\r\n"; }
+		if ( $street || $city ) {
+			$vcf .= 'ADR;TYPE=WORK:;;' . $street . ';' . $city . ';' . $state . ';' . $zip . ';' . $country . "\r\n";
+		}
+		$url = get_permalink( $post_id );
+		if ( $url ) { $vcf .= 'URL:' . $url . "\r\n"; }
+		$vcf .= "END:VCARD\r\n";
+		header( 'Content-Type: text/vcard; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.vcf"' );
+		echo $vcf; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	private static function serve_json( int $post_id, string $name, array $saved ): void {
+		$out = [
+			'name'        => $name,
+			'type'        => $saved['business_type'] ?: 'LocalBusiness',
+			'phone'       => $saved['business_telephone'] ?? '',
+			'email'       => $saved['business_email'] ?? '',
+			'address'     => array_filter( [
+				'street'  => $saved['business_street'] ?? '',
+				'city'    => $saved['business_city'] ?? '',
+				'state'   => $saved['business_state'] ?? '',
+				'zip'     => $saved['business_zip'] ?? '',
+				'country' => $saved['business_country'] ?? '',
+			] ),
+			'url'         => $saved['business_url'] ?? get_permalink( $post_id ),
+			'priceRange'  => $saved['business_price_range'] ?? '',
+			'openingHours' => $saved['business_hours'] ?? '',
+			'areaServed'  => $saved['business_service_areas'] ?? '',
+			'paymentAccepted' => $saved['business_payment_accepted'] ?? '',
+		];
+		if ( ! empty( $saved['business_lat'] ) && ! empty( $saved['business_lng'] ) ) {
+			$out['geo'] = [ 'latitude' => (float) $saved['business_lat'], 'longitude' => (float) $saved['business_lng'] ];
+		}
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.json"' );
+		echo wp_json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+	}
+
+	private static function serve_csv( int $post_id, string $name, array $saved ): void {
+		$rows = [
+			[ 'Field', 'Value' ],
+			[ 'Name', $name ],
+			[ 'Type', $saved['business_type'] ?: 'LocalBusiness' ],
+			[ 'Phone', $saved['business_telephone'] ?? '' ],
+			[ 'Email', $saved['business_email'] ?? '' ],
+			[ 'Street', $saved['business_street'] ?? '' ],
+			[ 'City', $saved['business_city'] ?? '' ],
+			[ 'State', $saved['business_state'] ?? '' ],
+			[ 'ZIP', $saved['business_zip'] ?? '' ],
+			[ 'Country', $saved['business_country'] ?? '' ],
+			[ 'Latitude', $saved['business_lat'] ?? '' ],
+			[ 'Longitude', $saved['business_lng'] ?? '' ],
+			[ 'Website', $saved['business_url'] ?? '' ],
+			[ 'Price Range', $saved['business_price_range'] ?? '' ],
+			[ 'Hours', $saved['business_hours'] ?? '' ],
+			[ 'Service Areas', $saved['business_service_areas'] ?? '' ],
+			[ 'Payment Accepted', $saved['business_payment_accepted'] ?? '' ],
+			[ 'Booking Link', $saved['business_booking_link'] ?? '' ],
+		];
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.csv"' );
+		$out = fopen( 'php://output', 'w' );
+		foreach ( $rows as $row ) {
+			fputcsv( $out, $row );
+		}
+		fclose( $out );
+	}
+
 	public static function render_details_table( int $post_id ): void {
 		$post = get_post( $post_id );
 		if ( ! $post || ! self::is_schema_cpt( $post->post_type ) ) {
@@ -1547,11 +1666,52 @@ class MM_Schema_Post_Types {
 		if ( '' === $rows ) {
 			return;
 		}
-		echo '<style>.mm-schema-details{margin:48px 0 24px 0}.mm-schema-details h2{font-size:20px;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 8px 0}.mm-details-list{margin:0}.mm-detail-row{display:flex;border-bottom:1px solid #eee;padding:8px 0}.mm-detail-row dt{flex:0 0 220px;font-weight:700}.mm-detail-row dd{margin:0}</style>';
+		// LocalBusiness: apply show_* toggles and add download/map links.
+		$extras = '';
+		if ( 'LocalBusiness' === $type ) {
+			// Respect show_phone / show_email — remove those rows if disabled.
+			$show_phone = $saved['business_show_phone'] ?? '1';
+			$show_email = $saved['business_show_email'] ?? '1';
+			if ( '0' === $show_phone ) {
+				$rows = preg_replace( '/<div class="mm-detail-row"><dt>Telephone<\/dt>.*?<\/div>/s', '', $rows );
+			}
+			if ( '0' === $show_email ) {
+				$rows = preg_replace( '/<div class="mm-detail-row"><dt>Email<\/dt>.*?<\/div>/s', '', $rows );
+			}
+			// Download + map links.
+			$links = [];
+			if ( '1' === ( $saved['business_show_vcard'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_vcard', $post_id, get_permalink( $post_id ) ) ) . '">Download vCard (.vcf)</a>';
+			}
+			if ( '1' === ( $saved['business_show_json'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_json', $post_id, get_permalink( $post_id ) ) ) . '">Download JSON</a>';
+			}
+			if ( '1' === ( $saved['business_show_csv'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_csv', $post_id, get_permalink( $post_id ) ) ) . '">Download CSV</a>';
+			}
+			// Map links — only when address or geo is present and location_type is not 'none'.
+			$loc_type = $saved['business_location_type'] ?? 'brick_and_mortar';
+			$has_addr = ! empty( $saved['business_street'] ) || ! empty( $saved['business_city'] );
+			$has_geo  = ! empty( $saved['business_lat'] ) && ! empty( $saved['business_lng'] );
+			if ( 'none' !== $loc_type && ( $has_addr || $has_geo ) ) {
+				$map_query = $has_geo
+					? $saved['business_lat'] . ',' . $saved['business_lng']
+					: trim( implode( ' ', array_filter( [ $saved['business_street'] ?? '', $saved['business_city'] ?? '', $saved['business_state'] ?? '', $saved['business_zip'] ?? '' ] ) ) );
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Google Maps</a>';
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://www.bing.com/maps?q=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Bing Maps</a>';
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://maps.apple.com/?q=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Apple Maps</a>';
+			}
+			if ( $links ) {
+				$extras = '<div class="mm-detail-links">' . implode( ' ', $links ) . '</div>';
+			}
+		}
+		echo '<style>.mm-schema-details{margin:48px 0 24px 0}.mm-schema-details h2{font-size:20px;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 8px 0}.mm-details-list{margin:0}.mm-detail-row{display:flex;border-bottom:1px solid #eee;padding:8px 0}.mm-detail-row dt{flex:0 0 220px;font-weight:700}.mm-detail-row dd{margin:0}.mm-detail-links{margin:16px 0 0 0;display:flex;flex-wrap:wrap;gap:12px}.mm-detail-download{display:inline-block;padding:8px 14px;background:#0073aa;color:#fff;text-decoration:none;border-radius:4px;font-size:14px}</style>';
 		echo '<section class="mm-schema-details">';
 		echo '<h2>' . esc_html__( 'Details', 'metamanager' ) . '</h2>';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rows is assembled from esc_html()/esc_url() parts above.
 		echo '<dl class="mm-details-list">' . $rows . '</dl>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $extras is assembled from esc_url()/esc_html() parts above.
+		echo $extras;
 		echo '</section>';
 	}
 }
