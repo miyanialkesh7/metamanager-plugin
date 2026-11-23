@@ -527,6 +527,8 @@ function mm_import_completed_jobs(): void {
 		if ( 0 === $files->count() ) {
 			continue;
 		}
+		// PHP just reads result files and writes to DB — no batch limit here.
+		// The daemon controls concurrency via MAX_CONCURRENT and memory checks.
 		foreach ( $files as $filepath ) {
 			if ( $wp_filesystem ) {
 				$raw = $wp_filesystem->get_contents( $filepath );
