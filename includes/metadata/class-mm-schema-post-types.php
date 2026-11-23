@@ -25,6 +25,7 @@ class MM_Schema_Post_Types {
 		'mm_business'     => [ 'LocalBusiness',      'Businesses',         [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'store' ],
 		'mm_organization' => [ 'Organization',       'Organizations',      [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'groups' ],
 		'mm_rental'       => [ 'VacationRental',     'Rentals',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'building' ],
+		'mm_person'      => [ 'Person',             'People',             [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'id-alt' ],
 		// AboutPage, ContactPage, Calendar are WordPress Page Templates — not CPTs.
 		// WebPage maps to default `page` type — not a separate CPT.
 		// BlogPosting maps to default `post` type — not a separate CPT.
@@ -1618,6 +1619,7 @@ class MM_Schema_Post_Types {
 			'LocalBusiness' => [ 'business_type', 'business_hours' ],
 			'Organization'  => [ 'org_type' ],
 			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
+			'Person'     => [ 'person_show_email', 'person_show_phone' ],
 		];
 		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
 		// Provider name visibility is a user setting (Preferences > CPT Display).

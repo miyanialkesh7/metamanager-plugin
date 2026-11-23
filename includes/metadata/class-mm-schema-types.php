@@ -1281,6 +1281,120 @@ class MM_Schema_Types {
 					'description' => 'Link to book this rental (Lodgify, etc.).',
 				],
 			],
+
+			// ── Person (captains, professionals, team members) ──────────────
+			'Person' => [
+				[
+					'key'         => 'person_job_title',
+					'label'       => 'Job Title',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Licensed Boat Captain, Realtor, Master Electrician',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_works_for',
+					'label'       => 'Works For',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Prime Time Charters',
+					'description' => 'Business or organization name.',
+				],
+				[
+					'key'         => 'person_credentials',
+					'label'       => 'Credentials & Licenses',
+					'type'        => 'textarea',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. USCG Licensed Master Captain, Licensed Real Estate Broker',
+					'description' => 'One per line.',
+				],
+				[
+					'key'         => 'person_knows_about',
+					'label'       => 'Areas of Expertise',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Offshore Navigation, Deep Sea Fishing, Luxury Home Sales',
+					'description' => 'Comma-separated.',
+				],
+				[
+					'key'         => 'person_email',
+					'label'       => 'Email',
+					'type'        => 'email',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_phone',
+					'label'       => 'Phone',
+					'type'        => 'tel',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_url',
+					'label'       => 'Personal Website',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_facebook',
+					'label'       => 'Facebook',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_linkedin',
+					'label'       => 'LinkedIn',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_instagram',
+					'label'       => 'Instagram',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_show_email',
+					'label'       => 'Show Email',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display email in detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'person_show_phone',
+					'label'       => 'Show Phone',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display phone in detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+			],
 		];
 	}
 
@@ -1835,6 +1949,56 @@ class MM_Schema_Types {
 						'result'   => [ '@type' => 'LodgingReservation' ],
 					];
 				}
+			}
+		}
+
+		// ── Person (captains, professionals, team members) ──────────────────
+		if ( 'Person' === $type ) {
+			if ( $str( 'person_job_title' ) ) {
+				$out['jobTitle'] = $str( 'person_job_title' );
+			}
+			if ( $str( 'person_works_for' ) ) {
+				$out['worksFor'] = [
+					'@type' => 'Organization',
+					'name'  => $str( 'person_works_for' ),
+				];
+			}
+			if ( $str( 'person_credentials' ) ) {
+				$creds = array_filter( array_map( 'trim', explode( "\n", $str( 'person_credentials' ) ) ) );
+				if ( $creds ) {
+					$out['hasCredential'] = array_map( function ( $c ) {
+						return [ '@type' => 'EducationalOccupationalCredential', 'name' => $c ];
+					}, $creds );
+				}
+			}
+			if ( $str( 'person_knows_about' ) ) {
+				$skills = array_filter( array_map( 'trim', explode( ',', $str( 'person_knows_about' ) ) ) );
+				if ( count( $skills ) === 1 ) {
+					$out['knowsAbout'] = $skills[0];
+				} elseif ( $skills ) {
+					$out['knowsAbout'] = array_values( $skills );
+				}
+			}
+			$p_email = sanitize_email( $str( 'person_email' ) );
+			if ( $p_email ) {
+				$out['email'] = $p_email;
+			}
+			if ( $str( 'person_phone' ) ) {
+				$out['telephone'] = $str( 'person_phone' );
+			}
+			$p_url = esc_url_raw( $str( 'person_url' ) );
+			if ( $p_url ) {
+				$out['url'] = $p_url;
+			}
+			$same_as = [];
+			foreach ( [ 'facebook', 'linkedin', 'instagram' ] as $network ) {
+				$social = esc_url_raw( $str( 'person_' . $network ) );
+				if ( $social ) {
+					$same_as[] = $social;
+				}
+			}
+			if ( $same_as ) {
+				$out['sameAs'] = $same_as;
 			}
 		}
 
