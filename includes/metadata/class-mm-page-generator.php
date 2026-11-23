@@ -96,52 +96,6 @@ class MM_Page_Generator {
 	// Content generation
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Generate HTML content for a given template.
-	 *
-	 * @param string $template Template slug (mm-about, mm-contact, mm-calendar).
-	 * @return string|null Generated HTML, or null if generation not possible.
-	 */
-	private static function generate_content( string $template ): ?string {
-		$settings = MM_Site_Settings::get_instance();
-
-		switch ( $template ) {
-			case 'mm-about':
-				return self::generate_about( $settings );
-			case 'mm-contact':
-				return self::generate_contact( $settings );
-			case 'mm-calendar':
-				return self::generate_calendar_content();
-			default:
-				return null;
-		}
-	}
-
-	/**
-	 * Generate About page content from business profile.
-	 */
-	private static function generate_about( MM_Site_Settings $settings ): string {
-		$module = new MM_Mod_Business_Contact( $settings );
-		return $module->render_about_page();
-	}
-
-	/**
-	 * Generate Contact page content from business profile.
-	 */
-	private static function generate_contact( MM_Site_Settings $settings ): string {
-		$module = new MM_Mod_Business_Contact( $settings );
-		return $module->render_contact_page();
-	}
-
-	/**
-	 * Generate Calendar page content from Event posts.
-	 */
-	private static function generate_calendar_content(): string {
-		$settings = MM_Site_Settings::get_instance();
-		$module   = new MM_Mod_Business_Contact( $settings );
-		return $module->render_calendar();
-	}
-
 	// -------------------------------------------------------------------------
 	// Page lookup
 	// -------------------------------------------------------------------------

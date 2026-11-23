@@ -163,61 +163,6 @@ class MM_Job_Queue {
 		return 'written';
 	}
 
-	/**
-	 * Store a queue-status notice in a short-lived user-scoped transient so it
-	 * can be displayed on the next admin page load or included in an AJAX response.
-	 *
-	 * Notices are grouped by attachment_id to avoid repeating the same file name
-	 * once per size in the rendered output.
-	 *
-	 * @param string $status        'skipped' or 'queued'.
-	 * @param string $job_type      'compression' or 'metadata'.
-	 * @param int    $attachment_id Attachment ID.
-	 * @param string $size          WP size slug.
-	 */
-	private static function push_queue_notice(
-		string $status,
-		string $job_type,
-		int $attachment_id,
-		string $size
-	): void {
-		$user_id = get_current_user_id();
-		if ( ! $user_id ) {
-			return; // Background processes (cron, daemon import) — no UI to notify.
-		}
-
-		$post  = get_post( $attachment_id );
-		$name  = $post ? $post->post_title : '#' . $attachment_id;
-		$key   = 'mm_queue_notices_' . $user_id;
-		$items = get_transient( $key ) ?: [];
-
-		// One entry per attachment_id+job_type+status combination.
-		// If the same attachment already has a notice of this kind, just add the size.
-		$idx = null;
-		foreach ( $items as $i => $item ) {
-			if ( $item['attachment_id'] === $attachment_id
-				&& $item['job_type'] === $job_type
-				&& $item['status'] === $status ) {
-				$idx = $i;
-				break;
-			}
-		}
-
-		if ( null !== $idx ) {
-			$items[ $idx ]['sizes'][] = $size;
-		} else {
-			$items[] = [
-				'status'        => $status,
-				'job_type'      => $job_type,
-				'attachment_id' => $attachment_id,
-				'name'          => $name,
-				'sizes'         => [ $size ],
-			];
-		}
-
-		set_transient( $key, $items, 120 );
-	}
-
 	// -----------------------------------------------------------------------
 	// Enqueue for all image sizes
 	// -----------------------------------------------------------------------
