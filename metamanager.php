@@ -438,7 +438,7 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 	];
 
 	$att_id = wp_insert_attachment( $attachment, $webp_path, $original->post_parent );
-	if ( is_wp_error( $att_id ) || ! $att_id ) {
+	if ( ! $att_id ) {
 		error_log( '[Metamanager] Failed to register WebP attachment: ' . $webp_path );
 		return;
 	}
