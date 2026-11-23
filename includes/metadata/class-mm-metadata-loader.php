@@ -46,6 +46,16 @@ class MM_Metadata_Loader {
 		( new MM_Mod_Media_Display() )->register_hooks();
 		( new MM_Mod_Person( $this->settings ) )->register_hooks();
 
+		// Bust makesOffer cache when services are edited.
+		add_action( 'save_post_mm_service', function (): void {
+			delete_transient( 'mm_makes_offer_cache' );
+		} );
+		add_action( 'deleted_post', function ( int $post_id ): void {
+			if ( 'mm_service' === get_post_type( $post_id ) ) {
+				delete_transient( 'mm_makes_offer_cache' );
+			}
+		} );
+
 		// AI integration (Abilities API + MCP) is hooked at file load in
 		// metamanager.php — registering it here (plugins_loaded) is too
 		// late for the Abilities API init and silently never fires.

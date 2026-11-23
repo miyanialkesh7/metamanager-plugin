@@ -273,4 +273,26 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
 			'Library scan must queue a metadata-embedding job for an image.' );
 	}
+
+	// -----------------------------------------------------------------------
+	// Marker 7: WebP upload flow — no recursive queuing
+	// -----------------------------------------------------------------------
+
+	public function test_webp_upload_queues_compression_and_metadata(): void {
+		[ $attachment_id ] = $this->create_tmp_attachment( 'image/webp' );
+		MM_Job_Queue::on_upload( [], $attachment_id );
+		// WebP gets compression (compress queue) + metadata (meta queue). No webp generation.
+		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+			'WebP must get compression but NOT webp generation.' );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ),
+			'WebP must get metadata jobs.' );
+	}
+
+	public function test_jpeg_upload_queues_compression_and_webp(): void {
+		[ $attachment_id ] = $this->create_tmp_attachment( 'image/jpeg' );
+		MM_Job_Queue::on_upload( [], $attachment_id );
+		// JPEG gets compression + webp generation (both in compress queue).
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
+			'JPEG must get compression + webp generation.' );
+	}
 }

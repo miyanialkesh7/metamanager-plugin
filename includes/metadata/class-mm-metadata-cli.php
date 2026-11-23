@@ -246,9 +246,15 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	 * Posts that were saved after the plugin was installed (and therefore
 	 * already indexed via the save_post hook) are skipped automatically.
 	 *
+	 * ## OPTIONS
+	 *
+	 * [--force]
+	 * : Re-extract links from posts already in the link table.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *   wp metamanager metadata backfill-links
+	 *   wp metamanager metadata backfill-links --force
 	 *
 	 * @when after_wp_load
 	 */
@@ -260,9 +266,10 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 		$progress = null;
 		$new_count     = 0;
 		$skipped_count = 0;
+		$force = isset( $assoc_args['force'] );
 
 		do {
-			$result = $mod->backfill_posts( $offset, $batch );
+			$result = $mod->backfill_posts( $offset, $batch, $force );
 
 			if ( null === $progress && $result['total'] > 0 ) {
 				$progress = \WP_CLI\Utils\make_progress_bar(

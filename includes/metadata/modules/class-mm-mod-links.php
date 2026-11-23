@@ -415,9 +415,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 	 * Uses a stable ORDER BY ID ASC offset so progress is predictable across
 	 * multiple AJAX or CLI calls.
 	 *
+	 * @param int  $offset     Offset into the stable ID ordering.
+	 * @param int  $batch_size Posts per batch.
+	 * @param bool $force      Re-extract from posts already in the link table.
 	 * @return array{ total: int, scanned: int, skipped: int, new_offset: int, done: bool }
 	 */
-	public function backfill_posts( int $offset = 0, int $batch_size = 20 ): array {
+	public function backfill_posts( int $offset = 0, int $batch_size = 20, bool $force = false ): array {
 		global $wpdb;
 		$table           = self::table_name();
 		$monitored_types = array_keys( $this->settings->get( 'sitemap.post_types', [ 'post' => true, 'page' => true ] ) );
@@ -452,17 +455,20 @@ class MM_Mod_Links extends MM_Mod_Base {
 			return [ 'total' => $total, 'scanned' => 0, 'skipped' => 0, 'new_offset' => $offset, 'done' => true ];
 		}
 
-		// Batch-check which post IDs already have entries — skip those.
+		// Batch-check which post IDs already have entries — skip those unless forced.
 		// $id_ph is a dynamically-built list of %d placeholders for safe use in prepare().
-		$id_ph = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-		$already = array_map( 'intval', (array) $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT DISTINCT post_id FROM {$table} WHERE post_id IN ({$id_ph})",
-				...$post_ids
-			)
-		) );
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$already = [];
+		if ( ! $force ) {
+			$id_ph = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$already = array_map( 'intval', (array) $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT DISTINCT post_id FROM {$table} WHERE post_id IN ({$id_ph})",
+					...$post_ids
+				)
+			) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		}
 
 		foreach ( $post_ids as $post_id ) {
 			if ( in_array( $post_id, $already, true ) ) {

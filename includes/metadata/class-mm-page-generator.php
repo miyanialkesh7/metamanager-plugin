@@ -65,28 +65,10 @@ class MM_Page_Generator {
 			return;
 		}
 
-		$html = self::generate_content( $template );
-		if ( null === $html ) {
-			return;
-		}
-
-		// Guard flag prevents save_meta recursion without removing the hook
-		// (removing the hook creates a race condition where concurrent saves lose metadata).
-		self::$regenerating = true;
-
-		// Preserve page template — wp_update_post resets _wp_page_template to 'default'.
-		$saved_template = get_page_template_slug( $page_id );
-
-		wp_update_post( [
-			'ID'           => $page_id,
-			'post_content' => $html,
-		] );
-
-		if ( $saved_template ) {
-			update_post_meta( $page_id, '_wp_page_template', $saved_template );
-		}
-
-		self::$regenerating = false;
+		// Templates render dynamically from settings (page-mm-contact.php etc.).
+		// post_content is never displayed — writing it is dead weight (rule 18:
+		// no wasted work that creates false confidence).
+		// Only noindex needs updating on regeneration.
 
 		// Apply noindex if the templates setting says so.
 		$settings = MM_Site_Settings::get_instance();

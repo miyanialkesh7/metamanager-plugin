@@ -218,6 +218,13 @@ class MM_Mod_Local extends MM_Mod_Base {
 	 * @return array<int, array<string, mixed>> Offer nodes, or empty array.
 	 */
 	private function build_makes_offer(): array {
+		// Cache in transient — results change only when services are edited.
+		// Bust on service save via the mm_business_profile_saved / save_post hooks.
+		$cached = get_transient( 'mm_makes_offer_cache' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$service_ids = get_posts( [
 			'post_type'      => 'mm_service',
 			'post_status'    => 'publish',
@@ -259,6 +266,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$offers[] = $offer;
 		}
 
+		set_transient( 'mm_makes_offer_cache', $offers, HOUR_IN_SECONDS );
 		return $offers;
 	}
 
