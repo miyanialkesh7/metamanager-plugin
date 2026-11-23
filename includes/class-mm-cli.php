@@ -211,8 +211,8 @@ class MM_CLI extends \WP_CLI_Command {
 				continue;
 			}
 
-			// Queue a compression job — daemon generates WebP alongside.
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'cli' ] );
+			// Queue a WebP generation job — daemon generates WebP alongside original.
+			MM_Job_Queue::write_job( 'webp', $id, $file, 'full', [ 'trigger' => 'cli' ] );
 			++$count;
 			$progress->tick();
 		}

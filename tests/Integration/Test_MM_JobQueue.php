@@ -202,8 +202,8 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		// No completed jobs in DB → treated as a fresh upload.
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
-			'Fresh image upload must queue a compression job.' );
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
+			'Fresh image upload must queue compression + webp jobs.' );
 		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
 			'Fresh image upload must queue a metadata-embedding job.' );
 	}
@@ -230,8 +230,8 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		update_post_meta( $attachment_id, MM_Metadata::META_SYNCED, '1' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
-			'Thumbnail regeneration must re-queue compression.' );
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
+			'Thumbnail regeneration must re-queue compression + webp.' );
 		$this->assertSame( 0, $this->count_jobs( MM_JOB_META ),
 			'Thumbnail regeneration must NOT queue metadata (preserves user edits).' );
 	}

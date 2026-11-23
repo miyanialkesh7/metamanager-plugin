@@ -113,11 +113,20 @@ class MM_Job_Queue {
 	): string {
 		self::ensure_dirs();
 
-		$dir = ( 'compression' === $type ) ? MM_JOB_COMPRESS : MM_JOB_META;
+		$dir = ( 'compression' === $type || 'webp' === $type ) ? MM_JOB_COMPRESS : MM_JOB_META;
 
-		// Check for unclaimed pending jobs for this attachment+size.
+		// Check for unclaimed pending jobs for this attachment+size+type.
+		// Type-aware: a compression job does not suppress a webp job.
 		$pending = new \GlobIterator( $dir . $attachment_id . '-' . $size . '-*.json' );
-		$had_pending = $pending->count() > 0;
+		$had_pending = false;
+		foreach ( $pending as $pending_file ) {
+			$pending_json = file_get_contents( (string) $pending_file );
+			$pending_data = $pending_json ? json_decode( $pending_json, true ) : null;
+			if ( is_array( $pending_data ) && ( $pending_data['job_type'] ?? '' ) === $type ) {
+				$had_pending = true;
+				break;
+			}
+		}
 
 		if ( $had_pending ) {
 			// Compression: skip duplicate. Metadata: write anyway (runs in sequence).
@@ -265,6 +274,8 @@ class MM_Job_Queue {
 		$queue_types = match ( $types ) {
 			'compression' => [ 'compression' ],
 			'metadata'    => [ 'metadata' ],
+			'webp'        => [ 'webp' ],
+			'compress+webp' => [ 'compression', 'webp' ],
 			default       => [ 'compression', 'metadata' ],
 		};
 
@@ -323,14 +334,14 @@ class MM_Job_Queue {
 		if ( $is_image ) {
 			// ---- Images: regen-aware logic ----
 			if ( $is_regeneration ) {
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compression', [ 'trigger' => 'thumbnail_regen' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, 'compress+webp', [ 'trigger' => 'thumbnail_regen' ] );
 			} else {
 				// Queue an import job so the daemon reads embedded tags and reports
 				// them back via result JSON. The metadata write-back job is queued by
 				// mm_import_completed_jobs() after the import result arrives, at which
 				// point the WP fields have been populated from the file.
 				MM_Metadata::enqueue_import_job( $attachment_id );
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compression', [ 'trigger' => 'upload' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, 'compress+webp', [ 'trigger' => 'upload' ] );
 			}
 			return $metadata;
 		}
