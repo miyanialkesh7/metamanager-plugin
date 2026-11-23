@@ -115,35 +115,10 @@ class MM_Job_Queue {
 
 		$dir = ( 'compression' === $type || 'webp' === $type ) ? MM_JOB_COMPRESS : MM_JOB_META;
 
-		// Check for unclaimed pending jobs for this attachment+size+type.
-		// Type-aware: a compression job does not suppress a webp job.
-		$pending = new \GlobIterator( $dir . $attachment_id . '-' . $size . '-*.json' );
-		$had_pending = false;
-		foreach ( $pending as $pending_file ) {
-			$pending_json = file_get_contents( (string) $pending_file );
-			$pending_data = $pending_json ? json_decode( $pending_json, true ) : null;
-			if ( is_array( $pending_data ) && ( $pending_data['job_type'] ?? '' ) === $type ) {
-				$had_pending = true;
-				break;
-			}
-		}
-
-		if ( $had_pending ) {
-			// Compression: skip duplicate. Metadata: write anyway (runs in sequence).
-			if ( 'compression' === $type ) {
-				self::push_queue_notice( 'skipped', $type, $attachment_id, $size );
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional operational log, not debug output
-				error_log( sprintf(
-					'[Metamanager] %s job skipped — already pending: attachment %d, size %s.',
-					ucfirst( $type ),
-					$attachment_id,
-					$size
-				) );
-				return 'skipped';
-			}
-			// Metadata jobs run in sequence — write the new job and notify.
-			self::push_queue_notice( 'queued', $type, $attachment_id, $size );
-		}
+		// Note: no deduplication at write time. The daemon's per-file flock
+		// handles concurrency safely. Suppressing writes at queue time drops
+		// work without knowing if the pending job will succeed (rule 18:
+		// no silent fallbacks — write the job and let the daemon decide).
 
 		// Dimensions from file — only valid for images; skip for video/audio.
 		$dimensions = '';
@@ -185,7 +160,7 @@ class MM_Job_Queue {
 
 		MM_DB::log_pending_job( $job );
 
-		return $pending->count() > 0 ? 'queued' : 'written';
+		return 'written';
 	}
 
 	/**
@@ -332,16 +307,15 @@ class MM_Job_Queue {
 		$is_regeneration = '1' === (string) get_post_meta( $attachment_id, MM_Metadata::META_SYNCED, true );
 
 		if ( $is_image ) {
-			// ---- Images: regen-aware logic ----
+			// Step 1 (JPEG/PNG): queue webp generation + compression.
+			// Step 2: daemon generates WebP, registers as attachment.
+			// Step 3 (WebP): falls into compression + metadata like all uploads.
+			$job_types = ( 'image/webp' === $mime ) ? 'both' : 'compress+webp';
 			if ( $is_regeneration ) {
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compress+webp', [ 'trigger' => 'thumbnail_regen' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'thumbnail_regen' ] );
 			} else {
-				// Queue an import job so the daemon reads embedded tags and reports
-				// them back via result JSON. The metadata write-back job is queued by
-				// mm_import_completed_jobs() after the import result arrives, at which
-				// point the WP fields have been populated from the file.
 				MM_Metadata::enqueue_import_job( $attachment_id );
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compress+webp', [ 'trigger' => 'upload' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'upload' ] );
 			}
 			return $metadata;
 		}

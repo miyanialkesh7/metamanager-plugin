@@ -137,19 +137,19 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// Duplicate detection — compression
+	// No silent suppression — all jobs are written (rule 18)
 	// -----------------------------------------------------------------------
 
-	public function test_duplicate_compression_job_is_skipped(): void {
+	public function test_duplicate_compression_job_is_written(): void {
 		$attachment_id = $this->factory->attachment->create( [ 'post_mime_type' => 'image/jpeg' ] );
 
 		$result1 = MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 		$result2 = MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 
+		// Both jobs are written — no silent suppression (rule 18).
 		$this->assertSame( 'written', $result1 );
-		$this->assertSame( 'skipped', $result2 );
-		// Still only one file in the queue.
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
+		$this->assertSame( 'written', $result2 );
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ) );
 	}
 
 	public function test_different_sizes_are_not_duplicates(): void {
