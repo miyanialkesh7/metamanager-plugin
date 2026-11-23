@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.382
+ * Version:      2.3.383
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.382' );
+define( 'MM_VERSION',     '2.3.383' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -404,11 +404,11 @@ add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json
  * @param string $webp_path   Absolute path to the generated .webp file.
  */
 function mm_register_webp_attachment( int $original_id, string $webp_path ): void {
-	// Already registered? Skip.
+	// Already registered? Skip. Check by parent (original) + WebP mime.
 	global $wpdb;
 	$existing = $wpdb->get_var( $wpdb->prepare(
-		"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s",
-		'%' . $wpdb->esc_like( basename( $webp_path ) ) . '%'
+		"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
+		$original_id
 	) );
 	if ( $existing ) {
 		return;
@@ -552,9 +552,9 @@ function mm_import_completed_jobs(): void {
 				continue;
 			}
 
-			// Compression result with WebP: register the WebP as a WP attachment
+			// WebP result: register the WebP as a WP attachment
 			// so it appears in the media library for widget selection.
-			if ( 'compression' === ( $job['job_type'] ?? '' )
+			if ( 'webp' === ( $job['job_type'] ?? '' )
 				&& 'completed' === $status
 				&& ! empty( $job['webp_path'] )
 				&& file_exists( $job['webp_path'] ) ) {
