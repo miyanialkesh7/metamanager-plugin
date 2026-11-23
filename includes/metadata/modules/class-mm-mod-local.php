@@ -75,7 +75,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 		if ( ! empty( $biz['phone'] ) ) {
 			$node['telephone'] = sanitize_text_field( $biz['phone'] );
 		}
-		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ?? true ) ) {
+		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ) ) {
 			$node['email'] = sanitize_email( $biz['email'] );
 		}
 
@@ -123,7 +123,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 				'contactType' => 'customer service',
 			];
 		}
-		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ?? true ) ) {
+		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ) ) {
 			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'email'       => sanitize_email( $biz['email'] ),
@@ -345,7 +345,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 			'business:contact_data:postal_code'    => $addr['zip']     ?? '',
 			'business:contact_data:country_name'   => $addr['country'] ?? '',
 			'business:contact_data:phone_number'   => $biz['phone']    ?? '',
-			'business:contact_data:email'          => ( ! empty( $biz['show_email'] ?? true ) ? ( $biz['email'] ?? '' ) : '' ),
+			'business:contact_data:email'          => ( ! empty( $biz['show_email'] ) ? ( $biz['email'] ?? '' ) : '' ),
 		] );
 
 		foreach ( $contact_fields as $prop => $val ) {

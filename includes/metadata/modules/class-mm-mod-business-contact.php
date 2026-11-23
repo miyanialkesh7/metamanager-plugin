@@ -117,7 +117,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		];
 
 		if ( $phone ) { $lines[] = 'TEL;TYPE=WORK,VOICE:' . $phone; }
-		if ( $email && ! empty( $biz['show_email'] ?? true ) ) { $lines[] = 'EMAIL;TYPE=WORK:' . $email; }
+		if ( $email && ! empty( $biz['show_email'] ) ) { $lines[] = 'EMAIL;TYPE=WORK:' . $email; }
 		if ( $url   ) { $lines[] = 'URL:' . $url; }
 
 		if ( ! empty( $addr['street'] ) ) {
@@ -221,7 +221,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$data = [
 			'name'    => $name,
 			'phone'   => sanitize_text_field( $biz['phone'] ?? '' ),
-			'email'   => ( ! empty( $biz['show_email'] ?? true ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
+			'email'   => ( ! empty( $biz['show_email'] ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
 			'url'     => trailingslashit( home_url() ),
 			'logo'    => esc_url_raw( $biz['logo_url'] ?? '' ),
 			'address' => array_filter( [
@@ -319,7 +319,7 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$row     = [
 			$name,
 			sanitize_text_field( $biz['phone'] ?? '' ),
-			( ! empty( $biz['show_email'] ?? true ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
+			( ! empty( $biz['show_email'] ) ? sanitize_email( $biz['email'] ?? '' ) : '' ),
 			trailingslashit( home_url() ),
 			esc_url_raw( $biz['logo_url'] ?? '' ),
 			sanitize_text_field( $addr['street']  ?? '' ),
@@ -652,12 +652,12 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 		$schema  = wp_json_encode( $this->build_schema( $biz, $style ), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ?: '{}';
 
 		$has_address = ! empty( $addr['street'] ) && ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'none';
-		$show_phone  = ! empty( $biz['show_phone'] ?? true ) && $phone;
+		$show_phone  = ! empty( $biz['show_phone'] ) && $phone;
 		$show_sms    = ! empty( $biz['show_sms'] )   && $phone;
-		$show_email  = ! empty( $biz['show_email'] ?? true ) && $email;
-		$show_vcard  = ! empty( $biz['show_vcard'] ?? true );
-		$show_json   = ! empty( $biz['show_json'] ?? true );
-		$show_csv    = ! empty( $biz['show_csv'] ?? true );
+		$show_email  = ! empty( $biz['show_email'] ) && $email;
+		$show_vcard  = ! empty( $biz['show_vcard'] );
+		$show_json   = ! empty( $biz['show_json'] );
+		$show_csv    = ! empty( $biz['show_csv'] );
 
 		ob_start();
 		?>
@@ -1061,10 +1061,10 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 			];
 		}
 
-		if ( ! empty( $biz['show_phone'] ?? true ) && ! empty( $biz['phone'] ) ) {
+		if ( ! empty( $biz['show_phone'] ) && ! empty( $biz['phone'] ) ) {
 			$schema['telephone'] = sanitize_text_field( $biz['phone'] );
 		}
-		if ( ! empty( $biz['show_email'] ?? true ) && ! empty( $biz['email'] ) ) {
+		if ( ! empty( $biz['show_email'] ) && ! empty( $biz['email'] ) ) {
 			$schema['email'] = sanitize_email( $biz['email'] );
 		}
 
@@ -1085,14 +1085,14 @@ class MM_Mod_Business_Contact extends MM_Mod_Base {
 
 		// ContactPoint nodes for rendered actions.
 		$contact_points = [];
-		if ( ! empty( $biz['show_phone'] ?? true ) && ! empty( $biz['phone'] ) ) {
+		if ( ! empty( $biz['show_phone'] ) && ! empty( $biz['phone'] ) ) {
 			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'telephone'   => sanitize_text_field( $biz['phone'] ),
 				'contactType' => 'customer service',
 			];
 		}
-		if ( ! empty( $biz['show_email'] ?? true ) && ! empty( $biz['email'] ) ) {
+		if ( ! empty( $biz['show_email'] ) && ! empty( $biz['email'] ) ) {
 			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'email'       => sanitize_email( $biz['email'] ),

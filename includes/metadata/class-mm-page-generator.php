@@ -13,6 +13,14 @@ defined( 'ABSPATH' ) || exit;
 
 class MM_Page_Generator {
 
+	/** Guard flag to prevent save_meta recursion during page regeneration. */
+	private static bool $regenerating = false;
+
+	/** Check if page generator is currently regenerating (for save_meta guard). */
+	public static function is_regenerating(): bool {
+		return self::$regenerating;
+	}
+
 	/**
 	 * Register hooks.
 	 */
@@ -62,8 +70,9 @@ class MM_Page_Generator {
 			return;
 		}
 
-		// Temporarily remove this hook to prevent infinite loop on wp_update_post.
-		remove_action( 'save_post', [ 'MM_Schema_Post_Types', 'save_meta' ], 10 );
+		// Guard flag prevents save_meta recursion without removing the hook
+		// (removing the hook creates a race condition where concurrent saves lose metadata).
+		self::$regenerating = true;
 
 		// Preserve page template — wp_update_post resets _wp_page_template to 'default'.
 		$saved_template = get_page_template_slug( $page_id );
@@ -77,7 +86,7 @@ class MM_Page_Generator {
 			update_post_meta( $page_id, '_wp_page_template', $saved_template );
 		}
 
-		add_action( 'save_post', [ 'MM_Schema_Post_Types', 'save_meta' ], 10, 2 );
+		self::$regenerating = false;
 
 		// Apply noindex if the templates setting says so.
 		$settings = MM_Site_Settings::get_instance();
