@@ -407,14 +407,16 @@ add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json
  * @param string $webp_path   Absolute path to the generated .webp file.
  */
 function mm_register_webp_attachment( int $original_id, string $webp_path ): void {
-	// Already registered? Skip. Check by parent (original) + WebP mime.
 	global $wpdb;
 	$existing = $wpdb->get_var( $wpdb->prepare(
 		"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
 		$original_id
 	) );
+
+	$att_id = 0;
 	if ( $existing ) {
-		return;
+		// Attachment exists — use it. Metadata copy below is idempotent.
+		$att_id = (int) $existing;
 	}
 
 	$original = get_post( $original_id );
@@ -422,38 +424,35 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 		return;
 	}
 
-	require_once ABSPATH . 'wp-admin/includes/image.php';
-	require_once ABSPATH . 'wp-admin/includes/file.php';
-	require_once ABSPATH . 'wp-admin/includes/media.php';
-
-	// Build the attachment array from the original.
-	$webp_url = wp_get_attachment_url( $original_id );
-	$webp_url = preg_replace( '/\.(jpe?g|png)$/i', '.webp', (string) $webp_url );
-
-	$attachment = [
-		'post_mime_type' => 'image/webp',
-		'post_title'     => preg_replace( '/\.(jpe?g|png)$/i', '.webp', $original->post_title ),
-		'post_content'   => $original->post_content,
-		'post_excerpt'   => $original->post_excerpt,
-		'post_status'    => 'inherit',
-		'post_parent'    => $original_id,
-		'guid'           => $webp_url,
-	];
-
-	$att_id = wp_insert_attachment( $attachment, $webp_path, $original_id );
 	if ( ! $att_id ) {
-		error_log( '[Metamanager] Failed to register WebP attachment: ' . $webp_path );
-		return;
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+
+		$webp_url = wp_get_attachment_url( $original_id );
+		$webp_url = preg_replace( '/\.(jpe?g|png)$/i', '.webp', (string) $webp_url );
+
+		$attachment = [
+			'post_mime_type' => 'image/webp',
+			'post_title'     => preg_replace( '/\.(jpe?g|png)$/i', '.webp', $original->post_title ),
+			'post_content'   => $original->post_content,
+			'post_excerpt'   => $original->post_excerpt,
+			'post_status'    => 'inherit',
+			'post_parent'    => $original_id,
+			'guid'           => $webp_url,
+		];
+
+		$att_id = wp_insert_attachment( $attachment, $webp_path, $original_id );
+		if ( ! $att_id ) {
+			error_log( '[Metamanager] Failed to register WebP attachment: ' . $webp_path );
+			return;
+		}
 	}
 
-	// Generate WP metadata (sizes, etc.) — reuses the original's dimensions.
-	$webp_meta = wp_generate_attachment_metadata( $att_id, $webp_path );
-	if ( is_array( $webp_meta ) ) {
-		wp_update_attachment_metadata( $att_id, $webp_meta );
-	}
-
-	// Copy schema/meta fields from the original so the WebP carries
-	// the same Creator, Copyright, etc. in WP post meta.
+	// Copy schema/meta fields from the original BEFORE wp_generate_attachment_metadata.
+	// That function fires on_upload → enqueue_all_sizes, and if anything in that
+	// chain fatals, the copy loop would be skipped. Doing it first guarantees
+	// the metadata lands regardless.
 	$copy_keys = [
 		MM_Metadata::META_CREATOR,
 		MM_Metadata::META_COPYRIGHT,
@@ -478,6 +477,15 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 	$schema_fields = get_post_meta( $original_id, 'mm_schema_fields', true );
 	if ( is_array( $schema_fields ) && $schema_fields ) {
 		update_post_meta( $att_id, 'mm_schema_fields', $schema_fields );
+	}
+
+	// Generate WP metadata (sizes, etc.) only when freshly created.
+	// Reusing an existing attachment means metadata was already generated.
+	if ( ! $existing ) {
+		$webp_meta = wp_generate_attachment_metadata( $att_id, $webp_path );
+		if ( is_array( $webp_meta ) ) {
+			wp_update_attachment_metadata( $att_id, $webp_meta );
+		}
 	}
 
 	error_log( sprintf( '[Metamanager] WebP registered as attachment %d: %s', $att_id, $webp_path ) );
