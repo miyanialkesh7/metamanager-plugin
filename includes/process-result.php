@@ -95,5 +95,6 @@ if ( 'metadata' === ( $job['job_type'] ?? '' )
 // Delete result file after successful DB write.
 wp_delete_file( $result_file );
 
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI-only script.
 echo "Processed: {$result_file} ({$status})\n";
 exit( 0 );

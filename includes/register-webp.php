@@ -44,5 +44,6 @@ if ( ! function_exists( 'mm_register_webp_attachment' ) ) {
 }
 
 mm_register_webp_attachment( $original_id, $webp_path );
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI-only script.
 echo "Registered WebP: {$webp_path} (parent: {$original_id})\n";
 exit( 0 );
