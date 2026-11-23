@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.388
+ * Version:      2.3.392
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.388' );
+define( 'MM_VERSION',     '2.3.392' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -203,19 +203,22 @@ function mm_activate_single_site(): void {
 	MM_Mod_Links::create_table();
 	MM_Job_Queue::ensure_dirs();
 
+	// Cron events: registered at activation. If missing on a later activation
+	// (plugin update), the event was deliberately removed or lost — log it
+	// loudly per rule 9 (investigate WHY, do not silently re-register).
 	if ( ! wp_next_scheduled( 'mm_import_completed_jobs' ) ) {
+		error_log( '[Metamanager] Cron event mm_import_completed_jobs was missing at activation. Investigate why it was removed.' );
 		wp_schedule_event( time(), 'mm_every_minute', 'mm_import_completed_jobs' );
 	}
 
 	if ( ! wp_next_scheduled( 'mm_write_status_json' ) ) {
+		error_log( '[Metamanager] Cron event mm_write_status_json was missing at activation. Investigate why it was removed.' );
 		wp_schedule_event( time(), 'mm_every_minute', 'mm_write_status_json' );
 	}
 
-	// Recurring link checker — registered at activation (and again after
-	// plugin updates, which re-run mm_activate). Never on request hooks
-	// (workspace rule 9): a missing event gets investigated, not masked.
 	$links_freq = MM_Site_Settings::get_instance()->get( 'links.cron_frequency', 'twicedaily' );
 	if ( ! wp_next_scheduled( 'mm_meta_check_links' ) ) {
+		error_log( '[Metamanager] Cron event mm_meta_check_links was missing at activation. Investigate why it was removed.' );
 		wp_schedule_event( time(), is_string( $links_freq ) && $links_freq ? $links_freq : 'twicedaily', 'mm_meta_check_links' );
 	}
 
@@ -481,12 +484,21 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 }
 
 function mm_import_completed_jobs(): void {
-	// Prevent concurrent execution — only one import run at a time.
-	$lock_key = 'mm_import_lock';
-	if ( get_transient( $lock_key ) ) {
-		return;
+	// PID-based lock: if the previous run crashed, its PID is no longer
+	// running and the lock can be safely broken (rule 18: no silent fallback
+	// that suppresses work after a crash).
+	$lock_key   = 'mm_import_lock';
+	$lock_pid   = get_transient( $lock_key );
+	if ( $lock_pid ) {
+		// Check if the process holding the lock is still alive.
+		// file_exists("/proc/{pid}") works on Linux — the fleet standard.
+		if ( @file_exists( '/proc/' . $lock_pid ) ) {
+			return; // Another run is genuinely active.
+		}
+		// Stale lock — previous run crashed. Log and break it.
+		error_log( sprintf( '[Metamanager] Stale import lock from PID %d (process no longer running). Breaking lock.', $lock_pid ) );
 	}
-	set_transient( $lock_key, 1, 30 ); // Lock for 30 seconds max.
+	set_transient( $lock_key, getmypid(), 30 ); // Lock for 30 seconds max.
 
 	// Memory gate: pause if memory is critically low, re-evaluate next cycle.
 	if ( MM_Memory_Manager::should_pause() ) {
@@ -542,12 +554,17 @@ function mm_import_completed_jobs(): void {
 			$job['status'] = $status;
 
 			// Only delete the result file and act on the outcome once the DB
-			// record is confirmed written. If the insert fails the file is
-			// left in place so the next cron run can retry it.
+			// record is confirmed written. Rule 18: no retry, no fallback.
+			// Fail loudly — surface to UI + log, leave the file for manual review.
 			if ( ! MM_DB::log_job( $job ) ) {
+				$failed_log_dir = MM_JOB_ROOT . '/failed-log/';
+				if ( ! is_dir( $failed_log_dir ) ) {
+					mkdir( $failed_log_dir, 0755, true );
+				}
+				rename( $filepath, $failed_log_dir . basename( $filepath ) );
 				error_log( sprintf(
-					'[Metamanager] DB insert failed for result file: %s — will retry on next cron run.',
-					$filepath
+					'[Metamanager] ERROR: DB insert failed for %s. Moved to failed-log. Manual review required — this will NOT be retried.',
+					basename( $filepath )
 				) );
 				continue;
 			}

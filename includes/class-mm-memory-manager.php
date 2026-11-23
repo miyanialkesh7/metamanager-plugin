@@ -183,11 +183,14 @@ class MM_Memory_Manager {
 		$system_total = self::get_system_total();
 		$system_free  = self::get_system_available();
 
-		// If we can't read system memory, fall back to PHP-only check.
+		// Rule 18: if we cannot determine memory status, fail loudly — do not
+		// silently default to "don't pause" (that hides real memory problems).
 		if ( 0 === $system_total ) {
 			$php_limit = self::get_memory_limit();
 			if ( PHP_INT_MAX === $php_limit ) {
-				return false; // Unlimited PHP, no system data — don't pause.
+				// Cannot measure system or PHP memory — fail loudly.
+				error_log( '[Metamanager] ERROR: Cannot determine memory status (no system data, unlimited PHP). Pausing as safety measure. Investigate /proc/meminfo availability.' );
+				return true; // Pause — cannot determine, so do not proceed blindly.
 			}
 			$php_free = self::get_php_available();
 			return $php_free < self::MIN_FLOOR;

@@ -137,19 +137,19 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	}
 
 	// -----------------------------------------------------------------------
-	// Duplicate detection — compression
+	// No silent suppression — all jobs are written (rule 18)
 	// -----------------------------------------------------------------------
 
-	public function test_duplicate_compression_job_is_skipped(): void {
+	public function test_duplicate_compression_job_is_written(): void {
 		$attachment_id = $this->factory->attachment->create( [ 'post_mime_type' => 'image/jpeg' ] );
 
 		$result1 = MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 		$result2 = MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 
+		// Both jobs are written — no silent suppression (rule 18).
 		$this->assertSame( 'written', $result1 );
-		$this->assertSame( 'skipped', $result2 );
-		// Still only one file in the queue.
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
+		$this->assertSame( 'written', $result2 );
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ) );
 	}
 
 	public function test_different_sizes_are_not_duplicates(): void {
@@ -272,5 +272,27 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 			'Library scan must queue a compression job for an image.' );
 		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
 			'Library scan must queue a metadata-embedding job for an image.' );
+	}
+
+	// -----------------------------------------------------------------------
+	// Marker 7: WebP upload flow — no recursive queuing
+	// -----------------------------------------------------------------------
+
+	public function test_webp_upload_queues_compression_and_metadata(): void {
+		[ $attachment_id ] = $this->create_tmp_attachment( 'image/webp' );
+		MM_Job_Queue::on_upload( [], $attachment_id );
+		// WebP gets compression (compress queue) + metadata (meta queue). No webp generation.
+		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+			'WebP must get compression but NOT webp generation.' );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ),
+			'WebP must get metadata jobs.' );
+	}
+
+	public function test_jpeg_upload_queues_compression_and_webp(): void {
+		[ $attachment_id ] = $this->create_tmp_attachment( 'image/jpeg' );
+		MM_Job_Queue::on_upload( [], $attachment_id );
+		// JPEG gets compression + webp generation (both in compress queue).
+		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
+			'JPEG must get compression + webp generation.' );
 	}
 }
