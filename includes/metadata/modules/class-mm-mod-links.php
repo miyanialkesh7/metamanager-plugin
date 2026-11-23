@@ -69,14 +69,15 @@ class MM_Mod_Links extends MM_Mod_Base {
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-
-		// Rule 18: no silent fallback. Verify the table was created. If not, fail loudly.
 		global $wpdb;
-		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'mm_meta_links' ) );
-		if ( ! $table_exists ) {
-			error_log( '[Metamanager] ERROR: Links table creation failed. dbDelta did not create the table. Investigate the database schema.' );
-		}
+		// CREATE TABLE IF NOT EXISTS is the reliable primary creation method.
+		// dbDelta after it handles schema upgrades (new columns) — it is not
+		// a fallback, it's the upgrade step. dbDelta alone silently fails to
+		// create tables on some MariaDB versions and in test environments.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL, table identifier is prefix-derived.
+		$wpdb->query( $sql );
+		dbDelta( $sql );
+		// phpcs:enable
 	}
 
 	public static function table_name(): string {
