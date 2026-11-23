@@ -14,12 +14,14 @@ if ( PHP_SAPI !== 'cli' ) {
 	exit( 1 );
 }
 
-$argv_copy = array_values( array_filter( $argv, fn( $a ) => '--' !== $a ) );
+// Parse args — wp eval-file passes them as $args (not $argv).
 $result_file = '';
-foreach ( $argv_copy as $arg ) {
-	if ( is_string( $arg ) && str_ends_with( $arg, '.json' ) ) {
-		$result_file = $arg;
-		break;
+if ( isset( $args ) && is_array( $args ) ) {
+	foreach ( $args as $arg ) {
+		if ( is_string( $arg ) && str_ends_with( $arg, '.json' ) ) {
+			$result_file = $arg;
+			break;
+		}
 	}
 }
 

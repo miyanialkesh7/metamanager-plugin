@@ -14,17 +14,17 @@ if ( PHP_SAPI !== 'cli' ) {
 	exit( 1 );
 }
 
-// Parse args after "--"
-$argv_copy = array_values( array_filter( $argv, fn( $a ) => '--' !== $a ) );
+// Parse args — wp eval-file passes them as $args (not $argv).
 $original_id = 0;
 $webp_path   = '';
 
-foreach ( $argv_copy as $i => $arg ) {
-	if ( 0 === strpos( $arg, '--' ) ) continue;
-	if ( preg_match( '/^\d+$/', $arg ) && ! $original_id ) {
-		$original_id = (int) $arg;
-	} elseif ( is_string( $arg ) && str_ends_with( $arg, '.webp' ) ) {
-		$webp_path = $arg;
+if ( isset( $args ) && is_array( $args ) ) {
+	foreach ( $args as $arg ) {
+		if ( is_string( $arg ) && preg_match( '/^\d+$/', $arg ) && ! $original_id ) {
+			$original_id = (int) $arg;
+		} elseif ( is_string( $arg ) && str_ends_with( $arg, '.webp' ) ) {
+			$webp_path = $arg;
+		}
 	}
 }
 
