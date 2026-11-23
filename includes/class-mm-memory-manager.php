@@ -267,7 +267,6 @@ class MM_Memory_Manager {
 	 * available memory. Returns 0 if memory is critically low.
 	 *
 	 * @param array[] $jobs Array of job data arrays.
-	 * @param int     $max_configured Maximum batch size from admin setting.
 	 * @return int Number of jobs to process (0 = pause).
 	 */
 	public static function calculate_batch_size( array $jobs ): int {
