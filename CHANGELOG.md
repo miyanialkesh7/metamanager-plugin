@@ -88,6 +88,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 
 
+
+## [2.3.401] - 2026-11-23
+
+### Changed
+- Auto-incremented version from 2.3.400 to 2.3.401
 ## [2.3.400] - 2026-11-23
 
 ### Changed
