@@ -554,11 +554,20 @@ function mm_import_completed_jobs(): void {
 
 			// WebP result: register the WebP as a WP attachment
 			// so it appears in the media library for widget selection.
-			if ( 'webp' === ( $job['job_type'] ?? '' )
-				&& 'completed' === $status
-				&& ! empty( $job['webp_path'] )
-				&& file_exists( $job['webp_path'] ) ) {
-				mm_register_webp_attachment( (int) $job['attachment_id'], $job['webp_path'] );
+			if ( 'webp' === ( $job['job_type'] ?? '' ) ) {
+				$webp_path = $job['webp_path'] ?? '';
+				$webp_status = $status;
+				$webp_exists = ( '' !== $webp_path && file_exists( $webp_path ) );
+				error_log( sprintf(
+					'[Metamanager] WebP result check: job_type=webp, status=%s, webp_path=%s, exists=%s, att_id=%d',
+					$webp_status,
+					$webp_path ?: '(empty)',
+					$webp_exists ? 'yes' : 'no',
+					(int) ( $job['attachment_id'] ?? 0 )
+				) );
+				if ( 'completed' === $webp_status && $webp_exists ) {
+					mm_register_webp_attachment( (int) ( $job['attachment_id'] ?? 0 ), $webp_path );
+				}
 			}
 
 			// Import result: apply embedded tags to WP post meta, then queue
