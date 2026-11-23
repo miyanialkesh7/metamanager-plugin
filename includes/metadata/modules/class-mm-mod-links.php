@@ -74,7 +74,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 		// dbDelta after it handles schema upgrades (new columns) — it is not
 		// a fallback, it's the upgrade step. dbDelta alone silently fails to
 		// create tables on some MariaDB versions and in test environments.
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL, table identifier is prefix-derived.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL, table identifier is prefix-derived, prepare() is not applicable to CREATE TABLE.
 		$wpdb->query( $sql );
 		dbDelta( $sql );
 		// phpcs:enable
