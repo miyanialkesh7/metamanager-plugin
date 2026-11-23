@@ -282,12 +282,12 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	// Marker 7: WebP upload flow — no recursive queuing
 	// -----------------------------------------------------------------------
 
-	public function test_webp_upload_queues_compression_and_metadata(): void {
+	public function test_webp_upload_queues_metadata_only(): void {
 		[ $attachment_id ] = $this->create_tmp_attachment( 'image/webp' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
-		// WebP gets compression (compress queue) + metadata (meta queue). No webp generation.
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
-			'WebP must get compression but NOT webp generation.' );
+		// WebP is already optimal from the webp daemon — cascade queues metadata only.
+		$this->assertSame( 0, $this->count_jobs( MM_JOB_COMPRESS ),
+			'WebP must NOT get compression (already optimal from daemon).' );
 		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ),
 			'WebP must get metadata jobs.' );
 	}
