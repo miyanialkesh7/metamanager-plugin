@@ -1133,6 +1133,10 @@ class MM_Schema_Post_Types {
 	 * Save meta box data.
 	 */
 	public static function save_meta( int $post_id, \WP_Post $post ): void {
+		// Skip if page generator is regenerating (prevents recursion without hook removal).
+		if ( class_exists( 'MM_Page_Generator' ) && MM_Page_Generator::is_regenerating() ) {
+			return;
+		}
 		$is_schema_cpt = isset( self::TYPES[ $post->post_type ] );
 		$template      = get_page_template_slug( $post_id );
 		$is_schema_page = 'page' === $post->post_type && isset( self::TEMPLATES[ $template ] );

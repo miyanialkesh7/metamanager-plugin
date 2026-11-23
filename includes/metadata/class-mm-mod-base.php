@@ -82,17 +82,17 @@ abstract class MM_Mod_Base {
 	 * @return array<string, mixed> PostalAddress node as associative array, or empty array if no street.
 	 */
 	public static function postal_address_node( array $addr ): array {
-		if ( empty( $addr['street'] ) ) {
+		$has_any = ! empty( $addr['street'] ) || ! empty( $addr['city'] ) || ! empty( $addr['state'] ) || ! empty( $addr['zip'] );
+		if ( ! $has_any ) {
 			return [];
 		}
-		return [
-			'@type'           => 'PostalAddress',
-			'streetAddress'   => sanitize_text_field( $addr['street'] ?? '' ),
-			'addressLocality' => sanitize_text_field( $addr['city'] ?? '' ),
-			'addressRegion'   => sanitize_text_field( $addr['state'] ?? '' ),
-			'postalCode'      => sanitize_text_field( $addr['zip'] ?? '' ),
-			'addressCountry'  => sanitize_text_field( $addr['country'] ?? 'US' ),
-		];
+		$node = [ '@type' => 'PostalAddress' ];
+		if ( ! empty( $addr['street'] ) )   { $node['streetAddress']   = sanitize_text_field( $addr['street'] ); }
+		if ( ! empty( $addr['city'] ) )     { $node['addressLocality']  = sanitize_text_field( $addr['city'] ); }
+		if ( ! empty( $addr['state'] ) )    { $node['addressRegion']    = sanitize_text_field( $addr['state'] ); }
+		if ( ! empty( $addr['zip'] ) )      { $node['postalCode']       = sanitize_text_field( $addr['zip'] ); }
+		if ( ! empty( $addr['country'] ) )  { $node['addressCountry']   = sanitize_text_field( $addr['country'] ); }
+		return $node;
 	}
 
 	/** Add a meta tag to the data array, preventing duplicates by name/property. */

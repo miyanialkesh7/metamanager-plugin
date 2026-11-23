@@ -506,7 +506,9 @@ class MM_Mod_Schema extends MM_Mod_Base {
 		if ( 'Service' === $type ) {
 			$service_areas = $settings->get_business( 'service_areas', [] );
 			if ( ! empty( $service_areas ) && is_array( $service_areas ) ) {
-				$node['areaServed'] = count( $service_areas ) === 1 ? $service_areas[0] : array_values( $service_areas );
+				$node['areaServed'] = array_map( function ( $area ) {
+					return [ '@type' => 'City', 'name' => sanitize_text_field( $area ) ];
+				}, array_values( $service_areas ) );
 			}
 			$node['provider'] = [ '@id' => $this->site_id( 'organization' ) ];
 		}

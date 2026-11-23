@@ -612,4 +612,46 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$result = MM_Schema_Types::build_node_additions( [], 'Person' );
 		$this->assertSame( [], $result );
 	}
+
+	// ------------------------------------------------------------------
+	// postal_address_node — no longer requires street (Marker 28)
+	// ------------------------------------------------------------------
+
+	public function test_postal_address_with_street_only(): void {
+		$result = MM_Mod_Base::postal_address_node( [ 'street' => '123 Main St' ] );
+		$this->assertSame( 'PostalAddress', $result['@type'] );
+		$this->assertSame( '123 Main St', $result['streetAddress'] );
+	}
+
+	public function test_postal_address_without_street(): void {
+		$result = MM_Mod_Base::postal_address_node( [
+			'city'  => 'Monroe',
+			'state' => 'LA',
+			'zip'   => '71201',
+		] );
+		$this->assertSame( 'PostalAddress', $result['@type'] );
+		$this->assertSame( 'Monroe', $result['addressLocality'] );
+		$this->assertSame( 'LA', $result['addressRegion'] );
+		$this->assertSame( '71201', $result['postalCode'] );
+		$this->assertArrayNotHasKey( 'streetAddress', $result );
+	}
+
+	public function test_postal_address_empty_returns_empty(): void {
+		$result = MM_Mod_Base::postal_address_node( [] );
+		$this->assertSame( [], $result );
+	}
+
+	// ------------------------------------------------------------------
+	// areaServed — City objects everywhere (Marker 9/26)
+	// ------------------------------------------------------------------
+
+	public function test_service_area_served_uses_city_objects(): void {
+		$result = MM_Schema_Types::build_node_additions( [
+			'business_service_areas' => 'Monroe, LA; West Monroe, LA',
+		], 'LocalBusiness' );
+		$this->assertArrayHasKey( 'areaServed', $result );
+		$this->assertIsArray( $result['areaServed'] );
+		$this->assertSame( 'City', $result['areaServed'][0]['@type'] );
+		$this->assertSame( 'Monroe', $result['areaServed'][0]['name'] );
+	}
 }
