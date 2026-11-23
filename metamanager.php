@@ -404,11 +404,11 @@ add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json
  * @param string $webp_path   Absolute path to the generated .webp file.
  */
 function mm_register_webp_attachment( int $original_id, string $webp_path ): void {
-	// Already registered? Skip.
+	// Already registered? Skip. Check by parent (original) + WebP mime.
 	global $wpdb;
 	$existing = $wpdb->get_var( $wpdb->prepare(
-		"SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value LIKE %s",
-		'%' . $wpdb->esc_like( basename( $webp_path ) ) . '%'
+		"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
+		$original_id
 	) );
 	if ( $existing ) {
 		return;
@@ -552,9 +552,9 @@ function mm_import_completed_jobs(): void {
 				continue;
 			}
 
-			// Compression result with WebP: register the WebP as a WP attachment
+			// WebP result: register the WebP as a WP attachment
 			// so it appears in the media library for widget selection.
-			if ( 'compression' === ( $job['job_type'] ?? '' )
+			if ( 'webp' === ( $job['job_type'] ?? '' )
 				&& 'completed' === $status
 				&& ! empty( $job['webp_path'] )
 				&& file_exists( $job['webp_path'] ) ) {
