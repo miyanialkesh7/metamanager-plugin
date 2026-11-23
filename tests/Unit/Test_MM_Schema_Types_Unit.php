@@ -576,4 +576,40 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$result = MM_Schema_Types::build_node_additions( [], 'Organization' );
 		$this->assertArrayNotHasKey( '@type', $result );
 	}
+
+	// ------------------------------------------------------------------
+	// Person (captains, professionals, team members)
+	// ------------------------------------------------------------------
+
+	public function test_person_type_has_directory_fields(): void {
+		$fields = MM_Schema_Types::get_fields_by_type();
+		$this->assertArrayHasKey( 'Person', $fields );
+		$keys = array_column( $fields['Person'], 'key' );
+		foreach ( [ 'person_job_title', 'person_works_for', 'person_credentials', 'person_knows_about', 'person_email', 'person_phone' ] as $key ) {
+			$this->assertContains( $key, $keys, "Person should have {$key}" );
+		}
+	}
+
+	public function test_build_node_additions_person(): void {
+		$result = MM_Schema_Types::build_node_additions( [
+			'person_job_title'    => 'Licensed Boat Captain',
+			'person_works_for'    => 'Prime Time Charters',
+			'person_credentials'  => "USCG Licensed Master Captain\nCommercial Endorsement",
+			'person_knows_about'  => 'Offshore Navigation, Deep Sea Fishing',
+			'person_email'        => 'captain@example.com',
+			'person_phone'        => '555-123-4567',
+		], 'Person' );
+
+		$this->assertSame( 'Licensed Boat Captain', $result['jobTitle'] );
+		$this->assertSame( 'Prime Time Charters', $result['worksFor']['name'] );
+		$this->assertCount( 2, $result['hasCredential'] );
+		$this->assertCount( 2, $result['knowsAbout'] );
+		$this->assertSame( 'captain@example.com', $result['email'] );
+		$this->assertSame( '555-123-4567', $result['telephone'] );
+	}
+
+	public function test_build_node_additions_person_default_type(): void {
+		$result = MM_Schema_Types::build_node_additions( [], 'Person' );
+		$this->assertSame( [], $result );
+	}
 }
