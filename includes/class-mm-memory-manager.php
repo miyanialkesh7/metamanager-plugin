@@ -270,7 +270,7 @@ class MM_Memory_Manager {
 	 * @param int     $max_configured Maximum batch size from admin setting.
 	 * @return int Number of jobs to process (0 = pause).
 	 */
-	public static function calculate_batch_size( array $jobs, int $max_configured ): int {
+	public static function calculate_batch_size( array $jobs ): int {
 		$available = self::get_available_memory();
 
 		// Below the floor — pause.
@@ -280,13 +280,8 @@ class MM_Memory_Manager {
 
 		$remaining = $available;
 		$count     = 0;
-		$max       = min( $max_configured, count( $jobs ) );
 
 		foreach ( $jobs as $job ) {
-			if ( $count >= $max ) {
-				break;
-			}
-
 			$cost = self::estimate_job_cost( $job );
 
 			// Leave the floor for remaining PHP execution.
