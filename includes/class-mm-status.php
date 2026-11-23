@@ -214,6 +214,13 @@ class MM_Status {
 	}
 
 	/**
+	 * Check whether the WebP generation daemon process is alive.
+	 */
+	public static function webp_daemon_running(): bool {
+		return defined( 'MM_PID_WEBP' ) && self::is_pid_alive( MM_PID_WEBP );
+	}
+
+	/**
 	 * Read a PID file and check /proc/<pid> to confirm the process is alive.
 	 *
 	 * @param string $pid_file Absolute path to the PID file.
@@ -333,6 +340,7 @@ class MM_Status {
 			'ffmpeg'           => self::ffmpeg_available(),
 			'compress_daemon'  => self::compress_daemon_running(),
 			'meta_daemon'      => self::meta_daemon_running(),
+			'webp_daemon'      => self::webp_daemon_running(),
 		];
 	}
 
@@ -353,9 +361,10 @@ class MM_Status {
 		// Queue depth from job directories.
 		$compress_queue = 0;
 		$meta_queue     = 0;
+		$webp_queue     = 0;
 		$completed      = 0;
 		$failed         = 0;
-		foreach ( [ 'compress' => 'compress_queue', 'meta' => 'meta_queue', 'completed' => 'completed', 'failed' => 'failed' ] as $dir => $key ) {
+		foreach ( [ 'compress' => 'compress_queue', 'meta' => 'meta_queue', 'webp' => 'webp_queue', 'completed' => 'completed', 'failed' => 'failed' ] as $dir => $key ) {
 			$path = $job_root . '/' . $dir;
 			if ( is_dir( $path ) ) {
 				$$key = count( glob( $path . '/*.json' ) ) + count( glob( $path . '/*.json.processing' ) );
@@ -365,11 +374,15 @@ class MM_Status {
 		// Daemon PIDs.
 		$compress_pid = null;
 		$meta_pid     = null;
+		$webp_pid     = null;
 		if ( file_exists( MM_PID_COMPRESS ) ) {
 			$compress_pid = (int) trim( file_get_contents( MM_PID_COMPRESS ) );
 		}
 		if ( file_exists( MM_PID_META ) ) {
 			$meta_pid = (int) trim( file_get_contents( MM_PID_META ) );
+		}
+		if ( defined( 'MM_PID_WEBP' ) && file_exists( MM_PID_WEBP ) ) {
+			$webp_pid = (int) trim( file_get_contents( MM_PID_WEBP ) );
 		}
 
 		// Version info.
@@ -389,10 +402,15 @@ class MM_Status {
 					'running' => $system['meta_daemon'],
 					'pid'     => $meta_pid,
 				),
+				'webp'     => array(
+					'running' => $system['webp_daemon'] ?? false,
+					'pid'     => $webp_pid,
+				),
 			),
 			'queues'          => array(
 				'compress'  => $compress_queue,
 				'meta'      => $meta_queue,
+				'webp'      => $webp_queue,
 				'completed' => $completed,
 				'failed'    => $failed,
 			),

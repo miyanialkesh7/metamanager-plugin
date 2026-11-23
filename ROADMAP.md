@@ -81,6 +81,21 @@ Real workflows: `ci.yml`, `promote-to-test.yml`, `promote-to-main.yml` only.
 
 ## Open Items
 
+### HIGH — WebP Data Pipeline (own lane)
+
+WebP generation gets its own end-to-end data pipeline, separate from compress and meta. PHP populates queues, daemons process everything, cron is status reporting only.
+
+**Flow:** upload → webp queue → daemon generates + registers (cascade) → falls back into normal upload processing (compression + metadata)
+
+**Architecture:**
+- **Queue:** `metamanager-jobs/webp/` — separate from `compress/` and `meta/`
+- **Daemon:** `metamanager-webp-daemon.sh` — own systemd service, own lane
+- **Status:** `metamanager-jobs/webp-status.json` — surfaced like compress and meta
+- **Registration:** daemon calls `wp eval-file register-webp.php` after cwebp — no cron dependency
+- **Cascade:** `mm_register_webp_attachment` → `wp_generate_attachment_metadata` → `on_upload` → compression + metadata queue naturally
+
+**Not cron.** `mm_import_completed_jobs` is removed. Daemons handle their own results. The only cron is status reporting (`mm_write_status_json`, `mm_send_upload_receipt`).
+
 ### HIGH — `mm_business` LocalBusiness CPT (for Ouachita.online business directory)
 
 New CPT for per-business pages with LocalBusiness schema output. Same fields as Business Profile settings minus contact form (privacy liability). Detail output at page bottom like other CPTs — no shortcode contact page.
