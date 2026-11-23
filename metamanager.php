@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.398
+ * Version:      2.3.400
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.398' );
+define( 'MM_VERSION',     '2.3.400' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -46,6 +46,7 @@ define( 'MM_META_KEY',          '_mm_meta' );
 define( 'MM_JOB_ROOT',     WP_CONTENT_DIR . '/metamanager-jobs' );
 define( 'MM_JOB_COMPRESS', MM_JOB_ROOT . '/compress/' );
 define( 'MM_JOB_META',     MM_JOB_ROOT . '/meta/' );
+define( 'MM_JOB_WEBP',     MM_JOB_ROOT . '/webp/' );
 define( 'MM_JOB_DONE',     MM_JOB_ROOT . '/completed/' );
 define( 'MM_JOB_FAILED',   MM_JOB_ROOT . '/failed/' );
 
@@ -59,6 +60,7 @@ define( 'MM_JOB_TABLE', 'metamanager_jobs' );
  */
 define( 'MM_PID_COMPRESS', MM_JOB_ROOT . '/compress-daemon.pid' );
 define( 'MM_PID_META',     MM_JOB_ROOT . '/meta-daemon.pid' );
+define( 'MM_PID_WEBP',     MM_JOB_ROOT . '/webp-daemon.pid' );
 
 // ---------------------------------------------------------------------------
 // Autoload classes
@@ -203,14 +205,8 @@ function mm_activate_single_site(): void {
 	MM_Mod_Links::create_table();
 	MM_Job_Queue::ensure_dirs();
 
-	// Cron events: registered at activation. If missing on a later activation
-	// (plugin update), the event was deliberately removed or lost — log it
-	// loudly per rule 9 (investigate WHY, do not silently re-register).
-	if ( ! wp_next_scheduled( 'mm_import_completed_jobs' ) ) {
-		error_log( '[Metamanager] Cron event mm_import_completed_jobs was missing at activation. Investigate why it was removed.' );
-		wp_schedule_event( time(), 'mm_every_minute', 'mm_import_completed_jobs' );
-	}
-
+	// Cron events: status reporting only. Daemons handle all processing
+	// and call process-result.php directly — no import cron.
 	if ( ! wp_next_scheduled( 'mm_write_status_json' ) ) {
 		error_log( '[Metamanager] Cron event mm_write_status_json was missing at activation. Investigate why it was removed.' );
 		wp_schedule_event( time(), 'mm_every_minute', 'mm_write_status_json' );
@@ -321,7 +317,6 @@ function mm_deactivate( bool $network_wide = false ): void {
  * Clean up a single site on deactivation.
  */
 function mm_deactivate_site(): void {
-	wp_clear_scheduled_hook( 'mm_import_completed_jobs' );
 	wp_clear_scheduled_hook( 'mm_write_status_json' );
 	wp_clear_scheduled_hook( 'mm_send_upload_receipt' );
 	wp_clear_scheduled_hook( 'mm_meta_check_links' );
@@ -378,7 +373,6 @@ add_filter( 'cron_schedules', function ( array $schedules ): array {
 // history dashboard, then deletes the result files.
 // ---------------------------------------------------------------------------
 
-add_action( 'mm_import_completed_jobs', MM_Cron_Tracker::wrap( 'mm_import_completed_jobs', 'mm_import_completed_jobs' ) );
 add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json', [ 'MM_Status', 'write_status_json' ] ) );
 
 /**
@@ -491,187 +485,6 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 	error_log( sprintf( '[Metamanager] WebP registered as attachment %d: %s', $att_id, $webp_path ) );
 }
 
-function mm_import_completed_jobs(): void {
-	// PID-based lock: if the previous run crashed, its PID is no longer
-	// running and the lock can be safely broken (rule 18: no silent fallback
-	// that suppresses work after a crash).
-	$lock_key   = 'mm_import_lock';
-	$lock_pid   = get_transient( $lock_key );
-	if ( $lock_pid ) {
-		// Check if the process holding the lock is still alive.
-		// file_exists("/proc/{pid}") works on Linux — the fleet standard.
-		if ( @file_exists( '/proc/' . $lock_pid ) ) {
-			return; // Another run is genuinely active.
-		}
-		// Stale lock — previous run crashed. Log and break it.
-		error_log( sprintf( '[Metamanager] Stale import lock from PID %d (process no longer running). Breaking lock.', $lock_pid ) );
-	}
-	set_transient( $lock_key, getmypid(), 30 ); // Lock for 30 seconds max.
-
-	// Memory gate: pause if memory is critically low, re-evaluate next cycle.
-	if ( MM_Memory_Manager::should_pause() ) {
-		MM_Memory_Manager::set_notice();
-		delete_transient( $lock_key );
-		return;
-	}
-	MM_Memory_Manager::clear_notice();
-
-	$result_dirs = [
-		MM_JOB_DONE   => 'completed',
-		MM_JOB_FAILED => 'failed',
-	];
-
-	$failed_jobs = [];
-
-	// Initialise WP_Filesystem for local file reads (direct method; no credentials needed).
-	require_once ABSPATH . 'wp-admin/includes/file.php';
-	WP_Filesystem();
-	global $wp_filesystem;
-
-	foreach ( $result_dirs as $dir => $status ) {
-		// Only read fully-written .json files — skip .tmp (daemon mid-write),
-		// .unparseable (prior failure), and .processing (daemon-locked).
-		$files = new \GlobIterator( $dir . '*.json', \FilesystemIterator::CURRENT_AS_PATHNAME );
-		if ( 0 === $files->count() ) {
-			continue;
-		}
-		// PHP just reads result files and writes to DB — no batch limit here.
-		// The daemon controls concurrency via MAX_CONCURRENT and memory checks.
-		foreach ( $files as $filepath ) {
-			if ( $wp_filesystem ) {
-				$raw = $wp_filesystem->get_contents( $filepath );
-			} else {
-				// Fallback for uncommon server configurations where WP_Filesystem
-				// cannot initialise without credentials (e.g. FTP-only servers).
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-				$raw = file_get_contents( $filepath );
-			}
-			$job = $raw ? json_decode( $raw, true ) : null;
-
-			if ( ! is_array( $job ) ) {
-				// Unparseable — likely a partial write or corrupted file.
-				// Rename so the admin can inspect, rather than silently deleting.
-				$backup = $filepath . '.unparseable';
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename
-				rename( $filepath, $backup );
-				error_log( sprintf(
-					'[Metamanager] Unparseable result file renamed for inspection: %s',
-					$backup
-				) );
-				continue;
-			}
-
-			$job['status'] = $status;
-
-			// Only delete the result file and act on the outcome once the DB
-			// record is confirmed written. Rule 18: no retry, no fallback.
-			// Fail loudly — surface to UI + log, leave the file for manual review.
-			if ( ! MM_DB::log_job( $job ) ) {
-				$failed_log_dir = MM_JOB_ROOT . '/failed-log/';
-				if ( ! is_dir( $failed_log_dir ) ) {
-					mkdir( $failed_log_dir, 0755, true );
-				}
-				rename( $filepath, $failed_log_dir . basename( $filepath ) );
-				error_log( sprintf(
-					'[Metamanager] ERROR: DB insert failed for %s. Moved to failed-log. Manual review required — this will NOT be retried.',
-					basename( $filepath )
-				) );
-				continue;
-			}
-
-			// WebP result: register the WebP as a WP attachment
-			// so it appears in the media library for widget selection.
-			if ( 'webp' === ( $job['job_type'] ?? '' )
-				&& 'completed' === $status
-				&& ! empty( $job['webp_path'] )
-				&& file_exists( $job['webp_path'] ) ) {
-				mm_register_webp_attachment( (int) ( $job['attachment_id'] ?? 0 ), $job['webp_path'] );
-			}
-
-			// Import result: apply embedded tags to WP post meta, then queue
-			// the metadata write-back job so the daemon embeds the values.
-			if ( 'import' === ( $job['job_type'] ?? '' ) && 'completed' === $status ) {
-				$att_id  = (int) ( $job['attachment_id'] ?? 0 );
-				$tags    = is_array( $job['embedded_tags'] ?? null ) ? $job['embedded_tags'] : [];
-				$trigger = (string) ( $job['trigger'] ?? '' );
-				if ( $att_id > 0 ) {
-					if ( 'verify' === $trigger ) {
-						// Post-write-back verification: compare embedded tags against
-						// WP meta and record any discrepancies for display in the admin.
-						MM_Metadata::apply_verify_result( $att_id, $tags );
-					} else {
-						MM_Metadata::apply_import_result( $att_id, $tags );
-
-						// Now that WP fields are populated, queue the write-back job.
-						$file = get_attached_file( $att_id );
-						$mime = (string) get_post_mime_type( $att_id );
-						if ( $file && file_exists( $file ) && MM_Metadata::can_write_meta( $mime ) ) {
-							MM_Job_Queue::write_job( 'metadata', $att_id, $file, 'full', [ 'trigger' => 'import' ] );
-						}
-
-						// For images, also queue metadata write-back for all registered sizes.
-						if ( wp_attachment_is_image( $att_id ) ) {
-							$meta = wp_get_attachment_metadata( $att_id );
-							if ( is_array( $meta ) ) {
-								MM_Job_Queue::enqueue_all_sizes( $att_id, $meta, 'metadata', [ 'trigger' => 'import' ] );
-							}
-						}
-					}
-				}
-			}
-
-			// Metadata write-back completed: queue a verification read-back so
-			// the daemon re-reads the file and confirms all values stuck.
-			// Only queue for the 'full' size to avoid a verification storm on images.
-			if ( 'metadata' === ( $job['job_type'] ?? '' )
-				&& 'full' === ( $job['size'] ?? '' )
-				&& 'completed' === $status ) {
-				$att_id = (int) ( $job['attachment_id'] ?? 0 );
-				$file   = $att_id > 0 ? get_attached_file( $att_id ) : '';
-				if ( $att_id > 0 && $file && file_exists( $file ) && MM_Status::exiftool_available() ) {
-					MM_Job_Queue::write_job( 'import', $att_id, (string) $file, 'full', [ 'trigger' => 'verify' ] );
-				}
-			}
-
-			if ( 'failed' === $status ) {
-				$failed_jobs[] = $job;
-			}
-
-			// Clean up only after DB write is confirmed (the continue above
-			// left the file in place for a retry).  wp_delete_file() silences
-			// errors internally; safe if the file was already removed by a
-			// concurrent request.
-			wp_delete_file( $filepath );
-		}
-	}
-
-	// Send one combined failure notification email if any jobs failed this run.
-	if ( ! empty( $failed_jobs ) && MM_Settings::get_notify_enabled() ) {
-		$to      = MM_Settings::get_notify_email();
-		$subject = sprintf(
-			/* translators: 1: number of failed jobs, 2: site name */
-			__( '[Metamanager] %1$d job(s) failed on %2$s', 'metamanager' ),
-			count( $failed_jobs ),
-			wp_specialchars_decode( get_option( 'blogname', '' ), ENT_QUOTES )
-		);
-		$lines = [ 'The following Metamanager jobs failed:', '' ];
-		foreach ( $failed_jobs as $job ) {
-			$detail  = is_array( $job['details'] ?? null ) ? ( $job['details']['message'] ?? '' ) : '';
-			// ASCII-only body punctuation — multibyte glyphs have been
-			// mangled in transit on these notices (user report 2026-11-16).
-			$lines[] = '- ' . ( $job['image_name'] ?? '(unknown)' )
-				. ' [' . ( $job['size'] ?? '' ) . ']'
-				. ( $detail ? ' - ' . $detail : '' );
-		}
-		$lines[] = '';
-		$lines[] = 'View the Job Dashboard: ' . admin_url( 'admin.php?page=metamanager' );
-
-		wp_mail( $to, $subject, implode( "\n", $lines ), [ 'Content-Type: text/plain; charset=UTF-8' ] );
-	}
-
-	// Release the concurrency lock.
-	delete_transient( $lock_key );
-}
 
 // ---------------------------------------------------------------------------
 // Core hook registrations (single, authoritative source — no duplicates)

@@ -53,6 +53,7 @@ class MM_Job_Queue {
 		foreach ( [
 			MM_JOB_COMPRESS,
 			MM_JOB_META,
+			MM_JOB_WEBP,
 			MM_JOB_DONE,
 			MM_JOB_FAILED,
 		] as $dir ) {
@@ -113,7 +114,11 @@ class MM_Job_Queue {
 	): string {
 		self::ensure_dirs();
 
-		$dir = ( 'compression' === $type || 'webp' === $type ) ? MM_JOB_COMPRESS : MM_JOB_META;
+		$dir = match ( $type ) {
+			'compression' => MM_JOB_COMPRESS,
+			'webp'        => MM_JOB_WEBP,
+			default       => MM_JOB_META,
+		};
 
 		// Note: no deduplication at write time. The daemon's per-file flock
 		// handles concurrency safely. Suppressing writes at queue time drops
@@ -296,7 +301,7 @@ class MM_Job_Queue {
 	 */
 	public static function on_delete_attachment( int $attachment_id ): void {
 		// Remove any unprocessed job files for this attachment.
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META ] as $dir ) {
+		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP ] as $dir ) {
 			if ( ! is_dir( $dir ) ) {
 				continue;
 			}
@@ -335,16 +340,17 @@ class MM_Job_Queue {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Return all pending jobs from compress and meta directories.
+	 * Return all pending jobs from compress, meta, and webp directories.
 	 *
-	 * @return array[ 'compression' => [...], 'metadata' => [...] ]
+	 * @return array[ 'compression' => [...], 'metadata' => [...], 'webp' => [...] ]
 	 */
 	public static function get_pending_jobs(): array {
-		$result = [ 'compression' => [], 'metadata' => [] ];
+		$result = [ 'compression' => [], 'metadata' => [], 'webp' => [] ];
 
 		foreach ( [
 			'compression' => MM_JOB_COMPRESS,
 			'metadata'    => MM_JOB_META,
+			'webp'        => MM_JOB_WEBP,
 		] as $type => $dir ) {
 			// Include both pending (.json) and in-progress (.json.processing) files
 			// so that daemon-locked jobs are visible in the dashboard rather than

@@ -202,8 +202,10 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		// No completed jobs in DB → treated as a fresh upload.
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
-			'Fresh image upload must queue compression + webp jobs.' );
+		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+			'Fresh image upload must queue a compression job.' );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+			'Fresh image upload must queue webp jobs (full + sizes).' );
 		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
 			'Fresh image upload must queue a metadata-embedding job.' );
 	}
@@ -230,8 +232,10 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		update_post_meta( $attachment_id, MM_Metadata::META_SYNCED, '1' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
-			'Thumbnail regeneration must re-queue compression + webp.' );
+		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+			'Thumbnail regeneration must re-queue compression.' );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+			'Thumbnail regeneration must re-queue webp.' );
 		$this->assertSame( 0, $this->count_jobs( MM_JOB_META ),
 			'Thumbnail regeneration must NOT queue metadata (preserves user edits).' );
 	}
@@ -291,8 +295,10 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	public function test_jpeg_upload_queues_compression_and_webp(): void {
 		[ $attachment_id ] = $this->create_tmp_attachment( 'image/jpeg' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
-		// JPEG gets compression + webp generation (both in compress queue).
-		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ),
-			'JPEG must get compression + webp generation.' );
+		// JPEG gets compression (compress queue) + webp generation (webp queue).
+		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+			'JPEG must get compression job.' );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+			'JPEG must get webp generation jobs in webp queue.' );
 	}
 }
