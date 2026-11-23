@@ -124,6 +124,108 @@ class MM_CLI extends \WP_CLI_Command {
 	}
 
 	// -----------------------------------------------------------------------
+	// generate-webp
+	// -----------------------------------------------------------------------
+
+	/**
+	 * Queue WebP generation for JPEG/PNG attachments that lack a WebP copy.
+	 *
+	 * The compress daemon generates a .webp alongside each JPEG/PNG it processes.
+	 * This command scans the media library and re-queues images that don't have
+	 * a WebP copy yet. Already-compressed images are re-queued — the daemon
+	 * handles them fine (lossless step is a no-op if already optimal) and
+	 * generates the WebP alongside.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [<id>]
+	 * : Attachment ID. Omit (or pass "all") to scan everything.
+	 *
+	 * [--force]
+	 * : Re-queue even if a WebP copy already exists.
+	 *
+	 * [--dry-run]
+	 * : Show what would be queued without writing jobs.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp metamanager generate-webp
+	 *     wp metamanager generate-webp all
+	 *     wp metamanager generate-webp all --dry-run
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Named arguments.
+	 */
+	public function generate_webp( array $args, array $assoc_args ): void {
+		$force   = isset( $assoc_args['force'] );
+		$dry_run = isset( $assoc_args['dry-run'] );
+		$target  = $args[0] ?? 'all';
+
+		if ( 'all' === strtolower( $target ) ) {
+			$ids = get_posts( [
+				'post_type'      => 'attachment',
+				'post_mime_type' => [ 'image/jpeg', 'image/png' ],
+				'post_status'    => 'inherit',
+				'numberposts'    => -1,
+				'fields'         => 'ids',
+			] );
+		} else {
+			$ids = [ (int) $target ];
+			$mime = (string) get_post_mime_type( $ids[0] );
+			if ( ! in_array( $mime, [ 'image/jpeg', 'image/png' ], true ) ) {
+				\WP_CLI::error( 'Only JPEG and PNG attachments need WebP generation.' );
+			}
+		}
+
+		if ( empty( $ids ) ) {
+			\WP_CLI::success( 'No JPEG/PNG files found.' );
+			return;
+		}
+
+		$count   = 0;
+		$skipped = 0;
+		$progress = \WP_CLI\Utils\make_progress_bar( 'Queuing WebP generation', count( $ids ) );
+
+		foreach ( $ids as $id ) {
+			$id   = (int) $id;
+			$file = get_attached_file( $id );
+
+			if ( ! $file || ! file_exists( $file ) ) {
+				++$skipped;
+				$progress->tick();
+				continue;
+			}
+
+			// Check if WebP already exists alongside the original.
+			$webp_file = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $file );
+			if ( ! $force && file_exists( $webp_file ) ) {
+				++$skipped;
+				$progress->tick();
+				continue;
+			}
+
+			if ( $dry_run ) {
+				\WP_CLI::line( "  Would queue: {$file}" );
+				++$count;
+				$progress->tick();
+				continue;
+			}
+
+			// Queue a compression job — daemon generates WebP alongside.
+			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'cli' ] );
+			++$count;
+			$progress->tick();
+		}
+
+		$progress->finish();
+		if ( $dry_run ) {
+			\WP_CLI::success( "Dry run: {$count} file(s) would be queued. Skipped: {$skipped}." );
+		} else {
+			\WP_CLI::success( "Queued WebP generation for {$count} file(s). Skipped: {$skipped}." );
+		}
+	}
+
+	// -----------------------------------------------------------------------
 	// import
 	// -----------------------------------------------------------------------
 

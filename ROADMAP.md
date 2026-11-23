@@ -102,7 +102,7 @@ New CPT for per-business pages with LocalBusiness schema output. Same fields as 
 
 ### HIGH — FAQ Page schema conversions
 
-Convert FAQ content pages to `FAQPage` schema across sites. Sites: Sun Dogs (Parasailing FAQ), Event Room (FAQs), and any others with FAQ content. Uses existing `FAQPage` type in `MM_Schema_Types` (already has dynamic field rendering).
+Convert FAQ content pages to `FAQPage` schema across sites. **Gap Creek done 2026-11-22** — `mm_faq_page` CPT post (ID 12989), 5 Q&A pairs in `mm_schema_fields`, `/faq/` archive in Top nav. Pattern: CPT archive in nav, individual posts as children, Q&A data in `mm_schema_fields` (`faq_question_N`/`faq_answer_N`), schema auto-generates. Known issue: `add_webpage_node` types the WebPage node as `FAQPage` (0 questions) alongside the content node `#faqpage` (5 questions) — pre-existing duplicate. Remaining: Sun Dogs (Parasailing FAQ), Event Room (FAQs) — both unconverted sites, do after conversion.
 
 ### HIGH — Prime Time legal schema: boat rental + hired captain (NOT charter)
 
