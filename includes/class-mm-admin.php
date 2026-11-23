@@ -1401,6 +1401,8 @@ class MM_Admin {
 			$img_meta  = $att_meta['image_meta'] ?? [];
 			$e_creator   = trim( (string) ( $img_meta['credit'] ?? '' ) );
 			$e_copyright = trim( (string) ( $img_meta['copyright'] ?? '' ) );
+			// License URL from IPTC Web Statement of Rights.
+			$e_license = trim( (string) ( $img_meta['web_statement_of_rights'] ?? '' ) );
 			// Also check mm_* fields (may have been set by previous import).
 			if ( '' === $e_creator ) {
 				$e_creator = trim( (string) get_post_meta( $id, MM_Metadata::META_CREATOR, true ) );
@@ -1408,14 +1410,18 @@ class MM_Admin {
 			if ( '' === $e_copyright ) {
 				$e_copyright = trim( (string) get_post_meta( $id, MM_Metadata::META_COPYRIGHT, true ) );
 			}
+			if ( '' === $e_license ) {
+				$e_license = trim( (string) get_post_meta( $id, MM_Metadata::META_LICENSE, true ) );
+			}
 			if ( '' === $e_creator && '' === $e_copyright ) {
 				continue;
 			}
-			$set_key = $e_creator . '|' . $e_copyright;
+			$set_key = $e_creator . '|' . $e_copyright . '|' . $e_license;
 			if ( ! isset( $exif_sets[ $set_key ] ) ) {
 				$exif_sets[ $set_key ] = [
 					'creator'   => $e_creator,
 					'copyright' => $e_copyright,
+					'license'   => $e_license,
 					'count'     => 0,
 				];
 			}
@@ -1448,9 +1454,13 @@ class MM_Admin {
 							<?php checked( $set_key, $first_key ); ?>
 							data-creator="<?php echo esc_attr( $set['creator'] ); ?>"
 							data-copyright="<?php echo esc_attr( $set['copyright'] ); ?>"
-							onchange="document.getElementById('mm_creator').value=this.dataset.creator;document.getElementById('mm_copyright').value=this.dataset.copyright;">
+							data-license="<?php echo esc_attr( $set['license'] ); ?>"
+							onchange="document.getElementById('mm_creator').value=this.dataset.creator;document.getElementById('mm_copyright').value=this.dataset.copyright;if(this.dataset.license)document.getElementById('mm_license').value=this.dataset.license;">
 						<strong><?php echo esc_html( $set['creator'] ?: __( '(no creator)', 'metamanager' ) ); ?></strong>
 						— <?php echo esc_html( $set['copyright'] ?: __( '(no copyright)', 'metamanager' ) ); ?>
+						<?php if ( $set['license'] ) : ?>
+						<span style="color:#0073aa;font-size:12px;">(<?php echo esc_html( $set['license'] ); ?>)</span>
+						<?php endif; ?>
 						<span style="color:#888;font-size:12px;">(<?php printf( esc_html__( '%d images', 'metamanager' ), (int) $set['count'] ); ?>)</span>
 					</label>
 					<?php endforeach; ?>
@@ -2173,8 +2183,6 @@ class MM_Admin {
 		MM_Memory_Manager::clear_notice();
 
 		$offset     = max( 0, (int) wp_unslash( $_POST['offset']     ?? 0 ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- (int) cast is sanitization
-		$max_batch  = max( 1, min( 200, (int) wp_unslash( $_POST['batch_size'] ?? 50 ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$max_batch  = min( $max_batch, MM_Settings::get_batch_size() );
 
 		// Include images plus all supported video and audio MIME types.
 		$all_mime_types = array_merge(
@@ -2201,9 +2209,9 @@ class MM_Admin {
 		$total = count( $pending_ids );
 
 		// Build candidate job data for memory-aware batch sizing.
-		$candidate_ids = array_slice( $pending_ids, $offset, $max_batch );
+		// Batch size is defined by memory calculation each pass — fluid, no fixed limit.
 		$candidate_jobs = [];
-		foreach ( $candidate_ids as $id ) {
+		foreach ( $pending_ids as $id ) {
 			$mime = (string) get_post_mime_type( $id );
 			$job  = [
 				'mime_type' => $mime,
@@ -2218,8 +2226,8 @@ class MM_Admin {
 			}
 			$candidate_jobs[] = $job;
 		}
-		$batch_size = MM_Memory_Manager::calculate_batch_size( $candidate_jobs, $max_batch );
-		$batch      = array_slice( $candidate_ids, 0, $batch_size );
+		$batch_size = MM_Memory_Manager::calculate_batch_size( $candidate_jobs );
+		$batch      = array_slice( $pending_ids, $offset, $batch_size );
 
 		$count = 0;
 		foreach ( $batch as $id ) {

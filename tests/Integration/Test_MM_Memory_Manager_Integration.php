@@ -130,22 +130,22 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 	// ------------------------------------------------------------------
 
 	public function test_calculate_batch_size_empty_jobs(): void {
-		$result = MM_Memory_Manager::calculate_batch_size( [], 50 );
+		$result = MM_Memory_Manager::calculate_batch_size( [] );
 		$this->assertSame( 0, $result );
 	}
 
-	public function test_calculate_batch_size_returns_up_to_max_configured(): void {
-		// Create 100 tiny jobs.
+	public function test_calculate_batch_size_memory_defined(): void {
+		// Create 100 tiny jobs. Batch size is memory-defined, no upper bound.
 		$jobs = array_fill( 0, 100, [ 'mime_type' => 'image/jpeg', 'size' => 'thumbnail' ] );
-		$result = MM_Memory_Manager::calculate_batch_size( $jobs, 25 );
-		$this->assertLessThanOrEqual( 25, $result );
+		$result = MM_Memory_Manager::calculate_batch_size( $jobs );
 		$this->assertGreaterThan( 0, $result );
+		$this->assertLessThanOrEqual( 100, $result );
 	}
 
 	public function test_calculate_batch_size_respects_available_memory(): void {
 		// Create jobs that each cost BASE_COST (2MB).
 		$jobs = array_fill( 0, 200, [ 'mime_type' => 'image/jpeg', 'size' => 'thumbnail' ] );
-		$result = MM_Memory_Manager::calculate_batch_size( $jobs, 200 );
+		$result = MM_Memory_Manager::calculate_batch_size( $jobs );
 		// Should return some positive number (memory is available in test env).
 		$this->assertGreaterThan( 0, $result );
 		$this->assertLessThanOrEqual( 200, $result );
@@ -263,45 +263,6 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 	// ------------------------------------------------------------------
 	// Batch size settings integration
 	// ------------------------------------------------------------------
-
-	public function test_batch_size_setting_default(): void {
-		delete_option( MM_Settings::OPTION_BATCH_SIZE );
-		$this->assertSame( 50, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_stored_value(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 100 );
-		$this->assertSame( 100, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_clamped_below_minimum(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 5 );
-		$this->assertSame( 10, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_clamped_above_maximum(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 999 );
-		$this->assertSame( 500, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_sanitize_callback(): void {
-		// The sanitize callback is registered via register_settings.
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 25 );
-		$this->assertSame( 25, (int) $sanitized );
-	}
-
-	public function test_batch_size_setting_sanitize_clamps_low(): void {
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 3 );
-		$this->assertSame( 10, (int) $sanitized );
-	}
-
-	public function test_batch_size_setting_sanitize_clamps_high(): void {
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 600 );
-		$this->assertSame( 500, (int) $sanitized );
-	}
 
 	// ------------------------------------------------------------------
 	// End-to-end: multiple jobs with unique DB keys

@@ -931,7 +931,6 @@ class MM_Metadata_CLI extends \WP_CLI_Command {
 	private function get_pref_map(): array {
 		return [
 			'Compress level'              => 'mm_compress_level',
-			'Batch size'                  => 'mm_batch_size',
 			'Max revisions'               => 'mm_max_revisions',
 			'Failure notifications'       => 'mm_notify_enabled',
 			'Notification email'          => 'mm_notify_email',
