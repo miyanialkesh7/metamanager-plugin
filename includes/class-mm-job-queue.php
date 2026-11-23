@@ -258,9 +258,11 @@ class MM_Job_Queue {
 
 		if ( $is_image ) {
 			// Step 1 (JPEG/PNG): queue webp generation + compression.
-			// Step 2: daemon generates WebP, registers as attachment.
-			// Step 3 (WebP): falls into compression + metadata like all uploads.
-			$job_types = ( 'image/webp' === $mime ) ? 'both' : 'compress+webp';
+			// Step 2: webp daemon generates optimal WebP (cwebp -q 80), registers as attachment.
+			// Step 3 (WebP): cascade queues metadata only — WebP is already
+			//   optimal from the daemon; running compression again would
+			//   losslessly re-encode a lossy file (wasteful, potentially larger).
+			$job_types = ( 'image/webp' === $mime ) ? 'metadata' : 'compress+webp';
 			if ( $is_regeneration ) {
 				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'thumbnail_regen' ] );
 			} else {
