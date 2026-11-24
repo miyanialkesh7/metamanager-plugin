@@ -160,7 +160,7 @@ class MM_Admin {
 				'content' =>
 					'<h2>' . esc_html__( 'Pending Jobs', 'metamanager' ) . '</h2>' .
 					'<p>' . esc_html__( 'Jobs enter the queue when you upload a media file, save metadata fields on an attachment edit screen, run Scan Existing Library from this dashboard, or trigger a bulk or batch action from the Media Library.', 'metamanager' ) . '</p>' .
-					'<p>' . esc_html__( 'Each job is written as a small JSON file to one of two directories inside wp-content/metamanager-jobs/: compress/ for image compression jobs, and meta/ for metadata embedding jobs.', 'metamanager' ) . '</p>' .
+					'<p>' . esc_html__( 'Each job is written as a small JSON file to one of three directories inside wp-content/metamanager-jobs/: compress/ for image compression jobs, meta/ for metadata embedding jobs, and webp/ for WebP generation jobs.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'The OS daemons watch these directories with inotifywait and process jobs immediately — no polling delay. Jobs disappear from this view as soon as a daemon processes them.', 'metamanager' ) . '</p>',
 			] );
 
@@ -179,16 +179,18 @@ class MM_Admin {
 				'title'   => __( 'Daemons', 'metamanager' ),
 				'content' =>
 					'<h2>' . esc_html__( 'OS Daemons', 'metamanager' ) . '</h2>' .
-					'<p>' . esc_html__( 'Two systemd services handle all media file processing:', 'metamanager' ) . '</p>' .
+					'<p>' . esc_html__( 'Three systemd services handle all media file processing:', 'metamanager' ) . '</p>' .
 					'<ul>' .
 					'<li><strong>metamanager-compress-daemon</strong> — ' . esc_html__( 'lossless JPEG compression via jpegtran; lossless PNG compression via optipng; lossless WebP recompression via cwebp; video container remux via ffmpeg. Files are only replaced if the result is smaller.', 'metamanager' ) . '</li>' .
 					'<li><strong>metamanager-meta-daemon</strong> — ' . esc_html__( 'writes metadata via ExifTool in a single pass, using each file\'s native tag system: EXIF/IPTC/XMP for images; ID3 for MP3; QuickTime atoms for MP4/MOV/M4A; Vorbis comments for OGG/FLAC; XMP-only for AVI/WAV/WMV/WMA/PDF; read-only for MKV/WebM/OGV.', 'metamanager' ) . '</li>' .
+					'<li><strong>metamanager-webp-daemon</strong> — ' . esc_html__( 'generates WebP copies of JPEG/PNG uploads via cwebp (quality 80). Registers each WebP as a WordPress attachment and cascades metadata embedding. Own queue, own status file.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'The banner at the top of the page shows tool availability and daemon health. A green icon means the tool is installed and reachable. A red icon means it is missing or the daemon is not running. Daemon status is read from a PID file — no elevated privileges are needed.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'The System Status section shows tool availability, the installed daemon version, the version required by the current plugin, and whether they match.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'To restart a daemon from the server:', 'metamanager' ) . '</p>' .
 					'<code>sudo systemctl restart metamanager-compress-daemon</code><br>' .
-					'<code>sudo systemctl restart metamanager-meta-daemon</code>',
+					'<code>sudo systemctl restart metamanager-meta-daemon</code><br>' .
+					'<code>sudo systemctl restart metamanager-webp-daemon</code>',
 			] );
 
 			$screen->add_help_tab( [
@@ -452,6 +454,7 @@ class MM_Admin {
 		echo ' &nbsp;ffmpeg '   . $icon( $status['ffmpeg'],    'ffmpeg found',     'ffmpeg missing — video remux disabled' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo ' &nbsp;Compress daemon ' . $icon( $status['compress_daemon'], 'Compression daemon running', 'Compression daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo ' &nbsp;Metadata daemon ' . $icon( $status['meta_daemon'],     'Metadata daemon running',    'Metadata daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo ' &nbsp;WebP daemon '     . $icon( $status['webp_daemon'] ?? false, 'WebP daemon running',     'WebP daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	// -----------------------------------------------------------------------
@@ -489,6 +492,7 @@ class MM_Admin {
 			array( 'ffmpeg',            $status['ffmpeg'],          'ffmpeg found',                  'ffmpeg missing' ),
 			array( 'Compress daemon',   $status['compress_daemon'], 'Compression daemon running',    'Compression daemon stopped' ),
 			array( 'Metadata daemon',   $status['meta_daemon'],     'Metadata daemon running',       'Metadata daemon stopped' ),
+			array( 'WebP daemon',       $status['webp_daemon'] ?? false, 'WebP daemon running',       'WebP daemon stopped' ),
 		);
 
 		$installed_ver = $updater['installed_version'] ?? null;
@@ -531,9 +535,10 @@ class MM_Admin {
 		$queue_row = '';
 		if ( ! empty( $queues ) ) {
 			$queue_row = sprintf(
-				'<span style="color:#00a32a;">%d</span> compress, <span style="color:#00a32a;">%d</span> meta, <span style="color:#00a32a;">%d</span> completed, <span style="color:%s;">%d</span> failed',
+				'<span style="color:#00a32a;">%d</span> compress, <span style="color:#00a32a;">%d</span> meta, <span style="color:#00a32a;">%d</span> webp, <span style="color:#00a32a;">%d</span> completed, <span style="color:%s;">%d</span> failed',
 				(int) ( $queues['compress'] ?? 0 ),
 				(int) ( $queues['meta'] ?? 0 ),
+				(int) ( $queues['webp'] ?? 0 ),
 				(int) ( $queues['completed'] ?? 0 ),
 				( $queues['failed'] ?? 0 ) > 0 ? '#d63638' : '#00a32a',
 				(int) ( $queues['failed'] ?? 0 )
