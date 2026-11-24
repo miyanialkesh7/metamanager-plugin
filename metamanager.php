@@ -69,6 +69,7 @@ define( 'MM_PID_WEBP',     MM_JOB_ROOT . '/webp-daemon.pid' );
 require_once MM_PLUGIN_DIR . 'includes/class-mm-db.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-metadata-history.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-job-queue.php';
+require_once MM_PLUGIN_DIR . 'includes/class-mm-media-service.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-metadata.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-status.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-settings.php';
