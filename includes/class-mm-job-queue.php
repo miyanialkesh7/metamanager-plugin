@@ -199,17 +199,28 @@ class MM_Job_Queue {
 		$queue_types = match ( $types ) {
 			'compression' => [ 'compression' ],
 			'metadata'    => [ 'metadata' ],
-			'webp'        => [ 'webp' ],
 			'compress+webp' => [ 'compression', 'webp' ],
 			default       => [ 'compression', 'metadata' ],
 		};
 
-		// Full / original image.
-		foreach ( $queue_types as $type ) {
+		// WebP: one job per image (full-size only). The daemon generates the
+		// WebP and registers it; WordPress generates all sizes via
+		// wp_generate_attachment_metadata. The on_upload hook then queues
+		// metadata for those new sizes.
+		if ( in_array( 'webp', $queue_types, true ) ) {
+			self::write_job( 'webp', $attachment_id, $file, 'full', $extra );
+		}
+
+		// Compression/metadata: one job per size (full + all generated sizes).
+		$per_size_types = array_values( array_diff( $queue_types, [ 'webp' ] ) );
+		if ( empty( $per_size_types ) ) {
+			return;
+		}
+
+		foreach ( $per_size_types as $type ) {
 			self::write_job( $type, $attachment_id, $file, 'full', $extra );
 		}
 
-		// All generated sizes.
 		if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
 			$dir = trailingslashit( pathinfo( $file, PATHINFO_DIRNAME ) );
 			foreach ( $meta['sizes'] as $size => $info ) {
@@ -220,7 +231,7 @@ class MM_Job_Queue {
 				if ( ! file_exists( $img_path ) ) {
 					continue;
 				}
-				foreach ( $queue_types as $type ) {
+				foreach ( $per_size_types as $type ) {
 					self::write_job( $type, $attachment_id, $img_path, $size, $extra );
 				}
 			}
