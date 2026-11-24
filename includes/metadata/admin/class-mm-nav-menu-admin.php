@@ -6,27 +6,16 @@
  * LEFT SIDEBAR ("Add menu items"):
  *   - Archives meta box: dropdown (Blog, CPT archives, Taxonomies) + checkboxes + Add to Menu
  *
- * LEFT SIDEBAR (below Archives):
- *   - Navigation Schema meta box: checkbox to designate menu for SiteNavigationElement
-  *
-  * @package Metamanager
+ * Nav schema is determined by WordPress's native Menu Settings "Primary Menu"
+ * location assignment — no custom checkbox exists here.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Nav menu admin.
- *
- * @package Metamanager
- */
 class MM_Nav_Menu_Admin {
 
-	/**
-	 * Register hooks.
-	 */
 	public function register_hooks(): void {
-		add_action( 'admin_init', array( $this, 'register_nav_meta_boxes' ) );
-		add_action( 'wp_update_nav_menu', array( $this, 'save_schema_checkbox' ), 10, 2 );
+		add_action( 'admin_init', [ $this, 'register_nav_meta_boxes' ] );
 	}
 
 	/**
@@ -36,18 +25,10 @@ class MM_Nav_Menu_Admin {
 		add_meta_box(
 			'mm-archives',
 			__( 'Archives', 'metamanager' ),
-			array( $this, 'render_archives_box' ),
+			[ $this, 'render_archives_box' ],
 			'nav-menus',
 			'side',
 			'default'
-		);
-		add_meta_box(
-			'mm-schema-nav',
-			__( 'Navigation Schema', 'metamanager' ),
-			array( $this, 'render_schema_box' ),
-			'nav-menus',
-			'side',
-			'low'
 		);
 	}
 
@@ -55,60 +36,43 @@ class MM_Nav_Menu_Admin {
 	// Archives meta box — all archive types in a dropdown
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Render archives box.
-	 */
 	public function render_archives_box(): void {
-		// Build archive items grouped by type.
-		$groups = array();
+		// Build archive items grouped by type
+		$groups = [];
 
-		// Blog archive.
+		// Blog archive
 		$blog_url = get_post_type_archive_link( 'post' );
 		if ( $blog_url ) {
-			$groups['blog'] = array(
+			$groups['blog'] = [
 				'label' => __( 'Blog', 'metamanager' ),
-				'items' => array(
-					array(
-						'title' => __( 'Blog Archive', 'metamanager' ),
-						'url'   => $blog_url,
-					),
-				),
-			);
+				'items' => [ [ 'title' => __( 'Blog Archive', 'metamanager' ), 'url' => $blog_url ] ],
+			];
 		}
 
-		// CPT archives.
+		// CPT archives
 		if ( class_exists( 'MM_Schema_Post_Types' ) ) {
-			$types     = MM_Schema_Post_Types::TYPES;
-			$cpt_items = array();
+			$types = MM_Schema_Post_Types::TYPES;
+			$cpt_items = [];
 			foreach ( $types as $slug => $config ) {
 				$label = $config[1];
 				$url   = get_post_type_archive_link( $slug );
 				if ( $url ) {
-					$cpt_items[] = array(
-						'title' => $label,
-						'url'   => $url,
-					);
+					$cpt_items[] = [ 'title' => $label, 'url' => $url ];
 				}
 			}
 			if ( $cpt_items ) {
-				$groups['cpt'] = array(
+				$groups['cpt'] = [
 					'label' => __( 'CPT Archives', 'metamanager' ),
 					'items' => $cpt_items,
-				);
+				];
 			}
 		}
 
-		// Taxonomy archives.
-		$taxonomies = get_taxonomies( array( 'public' => true ), 'names' );
-		$tax_items  = array();
+		// Taxonomy archives
+		$taxonomies = get_taxonomies( [ 'public' => true ], 'names' );
+		$tax_items = [];
 		foreach ( $taxonomies as $tax ) {
-			$terms = get_terms(
-				array(
-					'taxonomy'   => $tax,
-					'hide_empty' => false,
-					'number'     => 50,
-				)
-			);
+			$terms = get_terms( [ 'taxonomy' => $tax, 'hide_empty' => false, 'number' => 50 ] );
 			if ( is_wp_error( $terms ) || empty( $terms ) ) {
 				continue;
 			}
@@ -116,19 +80,15 @@ class MM_Nav_Menu_Admin {
 			foreach ( $terms as $term ) {
 				$url = get_term_link( $term );
 				if ( ! is_wp_error( $url ) ) {
-					$tax_items[] = array(
-						'title' => $term->name,
-						'url'   => $url,
-						'group' => $tax_obj->labels->name ?? $tax,
-					);
+					$tax_items[] = [ 'title' => $term->name, 'url' => $url, 'group' => $tax_obj->labels->name ?? $tax ];
 				}
 			}
 		}
 		if ( $tax_items ) {
-			$groups['tax'] = array(
+			$groups['tax'] = [
 				'label' => __( 'Taxonomy Archives', 'metamanager' ),
 				'items' => $tax_items,
-			);
+			];
 		}
 
 		?>
@@ -144,7 +104,7 @@ class MM_Nav_Menu_Admin {
 				</p>
 				<ul class="categorychecklist form-no-clear" id="mm-archives-list">
 					<?php foreach ( $groups as $key => $group ) : ?>
-						<?php foreach ( $group['items'] as $item ) : ?>
+					<?php foreach ( $group['items'] as $item ) : ?>
 					<li data-group="<?php echo esc_attr( $key ); ?>">
 						<label class="menu-item-title">
 							<input type="checkbox" class="mm-archive-check"
@@ -195,75 +155,4 @@ class MM_Nav_Menu_Admin {
 		<?php
 	}
 
-	// -------------------------------------------------------------------------
-	// Navigation Schema meta box
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Render schema box.
-	 */
-	public function render_schema_box(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only display
-		$menu_param   = isset( $_GET['menu'] ) ? sanitize_text_field( wp_unslash( $_GET['menu'] ) ) : '';
-		$current_menu = (int) $menu_param;
-		$checked      = $current_menu ? get_term_meta( $current_menu, '_mm_nav_menu_primary', true ) : '';
-		?>
-		<div>
-			<label>
-				<input type="checkbox" name="_mm_nav_menu_primary" value="1" <?php checked( $checked, '1' ); ?>>
-				<strong><?php esc_html_e( 'Use for navigation schema', 'metamanager' ); ?></strong>
-			</label>
-			<p class="description" style="margin:6px 0 0;">
-				<?php esc_html_e( 'When checked, this menu is emitted as SiteNavigationElement JSON-LD. Only one menu can be designated. Schema outputs only when this menu is rendered on the page.', 'metamanager' ); ?>
-			</p>
-			<?php if ( $current_menu ) : ?>
-			<input type="hidden" name="_mm_nav_menu_primary_nonce" value="<?php echo esc_attr( wp_create_nonce( 'mm_nav_menu_primary_' . $current_menu ) ); ?>">
-			<?php endif; ?>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Save the schema checkbox when a menu is updated.
-	 *
-	 * @param mixed $menu_id Menu ID.
-	 * @param mixed $data Data.
-	 */
-	public function save_schema_checkbox( $menu_id, $data ): void {
-		if ( ! isset( $_POST['_mm_nav_menu_primary_nonce'] ) ||
-			! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_mm_nav_menu_primary_nonce'] ) ), 'mm_nav_menu_primary_' . $menu_id ) ) {
-			return;
-		}
-		if ( ! current_user_can( 'edit_theme_options' ) ) {
-			return;
-		}
-
-		$is_primary = isset( $_POST['_mm_nav_menu_primary'] ) && '1' === $_POST['_mm_nav_menu_primary'];
-
-		if ( $is_primary ) {
-			$old = get_terms(
-				array(
-					'taxonomy'   => 'nav-menus',
-					'meta_query' => array(
-						array(
-							'key'   => '_mm_nav_menu_primary',
-							'value' => '1',
-						),
-					),
-					'number'     => 0,
-					'hide_empty' => false,
-				)
-			);
-			if ( ! is_wp_error( $old ) ) {
-				foreach ( $old as $term ) {
-					if ( (int) $term->term_id !== (int) $menu_id ) {
-						delete_term_meta( $term->term_id, '_mm_nav_menu_primary' );
-					}
-				}
-			}
-			update_term_meta( $menu_id, '_mm_nav_menu_primary', '1' );
-		} else {
-			delete_term_meta( $menu_id, '_mm_nav_menu_primary' );
-		}
-	}
 }

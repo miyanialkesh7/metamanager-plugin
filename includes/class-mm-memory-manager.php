@@ -183,11 +183,14 @@ class MM_Memory_Manager {
 		$system_total = self::get_system_total();
 		$system_free  = self::get_system_available();
 
-		// If we can't read system memory, fall back to PHP-only check.
+		// Rule 18: if we cannot determine memory status, fail loudly — do not
+		// silently default to "don't pause" (that hides real memory problems).
 		if ( 0 === $system_total ) {
 			$php_limit = self::get_memory_limit();
 			if ( PHP_INT_MAX === $php_limit ) {
-				return false; // Unlimited PHP, no system data — don't pause.
+				// Cannot measure system or PHP memory — fail loudly.
+				error_log( '[Metamanager] ERROR: Cannot determine memory status (no system data, unlimited PHP). Pausing as safety measure. Investigate /proc/meminfo availability.' );
+				return true; // Pause — cannot determine, so do not proceed blindly.
 			}
 			$php_free = self::get_php_available();
 			return $php_free < self::MIN_FLOOR;
@@ -264,10 +267,9 @@ class MM_Memory_Manager {
 	 * available memory. Returns 0 if memory is critically low.
 	 *
 	 * @param array[] $jobs Array of job data arrays.
-	 * @param int     $max_configured Maximum batch size from admin setting.
 	 * @return int Number of jobs to process (0 = pause).
 	 */
-	public static function calculate_batch_size( array $jobs, int $max_configured ): int {
+	public static function calculate_batch_size( array $jobs ): int {
 		$available = self::get_available_memory();
 
 		// Below the floor — pause.
@@ -277,13 +279,8 @@ class MM_Memory_Manager {
 
 		$remaining = $available;
 		$count     = 0;
-		$max       = min( $max_configured, count( $jobs ) );
 
 		foreach ( $jobs as $job ) {
-			if ( $count >= $max ) {
-				break;
-			}
-
 			$cost = self::estimate_job_cost( $job );
 
 			// Leave the floor for remaining PHP execution.

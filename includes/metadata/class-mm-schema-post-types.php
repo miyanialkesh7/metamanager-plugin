@@ -10,50 +10,48 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Schema post types.
- *
- * @package Metamanager
- */
 class MM_Schema_Post_Types {
 
 	/** Map of post type slug => [schema_type_label, short_label, supports, icon]. */
-	public const TYPES = array(
-		'mm_event'        => array( 'Event', 'Events', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'calendar-alt' ),
-		'mm_service'      => array( 'Service', 'Services', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'hammer' ),
-		'mm_how_to'       => array( 'HowTo', 'How-To', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'list-view' ),
-		'mm_faq_page'     => array( 'FAQPage', 'FAQ', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'editor' ),
-		'mm_trip'         => array( 'TouristTrip', 'Trips', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'location-alt' ),
-		'mm_destination'  => array( 'TouristDestination', 'Destinations', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'location' ),
-		'mm_vessel'       => array( 'Vehicle', 'Vehicles', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'car' ),
-		'mm_course'       => array( 'Course', 'Courses', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'welcome-learn-more' ),
-		'mm_business'     => array( 'LocalBusiness', 'Businesses', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'store' ),
-		'mm_organization' => array( 'Organization', 'Organizations', array( 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ), 'groups' ),
+	public const TYPES = [
+		'mm_event'       => [ 'Event',              'Events',              [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'calendar-alt' ],
+		'mm_service'     => [ 'Service',            'Services',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'hammer' ],
+		'mm_how_to'      => [ 'HowTo',              'How-To',              [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'list-view' ],
+		'mm_faq_page'    => [ 'FAQPage',            'FAQ',                 [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'editor' ],
+		'mm_trip'        => [ 'TouristTrip',        'Trips',               [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'location-alt' ],
+		'mm_destination' => [ 'TouristDestination',  'Destinations',       [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'location' ],
+		'mm_vessel'      => [ 'Vehicle',             'Vehicles',           [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'car' ],
+		'mm_course'      => [ 'Course',              'Courses',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'welcome-learn-more' ],
+		'mm_business'     => [ 'LocalBusiness',      'Businesses',         [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'store' ],
+		'mm_organization' => [ 'Organization',       'Organizations',      [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'groups' ],
+		'mm_rental'       => [ 'VacationRental',     'Rentals',            [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'building' ],
+		'mm_person'      => [ 'Person',             'People',             [ 'title', 'editor', 'thumbnail', 'excerpt', 'page-attributes' ], 'id-alt' ],
 		// AboutPage, ContactPage, Calendar are WordPress Page Templates — not CPTs.
 		// WebPage maps to default `page` type — not a separate CPT.
 		// BlogPosting maps to default `post` type — not a separate CPT.
 		// ProfilePage maps to author archive pages — not a separate CPT.
-	);
+	];
 
 	/** Map of page template slug => schema type. */
-	public const TEMPLATES = array(
+	public const TEMPLATES = [
 		'mm-about'    => 'AboutPage',
 		'mm-contact'  => 'ContactPage',
 		'mm-calendar' => 'CollectionPage',
-	);
+	];
 
 	/**
 	 * Register hooks.
 	 */
 	public static function init(): void {
-		add_action( 'admin_menu', array( __CLASS__, 'register_schema_menu' ) );
-		add_action( 'init', array( __CLASS__, 'register_post_types' ) );
-		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_boxes' ) );
-		add_action( 'save_post', array( __CLASS__, 'save_meta' ), 10, 2 );
-		add_filter( 'template_include', array( __CLASS__, 'load_page_template' ) );
-		add_action( 'pre_get_posts', array( __CLASS__, 'order_archives_by_menu_order' ) );
-		add_action( 'wp_ajax_mm_search_vessels', array( __CLASS__, 'ajax_search_vessels' ) );
-		add_action( 'wp_ajax_mm_search_destinations', array( __CLASS__, 'ajax_search_destinations' ) );
+		add_action( 'admin_menu', [ __CLASS__, 'register_schema_menu' ] );
+		add_action( 'init', [ __CLASS__, 'register_post_types' ] );
+		add_action( 'add_meta_boxes', [ __CLASS__, 'add_meta_boxes' ] );
+		add_action( 'save_post', [ __CLASS__, 'save_meta' ], 10, 2 );
+		add_action( 'template_redirect', [ __CLASS__, 'maybe_serve_download' ] );
+		add_filter( 'template_include', [ __CLASS__, 'load_page_template' ] );
+		add_action( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
+		add_action( 'wp_ajax_mm_search_vessels', [ __CLASS__, 'ajax_search_vessels' ] );
+		add_action( 'wp_ajax_mm_search_destinations', [ __CLASS__, 'ajax_search_destinations' ] );
 	}
 
 	/**
@@ -72,13 +70,7 @@ class MM_Schema_Post_Types {
 		if ( ! is_string( $pt ) || ! isset( self::TYPES[ $pt ] ) ) {
 			return;
 		}
-		$query->set(
-			'orderby',
-			array(
-				'menu_order' => 'ASC',
-				'title'      => 'ASC',
-			)
-		);
+		$query->set( 'orderby', array( 'menu_order' => 'ASC', 'title' => 'ASC' ) );
 		return;
 	}
 
@@ -91,7 +83,7 @@ class MM_Schema_Post_Types {
 			'Schema',
 			'edit_posts',
 			'mm-schema-dashboard',
-			array( __CLASS__, 'render_schema_dashboard' ),
+			[ __CLASS__, 'render_schema_dashboard' ],
 			'dashicons-editor-table',
 			30
 		);
@@ -137,14 +129,12 @@ class MM_Schema_Post_Types {
 		echo '</tr></thead><tbody>';
 
 		foreach ( self::TEMPLATES as $template_slug => $schema_type ) {
-			$pages = get_pages(
-				array(
-					'meta_key'   => '_wp_page_template',
-					'meta_value' => $template_slug,
-				)
-			);
+			$pages = get_pages( [
+				'meta_key'   => '_wp_page_template',
+				'meta_value' => $template_slug,
+			] );
 			$count = count( $pages );
-			$label = ucwords( str_replace( array( 'mm-', '-' ), array( '', ' ' ), $template_slug ) );
+			$label = ucwords( str_replace( [ 'mm-', '-' ], [ '', ' ' ], $template_slug ) );
 
 			printf(
 				'<tr><td>%s</td><td>%s</td><td>%d</td></tr>',
@@ -168,28 +158,25 @@ class MM_Schema_Post_Types {
 			$supports    = $config[2];
 			$icon        = $config[3];
 
-			register_post_type(
-				$slug,
-				array(
-					'labels'       => array(
-						'name'               => $short_label,
-						'singular_name'      => $schema_type,
-						'add_new_item'       => 'Add New ' . $schema_type,
-						'edit_item'          => 'Edit ' . $schema_type,
-						'view_item'          => 'View ' . $schema_type,
-						'search_items'       => 'Search ' . $short_label,
-						'not_found'          => 'No ' . $short_label . ' found',
-						'not_found_in_trash' => 'No ' . $short_label . ' found in Trash',
-					),
-					'public'       => true,
-					'has_archive'  => true,
-					'rewrite'      => array( 'slug' => sanitize_title( strtolower( $short_label ) ) ),
-					'supports'     => $supports,
-					'menu_icon'    => 'dashicons-' . $icon,
-					'show_in_rest' => true,
-					'show_in_menu' => 'mm-schema-dashboard',
-				)
-			);
+			register_post_type( $slug, [
+				'labels'       => [
+					'name'               => $short_label,
+					'singular_name'      => $schema_type,
+					'add_new_item'       => 'Add New ' . $schema_type,
+					'edit_item'          => 'Edit ' . $schema_type,
+					'view_item'          => 'View ' . $schema_type,
+					'search_items'       => 'Search ' . $short_label,
+					'not_found'          => 'No ' . $short_label . ' found',
+					'not_found_in_trash' => 'No ' . $short_label . ' found in Trash',
+				],
+				'public'       => true,
+				'has_archive'  => true,
+				'rewrite'      => [ 'slug' => sanitize_title( strtolower( $short_label ) ) ],
+				'supports'     => $supports,
+				'menu_icon'    => 'dashicons-' . $icon,
+				'show_in_rest' => true,
+				'show_in_menu' => 'mm-schema-dashboard',
+			] );
 		}
 	}
 
@@ -202,7 +189,7 @@ class MM_Schema_Post_Types {
 			add_meta_box(
 				'mm_schema_fields',
 				$schema_type . ' Details',
-				array( __CLASS__, 'render_meta_box' ),
+				[ __CLASS__, 'render_meta_box' ],
 				$slug,
 				'normal',
 				'high'
@@ -210,8 +197,8 @@ class MM_Schema_Post_Types {
 		}
 
 		// Page template metaboxes — detect on the page screen.
-		add_action( 'load-post.php', array( __CLASS__, 'add_page_template_meta_boxes' ) );
-		add_action( 'load-post-new.php', array( __CLASS__, 'add_page_template_meta_boxes' ) );
+		add_action( 'load-post.php', [ __CLASS__, 'add_page_template_meta_boxes' ] );
+		add_action( 'load-post-new.php', [ __CLASS__, 'add_page_template_meta_boxes' ] );
 	}
 
 	/**
@@ -224,7 +211,7 @@ class MM_Schema_Post_Types {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification -- read-only metabox rendering; no state change.
-		$post_id  = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+		$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
 		$template = $post_id ? get_page_template_slug( $post_id ) : '';
 
 		if ( ! isset( self::TEMPLATES[ $template ] ) ) {
@@ -235,7 +222,7 @@ class MM_Schema_Post_Types {
 		add_meta_box(
 			'mm_schema_fields',
 			$schema_type . ' Details',
-			array( __CLASS__, 'render_page_template_meta_box' ),
+			[ __CLASS__, 'render_page_template_meta_box' ],
 			'page',
 			'normal',
 			'high'
@@ -244,8 +231,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the meta box for a given schema post type.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	public static function render_meta_box( \WP_Post $post ): void {
 		wp_nonce_field( 'mm_schema_meta', 'mm_schema_nonce' );
@@ -269,14 +254,14 @@ class MM_Schema_Post_Types {
 
 		$wc_active   = class_exists( 'WooCommerce' ) || function_exists( 'WC' );
 		$fields      = MM_Schema_Types::get_fields_by_type( $wc_active );
-		$type_fields = $fields[ $schema_type ] ?? array();
+		$type_fields = $fields[ $schema_type ] ?? [];
 		$saved       = get_post_meta( $post->ID, 'mm_schema_fields', true );
 		if ( ! is_array( $saved ) ) {
-			$saved = array();
+			$saved = [];
 		}
 
 		// WooCommerce product linking section for Event and Service.
-		if ( $wc_active && in_array( $slug, array( 'mm_event', 'mm_service' ), true ) ) {
+		if ( $wc_active && in_array( $slug, [ 'mm_event', 'mm_service' ], true ) ) {
 			self::render_wc_product_linking_section( $post, $slug );
 		}
 
@@ -294,8 +279,8 @@ class MM_Schema_Post_Types {
 		echo '<table class="form-table"><tbody>';
 
 		// Get business profile defaults for auto-population.
-		$biz      = in_array( $slug, array( 'mm_event', 'mm_service', 'mm_trip', 'mm_course' ), true ) ? MM_Site_Settings::get_instance()->all_business() : array();
-		$biz_addr = $biz['address'] ?? array();
+		$biz = in_array( $slug, [ 'mm_event', 'mm_service', 'mm_trip', 'mm_course' ], true ) ? MM_Site_Settings::get_instance()->all_business() : [];
+		$biz_addr = $biz['address'] ?? [];
 
 		foreach ( $type_fields as $field ) {
 			$key         = $field['key'];
@@ -305,7 +290,7 @@ class MM_Schema_Post_Types {
 			$required    = ! empty( $field['required'] );
 			$placeholder = $field['placeholder'] ?? '';
 			$desc        = $field['description'] ?? '';
-			$options     = $field['options'] ?? array();
+			$options     = $field['options'] ?? [];
 
 			// Build data attribute for auto-population from business profile.
 			$biz_attr = '';
@@ -315,20 +300,13 @@ class MM_Schema_Post_Types {
 						$biz_attr = ! empty( $biz['name'] ) ? sprintf( ' data-biz-default="%s"', esc_attr( $biz['name'] ) ) : '';
 						break;
 					case 'event_location_address':
-						$full_addr = trim(
-							implode(
-								', ',
-								array_filter(
-									array(
-										$biz_addr['street'] ?? '',
-										$biz_addr['city'] ?? '',
-										$biz_addr['state'] ?? '',
-										$biz_addr['zip'] ?? '',
-									)
-								)
-							)
-						);
-						$biz_attr  = $full_addr ? sprintf( ' data-biz-default="%s"', esc_attr( $full_addr ) ) : '';
+						$full_addr = trim( implode( ', ', array_filter( [
+							$biz_addr['street'] ?? '',
+							$biz_addr['city'] ?? '',
+							$biz_addr['state'] ?? '',
+							$biz_addr['zip'] ?? '',
+						] ) ) );
+						$biz_attr = $full_addr ? sprintf( ' data-biz-default="%s"', esc_attr( $full_addr ) ) : '';
 						break;
 					case 'event_organizer_name':
 						$biz_attr = ! empty( $biz['name'] ) ? sprintf( ' data-biz-default="%s"', esc_attr( $biz['name'] ) ) : '';
@@ -398,7 +376,7 @@ class MM_Schema_Post_Types {
 		}
 
 		// Event/Service/Trip/Course: add auto-populate JavaScript.
-		if ( in_array( $slug, array( 'mm_event', 'mm_service', 'mm_trip', 'mm_course' ), true ) ) {
+		if ( in_array( $slug, [ 'mm_event', 'mm_service', 'mm_trip', 'mm_course' ], true ) ) {
 			?>
 			<script>
 			(function(){
@@ -427,8 +405,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the meta box for pages using schema templates.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	public static function render_page_template_meta_box( \WP_Post $post ): void {
 		wp_nonce_field( 'mm_schema_meta', 'mm_schema_nonce' );
@@ -460,8 +436,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the ContactPage meta box — auto-generated from business info.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_contact_page_meta_box( \WP_Post $post ): void {
 		$settings = MM_Site_Settings::get_instance();
@@ -469,8 +443,8 @@ class MM_Schema_Post_Types {
 		$name     = $biz['name'] ?? '';
 		$phone    = $biz['phone'] ?? '';
 		$email    = $biz['email'] ?? '';
-		$addr     = $biz['address'] ?? array();
-		$hours    = $biz['hours'] ?? array();
+		$addr     = $biz['address'] ?? [];
+		$hours    = $biz['hours'] ?? [];
 		$lat      = $biz['lat'] ?? '';
 		$lng      = $biz['lng'] ?? '';
 
@@ -486,10 +460,10 @@ class MM_Schema_Post_Types {
 		printf( '<tr><th>Phone</th><td>%s</td></tr>', esc_html( $phone ?: '<em>Not set</em>' ) );
 		printf( '<tr><th>Email</th><td>%s</td></tr>', esc_html( $email ?: '<em>Not set</em>' ) );
 
-		$street    = $addr['street'] ?? '';
-		$city      = $addr['city'] ?? '';
-		$state     = $addr['state'] ?? '';
-		$zip       = $addr['zip'] ?? '';
+		$street   = $addr['street'] ?? '';
+		$city     = $addr['city'] ?? '';
+		$state    = $addr['state'] ?? '';
+		$zip      = $addr['zip'] ?? '';
 		$full_addr = trim( "$street, $city, $state $zip", ', ' );
 		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ?: '<em>Not set</em>' ) );
 
@@ -512,8 +486,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the AboutPage meta box — auto-generated from business info.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_about_page_meta_box( \WP_Post $post ): void {
 		$settings  = MM_Site_Settings::get_instance();
@@ -522,10 +494,10 @@ class MM_Schema_Post_Types {
 		$desc      = $biz['description'] ?? '';
 		$phone     = $biz['phone'] ?? '';
 		$email     = $biz['email'] ?? '';
-		$addr      = $biz['address'] ?? array();
+		$addr      = $biz['address'] ?? [];
 		$founding  = $biz['founding_date'] ?? '';
 		$employees = $biz['number_of_employees'] ?? '';
-		$areas     = $biz['service_areas'] ?? array();
+		$areas     = $biz['service_areas'] ?? [];
 
 		echo '<div style="background:#f0f0f1;padding:16px;border-radius:4px;margin-bottom:16px;">';
 		echo '<p style="margin:0 0 8px 0;"><strong>About Page</strong> is auto-generated from your Business Info settings.</p>';
@@ -545,10 +517,10 @@ class MM_Schema_Post_Types {
 			printf( '<tr><th>Employees</th><td>%s</td></tr>', esc_html( $employees ) );
 		}
 
-		$street    = $addr['street'] ?? '';
-		$city      = $addr['city'] ?? '';
-		$state     = $addr['state'] ?? '';
-		$zip       = $addr['zip'] ?? '';
+		$street   = $addr['street'] ?? '';
+		$city     = $addr['city'] ?? '';
+		$state    = $addr['state'] ?? '';
+		$zip      = $addr['zip'] ?? '';
 		$full_addr = trim( "$street, $city, $state $zip", ', ' );
 		printf( '<tr><th>Address</th><td>%s</td></tr>', esc_html( $full_addr ?: '<em>Not set</em>' ) );
 
@@ -566,8 +538,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the Calendar meta box — auto-generated event calendar.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_calendar_meta_box( \WP_Post $post ): void {
 		$events = self::get_upcoming_events();
@@ -603,33 +573,29 @@ class MM_Schema_Post_Types {
 	 * Get upcoming events (sorted by start date).
 	 */
 	private static function get_upcoming_events(): array {
-		$query = new \WP_Query(
-			array(
-				'post_type'      => 'mm_event',
-				'posts_per_page' => 20,
-				'meta_key'       => 'mm_schema_fields',
-				'orderby'        => 'meta_value',
-				'order'          => 'ASC',
-				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-					array(
-						'key'     => 'mm_schema_fields',
-						'compare' => 'EXISTS',
-					),
-				),
-			)
-		);
+		$query = new \WP_Query( [
+			'post_type'      => 'mm_event',
+			'posts_per_page' => 20,
+			'meta_key'       => 'mm_schema_fields',
+			'orderby'        => 'meta_value',
+			'order'          => 'ASC',
+			'meta_query'     => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				[
+					'key'     => 'mm_schema_fields',
+					'compare' => 'EXISTS',
+				],
+			],
+		] );
 		return $query->posts;
 	}
 
 	/**
 	 * Render the FAQPage meta box — dynamic Q&A pairs.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_faq_page_meta_box( \WP_Post $post ): void {
 		$saved = get_post_meta( $post->ID, 'mm_schema_fields', true );
 		if ( ! is_array( $saved ) ) {
-			$saved = array();
+			$saved = [];
 		}
 
 		// Count existing pairs.
@@ -687,9 +653,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render a single FAQ Q&A pair.
-	 *
-	 * @param int   $i I.
-	 * @param array $saved Saved.
 	 */
 	private static function render_faq_pair( int $i, array $saved ): void {
 		$question = $saved[ "faq_question_{$i}" ] ?? '';
@@ -711,13 +674,11 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render the HowTo meta box — HowTo-level fields, dynamic supply/tools, dynamic steps.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_how_to_meta_box( \WP_Post $post ): void {
 		$saved = get_post_meta( $post->ID, 'mm_schema_fields', true );
 		if ( ! is_array( $saved ) ) {
-			$saved = array();
+			$saved = [];
 		}
 
 		// HowTo-level fields (totalTime, estimatedCost).
@@ -732,7 +693,7 @@ class MM_Schema_Post_Types {
 			esc_attr( $total_time )
 		);
 
-		$cost_amount   = $saved['howto_cost_amount'] ?? '';
+		$cost_amount = $saved['howto_cost_amount'] ?? '';
 		$cost_currency = $saved['howto_cost_currency'] ?? '';
 		printf(
 			'<tr><th><label for="mm_howto_cost_amount">Estimated Cost</label></th><td>' .
@@ -887,9 +848,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render a single HowTo step.
-	 *
-	 * @param int   $i I.
-	 * @param array $saved Saved.
 	 */
 	private static function render_how_to_step( int $i, array $saved ): void {
 		$name  = $saved[ "howto_step_name_{$i}" ] ?? '';
@@ -914,9 +872,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Render WooCommerce product linking section for Event/Service.
-	 *
-	 * @param \WP_Post $post Post object.
-	 * @param string   $slug Slug.
 	 */
 	private static function render_wc_product_linking_section( \WP_Post $post, string $slug ): void {
 		$linked_product_id = (int) get_post_meta( $post->ID, '_mm_wc_product_id', true );
@@ -991,8 +946,6 @@ class MM_Schema_Post_Types {
 	 * Render vessel linking section for Trip CPT.
 	 *
 	 * Allows linking a Trip to a Vessel post, similar to WC product linking.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_vessel_linking_section( \WP_Post $post ): void {
 		$vessel_id    = (int) get_post_meta( $post->ID, '_mm_vessel_id', true );
@@ -1062,8 +1015,6 @@ class MM_Schema_Post_Types {
 	 * Render destination linking section for Trip CPT.
 	 *
 	 * Allows linking a Trip to a Destination post.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	private static function render_destination_linking_section( \WP_Post $post ): void {
 		$dest_id    = (int) get_post_meta( $post->ID, '_mm_destination_id', true );
@@ -1140,20 +1091,15 @@ class MM_Schema_Post_Types {
 		if ( ! $search ) {
 			wp_send_json_error( 'Empty search' );
 		}
-		$query   = new \WP_Query(
-			array(
-				'post_type'      => 'mm_destination',
-				's'              => $search,
-				'posts_per_page' => 10,
-				'post_status'    => 'publish',
-			)
-		);
-		$results = array();
+		$query = new \WP_Query( [
+			'post_type'      => 'mm_destination',
+			's'              => $search,
+			'posts_per_page' => 10,
+			'post_status'    => 'publish',
+		] );
+		$results = [];
 		foreach ( $query->posts as $dest ) {
-			$results[] = array(
-				'id'    => $dest->ID,
-				'title' => get_the_title( $dest ),
-			);
+			$results[] = [ 'id' => $dest->ID, 'title' => get_the_title( $dest ) ];
 		}
 		wp_send_json_success( $results );
 	}
@@ -1170,33 +1116,29 @@ class MM_Schema_Post_Types {
 		if ( ! $search ) {
 			wp_send_json_error( 'Empty search' );
 		}
-		$query   = new \WP_Query(
-			array(
-				'post_type'      => 'mm_vessel',
-				's'              => $search,
-				'posts_per_page' => 10,
-				'post_status'    => 'publish',
-			)
-		);
-		$results = array();
+		$query = new \WP_Query( [
+			'post_type'      => 'mm_vessel',
+			's'              => $search,
+			'posts_per_page' => 10,
+			'post_status'    => 'publish',
+		] );
+		$results = [];
 		foreach ( $query->posts as $vessel ) {
-			$results[] = array(
-				'id'    => $vessel->ID,
-				'title' => get_the_title( $vessel ),
-			);
+			$results[] = [ 'id' => $vessel->ID, 'title' => get_the_title( $vessel ) ];
 		}
 		wp_send_json_success( $results );
 	}
 
 	/**
 	 * Save meta box data.
-	 *
-	 * @param int      $post_id Post ID.
-	 * @param \WP_Post $post Post object.
 	 */
 	public static function save_meta( int $post_id, \WP_Post $post ): void {
-		$is_schema_cpt  = isset( self::TYPES[ $post->post_type ] );
-		$template       = get_page_template_slug( $post_id );
+		// Skip if page generator is regenerating (prevents recursion without hook removal).
+		if ( class_exists( 'MM_Page_Generator' ) && MM_Page_Generator::is_regenerating() ) {
+			return;
+		}
+		$is_schema_cpt = isset( self::TYPES[ $post->post_type ] );
+		$template      = get_page_template_slug( $post_id );
 		$is_schema_page = 'page' === $post->post_type && isset( self::TEMPLATES[ $template ] );
 
 		if ( ! $is_schema_cpt && ! $is_schema_page ) {
@@ -1216,8 +1158,8 @@ class MM_Schema_Post_Types {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- array read; every element is sanitized in the loop below.
-		$raw_fields = (array) wp_unslash( $_POST['mm_schema_fields'] ?? array() );
-		$fields     = array();
+		$raw_fields = (array) wp_unslash( $_POST['mm_schema_fields'] ?? [] );
+		$fields     = [];
 		foreach ( $raw_fields as $key => $value ) {
 			if ( is_array( $value ) ) {
 				continue;
@@ -1225,6 +1167,23 @@ class MM_Schema_Post_Types {
 			$fields[ sanitize_key( (string) $key ) ] = sanitize_text_field( $value );
 		}
 		update_post_meta( $post_id, 'mm_schema_fields', $fields );
+
+		// Auto-populate booking URL from business profile if empty.
+		$booking_key = match ( $post->post_type ) {
+			'mm_service' => 'service_booking_url',
+			'mm_trip'    => 'trip_booking_url',
+			'mm_rental'  => 'rental_booking_url',
+			default      => '',
+		};
+		if ( $booking_key && empty( $fields[ $booking_key ] ) ) {
+			$biz         = MM_Site_Settings::get_instance()->all_business();
+			$booking_url = (string) ( $biz['booking_link'] ?? '' );
+			if ( '' === $booking_url ) {
+				$booking_url = home_url( '/contact/' );
+			}
+			$fields[ $booking_key ] = $booking_url;
+			update_post_meta( $post_id, 'mm_schema_fields', $fields );
+		}
 
 		$bc_label = sanitize_text_field( wp_unslash( $_POST['mm_breadcrumb_label'] ?? '' ) );
 		update_post_meta( $post_id, 'mm_breadcrumb_label', $bc_label );
@@ -1268,45 +1227,55 @@ class MM_Schema_Post_Types {
 		?>
 		<div class="mm-archive mm-archive--<?php echo esc_attr( $layout ); ?>" data-cpt="<?php echo esc_attr( $slug ); ?>">
 		<?php if ( have_posts() ) : ?>
-			<?php
-			while ( have_posts() ) :
-				the_post();
-				?>
+			<?php while ( have_posts() ) : the_post(); ?>
 				<article id="post-<?php the_ID(); ?>" <?php post_class( 'mm-archive-card mm-archive-card--' . $layout ); ?>>
 					<?php if ( has_post_thumbnail() ) : ?>
 						<a class="mm-archive-card__image" href="<?php the_permalink(); ?>">
-							<?php the_post_thumbnail( 'medium_large', array( 'loading' => 'lazy' ) ); ?>
+							<?php the_post_thumbnail( 'medium_large', [ 'loading' => 'lazy' ] ); ?>
 						</a>
 					<?php endif; ?>
 					<div class="mm-archive-card__body">
 						<h2 class="mm-archive-card__title">
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
 						</h2>
-						<?php
-						// Schema field details (price, etc.) after title.
-						$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
-						if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
-							$detail_items = array();
-							$field_defs   = MM_Schema_Types::get_fields_by_type()[ self::slug_to_type( $slug ) ] ?? array();
-							$label_map    = array();
-							foreach ( $field_defs as $fdef ) {
-								$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
-							}
-							foreach ( $saved_fields as $fkey => $fval ) {
-								$fval = trim( (string) $fval );
-								if ( '' === $fval ) {
-									continue;
-								}
-								$flabel         = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
-								$detail_items[] = array(
-									'label' => $flabel,
-									'value' => $fval,
-								);
-							}
-							if ( $detail_items ) :
-								?>
+					<?php
+					// Schema field details (price, etc.) after title.
+					$saved_fields = get_post_meta( get_the_ID(), 'mm_schema_fields', true );
+					if ( is_array( $saved_fields ) && ! empty( $saved_fields ) ) {
+						$detail_items = [];
+						$type = MM_Schema_Post_Types::slug_to_type( $slug );
+						$field_defs = MM_Schema_Types::get_fields_by_type()[ $type ] ?? [];
+						$label_map = [];
+						foreach ( $field_defs as $fdef ) {
+							$label_map[ $fdef['key'] ?? '' ] = $fdef['label'] ?? ( $fdef['key'] ?? '' );
+						}
+						// Per-type hidden fields: machine-reading only, not shown in display.
+						$hidden_by_type = [
+							'Service'    => [ 'service_type', 'service_currency', 'service_booking_url' ],
+							'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode', 'event_ticket_url' ],
+							'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
+							'Product'    => [ 'product_currency' ],
+							'TouristTrip' => [ 'trip_duration_iso', 'trip_currency', 'trip_booking_url' ],
+							'Course'     => [ 'course_duration', 'course_currency', 'course_code', 'course_enrollment_url' ],
+			'LocalBusiness' => [ 'business_type', 'business_hours', 'business_location_type', 'business_show_phone', 'business_show_email', 'business_show_vcard', 'business_show_json', 'business_show_csv' ],
+							'Organization'  => [ 'org_type' ],
+							'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms', 'rental_booking_url' ],
+						];
+						$hidden = $hidden_by_type[ $type ] ?? [];
+						// Provider name visibility is a user setting (Preferences > CPT Display).
+						if ( ! get_option( 'mm_show_provider_archive', false ) ) {
+							$hidden[] = 'service_provider_name';
+						}
+						foreach ( $saved_fields as $fkey => $fval ) {
+							$fval = trim( (string) $fval );
+							if ( '' === $fval ) continue;
+							if ( in_array( $fkey, $hidden, true ) ) continue;
+							$flabel = $label_map[ $fkey ] ?? ucwords( str_replace( '_', ' ', (string) $fkey ) );
+							$detail_items[] = [ 'label' => $flabel, 'value' => $fval ];
+						}
+							if ( $detail_items ) : ?>
 						<div class="mm-archive-card__details">
-								<?php foreach ( $detail_items as $d ) : ?>
+							<?php foreach ( $detail_items as $d ) : ?>
 							<div class="mm-archive-card__detail-row">
 								<span class="mm-archive-card__detail-label"><?php echo esc_html( $d['label'] ); ?>:</span>
 								<span class="mm-archive-card__detail-value"><?php echo esc_html( $d['value'] ); ?></span>
@@ -1348,8 +1317,6 @@ class MM_Schema_Post_Types {
 	 * Handles both page templates (mm-about, mm-contact, etc.) and
 	 * CPT single/archive templates (mm_trip, mm_destination, etc.).
 	 * No theme dependency — plugin provides its own templates.
-	 *
-	 * @param string $template Template.
 	 */
 	public static function load_page_template( string $template ): string {
 		// CPT single templates.
@@ -1398,8 +1365,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Check if a page template slug is a schema template.
-	 *
-	 * @param string $template Template.
 	 */
 	public static function is_schema_template( string $template ): bool {
 		return isset( self::TEMPLATES[ $template ] );
@@ -1407,8 +1372,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Convert a page template slug to its schema type name.
-	 *
-	 * @param string $template Template.
 	 */
 	public static function template_to_type( string $template ): ?string {
 		return self::TEMPLATES[ $template ] ?? null;
@@ -1416,8 +1379,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Get the schema template slug for a post, or null if not using one.
-	 *
-	 * @param \WP_Post $post Post object.
 	 */
 	public static function get_post_template( \WP_Post $post ): ?string {
 		if ( 'page' !== $post->post_type ) {
@@ -1455,7 +1416,7 @@ class MM_Schema_Post_Types {
 		}
 
 		// Don't migrate revisions or attachments.
-		if ( in_array( $post->post_type, array( 'revision', 'attachment', 'nav_menu_item', 'custom_css', 'customize_changeset' ), true ) ) {
+		if ( in_array( $post->post_type, [ 'revision', 'attachment', 'nav_menu_item', 'custom_css', 'customize_changeset' ], true ) ) {
 			return false;
 		}
 
@@ -1469,21 +1430,16 @@ class MM_Schema_Post_Types {
 		}
 
 		// Change post type.
-		$result = wp_update_post(
-			array(
-				'ID'        => $post_id,
-				'post_type' => $slug,
-			),
-			true
-		);
+		$result = wp_update_post( [
+			'ID'        => $post_id,
+			'post_type' => $slug,
+		], true );
 
 		return is_wp_error( $result ) ? false : $slug;
 	}
 
 	/**
 	 * Convert a schema type name to its CPT slug.
-	 *
-	 * @param string $schema_type Schema type.
 	 */
 	public static function type_to_slug( string $schema_type ): ?string {
 		foreach ( self::TYPES as $slug => $config ) {
@@ -1496,8 +1452,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Convert a CPT slug to its schema type name.
-	 *
-	 * @param string $slug Slug.
 	 */
 	public static function slug_to_type( string $slug ): ?string {
 		return self::TYPES[ $slug ][0] ?? null;
@@ -1512,8 +1466,6 @@ class MM_Schema_Post_Types {
 
 	/**
 	 * Check if a post type is a schema CPT.
-	 *
-	 * @param string $post_type Post type.
 	 */
 	public static function is_schema_cpt( string $post_type ): bool {
 		return isset( self::TYPES[ $post_type ] );
@@ -1526,9 +1478,125 @@ class MM_Schema_Post_Types {
 	 * for every schema CPT. The layout is deliberately plain — a definition
 	 * list of the filled fields in field-definition order — because these
 	 * are details, not decoration. URL fields render as links.
-	 *
-	 * @param int $post_id Post ID.
 	 */
+	/**
+	 * Serve vCard / JSON / CSV downloads for mm_business posts.
+	 *
+	 * Fired on template_redirect when ?mm_vcard=, ?mm_json=, or ?mm_csv= is present.
+	 * Respects the per-post show_* toggles.
+	 */
+	public static function maybe_serve_download(): void {
+		foreach ( [ 'mm_vcard' => 'vcard', 'mm_json' => 'json', 'mm_csv' => 'csv' ] as $param => $kind ) {
+			if ( ! isset( $_GET[ $param ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				continue;
+			}
+			$post_id = (int) $_GET[ $param ]; // phpcs:ignore WordPress.Security.NonceVerification
+			$post    = get_post( $post_id );
+			if ( ! $post || 'mm_business' !== $post->post_type ) {
+				return;
+			}
+			$saved = get_post_meta( $post_id, 'mm_schema_fields', true );
+			if ( ! is_array( $saved ) ) {
+				$saved = [];
+			}
+			// Respect show_* toggles.
+			$toggle_key = 'business_show_' . $kind;
+			if ( isset( $saved[ $toggle_key ] ) && '0' === $saved[ $toggle_key ] ) {
+				return;
+			}
+			$name = get_the_title( $post_id );
+			if ( 'vcard' === $kind ) {
+				self::serve_vcard( $post_id, $name, $saved );
+			} elseif ( 'json' === $kind ) {
+				self::serve_json( $post_id, $name, $saved );
+			} elseif ( 'csv' === $kind ) {
+				self::serve_csv( $post_id, $name, $saved );
+			}
+			exit;
+		}
+	}
+
+	private static function serve_vcard( int $post_id, string $name, array $saved ): void {
+		$phone  = $saved['business_telephone'] ?? '';
+		$email  = $saved['business_email'] ?? '';
+		$street = $saved['business_street'] ?? '';
+		$city   = $saved['business_city'] ?? '';
+		$state  = $saved['business_state'] ?? '';
+		$zip    = $saved['business_zip'] ?? '';
+		$country = $saved['business_country'] ?? 'US';
+		$vcf  = "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+		$vcf .= 'FN:' . $name . "\r\n";
+		$vcf .= 'N:;' . $name . ";;;\r\n";
+		if ( $phone ) { $vcf .= 'TEL;TYPE=WORK,VOICE:' . $phone . "\r\n"; }
+		if ( $email ) { $vcf .= 'EMAIL;TYPE=WORK:' . $email . "\r\n"; }
+		if ( $street || $city ) {
+			$vcf .= 'ADR;TYPE=WORK:;;' . $street . ';' . $city . ';' . $state . ';' . $zip . ';' . $country . "\r\n";
+		}
+		$url = get_permalink( $post_id );
+		if ( $url ) { $vcf .= 'URL:' . $url . "\r\n"; }
+		$vcf .= "END:VCARD\r\n";
+		header( 'Content-Type: text/vcard; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.vcf"' );
+		echo $vcf; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	private static function serve_json( int $post_id, string $name, array $saved ): void {
+		$out = [
+			'name'        => $name,
+			'type'        => $saved['business_type'] ?: 'LocalBusiness',
+			'phone'       => $saved['business_telephone'] ?? '',
+			'email'       => $saved['business_email'] ?? '',
+			'address'     => array_filter( [
+				'street'  => $saved['business_street'] ?? '',
+				'city'    => $saved['business_city'] ?? '',
+				'state'   => $saved['business_state'] ?? '',
+				'zip'     => $saved['business_zip'] ?? '',
+				'country' => $saved['business_country'] ?? '',
+			] ),
+			'url'         => $saved['business_url'] ?? get_permalink( $post_id ),
+			'priceRange'  => $saved['business_price_range'] ?? '',
+			'openingHours' => $saved['business_hours'] ?? '',
+			'areaServed'  => $saved['business_service_areas'] ?? '',
+			'paymentAccepted' => $saved['business_payment_accepted'] ?? '',
+		];
+		if ( ! empty( $saved['business_lat'] ) && ! empty( $saved['business_lng'] ) ) {
+			$out['geo'] = [ 'latitude' => (float) $saved['business_lat'], 'longitude' => (float) $saved['business_lng'] ];
+		}
+		header( 'Content-Type: application/json; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.json"' );
+		echo wp_json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+	}
+
+	private static function serve_csv( int $post_id, string $name, array $saved ): void {
+		$rows = [
+			[ 'Field', 'Value' ],
+			[ 'Name', $name ],
+			[ 'Type', $saved['business_type'] ?: 'LocalBusiness' ],
+			[ 'Phone', $saved['business_telephone'] ?? '' ],
+			[ 'Email', $saved['business_email'] ?? '' ],
+			[ 'Street', $saved['business_street'] ?? '' ],
+			[ 'City', $saved['business_city'] ?? '' ],
+			[ 'State', $saved['business_state'] ?? '' ],
+			[ 'ZIP', $saved['business_zip'] ?? '' ],
+			[ 'Country', $saved['business_country'] ?? '' ],
+			[ 'Latitude', $saved['business_lat'] ?? '' ],
+			[ 'Longitude', $saved['business_lng'] ?? '' ],
+			[ 'Website', $saved['business_url'] ?? '' ],
+			[ 'Price Range', $saved['business_price_range'] ?? '' ],
+			[ 'Hours', $saved['business_hours'] ?? '' ],
+			[ 'Service Areas', $saved['business_service_areas'] ?? '' ],
+			[ 'Payment Accepted', $saved['business_payment_accepted'] ?? '' ],
+			[ 'Booking Link', $saved['business_booking_link'] ?? '' ],
+		];
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $name ) . '.csv"' );
+		$out = fopen( 'php://output', 'w' );
+		foreach ( $rows as $row ) {
+			fputcsv( $out, $row );
+		}
+		fclose( $out );
+	}
+
 	public static function render_details_table( int $post_id ): void {
 		$post = get_post( $post_id );
 		if ( ! $post || ! self::is_schema_cpt( $post->post_type ) ) {
@@ -1542,14 +1610,38 @@ class MM_Schema_Post_Types {
 		if ( ! is_array( $saved ) || empty( $saved ) ) {
 			return;
 		}
+
+		// Per-type hidden fields: valid in schema JSON-LD but machine-reading
+		// only — never shown in the human-visible details table.
+		$hidden_fields_by_type = [
+			'Service'    => [ 'service_type', 'service_currency' ],
+			'Event'      => [ 'event_currency', 'event_status', 'event_attendance_mode' ],
+			'HowTo'      => [ 'howto_total_time', 'howto_cost_currency' ],
+			'Product'    => [ 'product_currency' ],
+			'TouristTrip' => [ 'trip_duration_iso', 'trip_currency' ],
+			'Course'     => [ 'course_duration', 'course_currency', 'course_code' ],
+			'LocalBusiness' => [ 'business_type', 'business_hours' ],
+			'Organization'  => [ 'org_type' ],
+			'VacationRental' => [ 'rental_property_type', 'rental_lat', 'rental_lng', 'rental_pets_allowed', 'rental_max_guests', 'rental_bedrooms', 'rental_bathrooms' ],
+			'Person'     => [ 'person_show_email', 'person_show_phone' ],
+		];
+		$hidden_fields = $hidden_fields_by_type[ $type ] ?? [];
+		// Provider name visibility is a user setting (Preferences > CPT Display).
+		if ( ! get_option( 'mm_show_provider_single', false ) ) {
+			$hidden_fields[] = 'service_provider_name';
+		}
+
 		$fields = MM_Schema_Types::get_fields_by_type()[ $type ] ?? array();
-		$rows   = '';
-		$seen   = array();
+		$rows = '';
+		$seen = array();
 		foreach ( $fields as $field ) {
-			$key          = $field['key'] ?? '';
-			$value        = trim( (string) ( $saved[ $key ] ?? '' ) );
+			$key   = $field['key'] ?? '';
+			$value = trim( (string) ( $saved[ $key ] ?? '' ) );
 			$seen[ $key ] = true;
 			if ( '' === $value ) {
+				continue;
+			}
+			if ( in_array( $key, $hidden_fields, true ) ) {
 				continue;
 			}
 			$label = $field['label'] ?? $key;
@@ -1567,6 +1659,9 @@ class MM_Schema_Post_Types {
 			if ( isset( $seen[ $key ] ) ) {
 				continue;
 			}
+			if ( in_array( $key, $hidden_fields, true ) ) {
+				continue;
+			}
 			$value = trim( (string) $value );
 			if ( '' === $value ) {
 				continue;
@@ -1577,11 +1672,52 @@ class MM_Schema_Post_Types {
 		if ( '' === $rows ) {
 			return;
 		}
-		echo '<style>.mm-schema-details{margin:48px 0 24px 0}.mm-schema-details h2{font-size:20px;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 8px 0}.mm-details-list{margin:0}.mm-detail-row{display:flex;border-bottom:1px solid #eee;padding:8px 0}.mm-detail-row dt{flex:0 0 220px;font-weight:700}.mm-detail-row dd{margin:0}</style>';
+		// LocalBusiness: apply show_* toggles and add download/map links.
+		$extras = '';
+		if ( 'LocalBusiness' === $type ) {
+			// Respect show_phone / show_email — remove those rows if disabled.
+			$show_phone = $saved['business_show_phone'] ?? '1';
+			$show_email = $saved['business_show_email'] ?? '1';
+			if ( '0' === $show_phone ) {
+				$rows = preg_replace( '/<div class="mm-detail-row"><dt>Telephone<\/dt>.*?<\/div>/s', '', $rows );
+			}
+			if ( '0' === $show_email ) {
+				$rows = preg_replace( '/<div class="mm-detail-row"><dt>Email<\/dt>.*?<\/div>/s', '', $rows );
+			}
+			// Download + map links.
+			$links = [];
+			if ( '1' === ( $saved['business_show_vcard'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_vcard', $post_id, get_permalink( $post_id ) ) ) . '">Download vCard (.vcf)</a>';
+			}
+			if ( '1' === ( $saved['business_show_json'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_json', $post_id, get_permalink( $post_id ) ) ) . '">Download JSON</a>';
+			}
+			if ( '1' === ( $saved['business_show_csv'] ?? '1' ) ) {
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( add_query_arg( 'mm_csv', $post_id, get_permalink( $post_id ) ) ) . '">Download CSV</a>';
+			}
+			// Map links — only when address or geo is present and location_type is not 'none'.
+			$loc_type = $saved['business_location_type'] ?? 'brick_and_mortar';
+			$has_addr = ! empty( $saved['business_street'] ) || ! empty( $saved['business_city'] );
+			$has_geo  = ! empty( $saved['business_lat'] ) && ! empty( $saved['business_lng'] );
+			if ( 'none' !== $loc_type && ( $has_addr || $has_geo ) ) {
+				$map_query = $has_geo
+					? $saved['business_lat'] . ',' . $saved['business_lng']
+					: trim( implode( ' ', array_filter( [ $saved['business_street'] ?? '', $saved['business_city'] ?? '', $saved['business_state'] ?? '', $saved['business_zip'] ?? '' ] ) ) );
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Google Maps</a>';
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://www.bing.com/maps?q=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Bing Maps</a>';
+				$links[] = '<a class="mm-detail-download" href="' . esc_url( 'https://maps.apple.com/?q=' . rawurlencode( $map_query ) ) . '" target="_blank" rel="noopener">Apple Maps</a>';
+			}
+			if ( $links ) {
+				$extras = '<div class="mm-detail-links">' . implode( ' ', $links ) . '</div>';
+			}
+		}
+		echo '<style>.mm-schema-details{margin:48px 0 24px 0}.mm-schema-details h2{font-size:20px;border-bottom:1px solid #ccc;padding-bottom:6px;margin:0 0 8px 0}.mm-details-list{margin:0}.mm-detail-row{display:flex;border-bottom:1px solid #eee;padding:8px 0}.mm-detail-row dt{flex:0 0 220px;font-weight:700}.mm-detail-row dd{margin:0}.mm-detail-links{margin:16px 0 0 0;display:flex;flex-wrap:wrap;gap:12px}.mm-detail-download{display:inline-block;padding:8px 14px;background:#0073aa;color:#fff;text-decoration:none;border-radius:4px;font-size:14px}</style>';
 		echo '<section class="mm-schema-details">';
 		echo '<h2>' . esc_html__( 'Details', 'metamanager' ) . '</h2>';
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $rows is assembled from esc_html()/esc_url() parts above.
 		echo '<dl class="mm-details-list">' . $rows . '</dl>';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $extras is assembled from esc_url()/esc_html() parts above.
+		echo $extras;
 		echo '</section>';
 	}
 }

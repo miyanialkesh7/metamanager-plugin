@@ -38,7 +38,7 @@ class MM_Job_Queue {
 		if ( ! defined( 'FS_CHMOD_FILE' ) ) {
 			WP_Filesystem();
 		}
-		return new WP_Filesystem_Direct( array() );
+		return new WP_Filesystem_Direct( [] );
 	}
 
 	// -----------------------------------------------------------------------
@@ -50,12 +50,13 @@ class MM_Job_Queue {
 	 * Called on plugin activation and defensively before writing.
 	 */
 	public static function ensure_dirs(): void {
-		foreach ( array(
+		foreach ( [
 			MM_JOB_COMPRESS,
 			MM_JOB_META,
+			MM_JOB_WEBP,
 			MM_JOB_DONE,
 			MM_JOB_FAILED,
-		) as $dir ) {
+		] as $dir ) {
 			if ( ! is_dir( $dir ) ) {
 				wp_mkdir_p( $dir );
 			}
@@ -109,34 +110,20 @@ class MM_Job_Queue {
 		int $attachment_id,
 		string $file_path,
 		string $size = 'full',
-		array $extra = array()
+		array $extra = []
 	): string {
 		self::ensure_dirs();
 
-		$dir = ( 'compression' === $type ) ? MM_JOB_COMPRESS : MM_JOB_META;
+		$dir = match ( $type ) {
+			'compression' => MM_JOB_COMPRESS,
+			'webp'        => MM_JOB_WEBP,
+			default       => MM_JOB_META,
+		};
 
-		// Check for unclaimed pending jobs for this attachment+size.
-		$pending     = new \GlobIterator( $dir . $attachment_id . '-' . $size . '-*.json' );
-		$had_pending = $pending->count() > 0;
-
-		if ( $had_pending ) {
-			// Compression: skip duplicate. Metadata: write anyway (runs in sequence).
-			if ( 'compression' === $type ) {
-				self::push_queue_notice( 'skipped', $type, $attachment_id, $size );
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional operational log, not debug output
-				error_log(
-					sprintf(
-						'[Metamanager] %s job skipped — already pending: attachment %d, size %s.',
-						ucfirst( $type ),
-						$attachment_id,
-						$size
-					)
-				);
-				return 'skipped';
-			}
-			// Metadata jobs run in sequence — write the new job and notify.
-			self::push_queue_notice( 'queued', $type, $attachment_id, $size );
-		}
+		// Note: no deduplication at write time. The daemon's per-file flock
+		// handles concurrency safely. Suppressing writes at queue time drops
+		// work without knowing if the pending job will succeed (rule 18:
+		// no silent fallbacks — write the job and let the daemon decide).
 
 		// Dimensions from file — only valid for images; skip for video/audio.
 		$dimensions = '';
@@ -147,20 +134,17 @@ class MM_Job_Queue {
 			}
 		}
 
-		$job = array_merge(
-			array(
-				'attachment_id'  => $attachment_id,
-				'image_name'     => pathinfo( get_attached_file( $attachment_id ) ?: '', PATHINFO_FILENAME ),
-				'job_type'       => $type,
-				'file_path'      => $file_path,
-				'size'           => $size,
-				'dimensions'     => $dimensions,
-				'submitted_at'   => current_time( 'mysql' ),
-				'optimize_level' => (int) get_option( 'mm_compress_level', 2 ),
-				'metadata'       => MM_Metadata::get_fields_for_job( $attachment_id ),
-			),
-			$extra
-		);
+		$job = array_merge( [
+			'attachment_id'  => $attachment_id,
+			'image_name'     => pathinfo( get_attached_file( $attachment_id ) ?: '', PATHINFO_FILENAME ),
+			'job_type'       => $type,
+			'file_path'      => $file_path,
+			'size'           => $size,
+			'dimensions'     => $dimensions,
+			'submitted_at'   => current_time( 'mysql' ),
+			'optimize_level' => (int) get_option( 'mm_compress_level', 2 ),
+			'metadata'       => MM_Metadata::get_fields_for_job( $attachment_id ),
+		], $extra );
 
 		$uid      = wp_generate_password( 6, false, false );
 		$filename = $dir . $attachment_id . '-' . $size . '-' . time() . '-' . $uid . '.json';
@@ -170,75 +154,18 @@ class MM_Job_Queue {
 
 		if ( false === $bytes || 0 === $bytes ) {
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors
-			@error_log(
-				sprintf(
-					'[Metamanager] Failed to write job file: %s (attachment %d, size %s)',
-					$filename,
-					$attachment_id,
-					$size
-				)
-			);
+			@error_log( sprintf(
+				'[Metamanager] Failed to write job file: %s (attachment %d, size %s)',
+				$filename,
+				$attachment_id,
+				$size
+			) );
 			return 'failed';
 		}
 
 		MM_DB::log_pending_job( $job );
 
-		return $pending->count() > 0 ? 'queued' : 'written';
-	}
-
-	/**
-	 * Store a queue-status notice in a short-lived user-scoped transient so it
-	 * can be displayed on the next admin page load or included in an AJAX response.
-	 *
-	 * Notices are grouped by attachment_id to avoid repeating the same file name
-	 * once per size in the rendered output.
-	 *
-	 * @param string $status        'skipped' or 'queued'.
-	 * @param string $job_type      'compression' or 'metadata'.
-	 * @param int    $attachment_id Attachment ID.
-	 * @param string $size          WP size slug.
-	 */
-	private static function push_queue_notice(
-		string $status,
-		string $job_type,
-		int $attachment_id,
-		string $size
-	): void {
-		$user_id = get_current_user_id();
-		if ( ! $user_id ) {
-			return; // Background processes (cron, daemon import) — no UI to notify.
-		}
-
-		$post  = get_post( $attachment_id );
-		$name  = $post ? $post->post_title : '#' . $attachment_id;
-		$key   = 'mm_queue_notices_' . $user_id;
-		$items = get_transient( $key ) ?: array();
-
-		// One entry per attachment_id+job_type+status combination.
-		// If the same attachment already has a notice of this kind, just add the size.
-		$idx = null;
-		foreach ( $items as $i => $item ) {
-			if ( $item['attachment_id'] === $attachment_id
-				&& $item['job_type'] === $job_type
-				&& $item['status'] === $status ) {
-				$idx = $i;
-				break;
-			}
-		}
-
-		if ( null !== $idx ) {
-			$items[ $idx ]['sizes'][] = $size;
-		} else {
-			$items[] = array(
-				'status'        => $status,
-				'job_type'      => $job_type,
-				'attachment_id' => $attachment_id,
-				'name'          => $name,
-				'sizes'         => array( $size ),
-			);
-		}
-
-		set_transient( $key, $items, 120 );
+		return 'written';
 	}
 
 	// -----------------------------------------------------------------------
@@ -250,14 +177,14 @@ class MM_Job_Queue {
 	 *
 	 * @param int    $attachment_id WordPress attachment ID.
 	 * @param array  $meta          Attachment metadata (from wp_get_attachment_metadata).
-	 * @param string $types         'both' | 'compression' | 'metadata'.
+	 * @param string $types         'both' | 'compression' | 'metadata'
 	 * @param array  $extra         Extra fields passed to each job.
 	 */
 	public static function enqueue_all_sizes(
 		int $attachment_id,
-		array $meta = array(),
+		array $meta = [],
 		string $types = 'both',
-		array $extra = array()
+		array $extra = []
 	): void {
 		$file = get_attached_file( $attachment_id );
 
@@ -266,13 +193,15 @@ class MM_Job_Queue {
 		}
 
 		if ( ! $meta ) {
-			$meta = wp_get_attachment_metadata( $attachment_id ) ?: array();
+			$meta = wp_get_attachment_metadata( $attachment_id ) ?: [];
 		}
 
 		$queue_types = match ( $types ) {
-			'compression' => array( 'compression' ),
-			'metadata'    => array( 'metadata' ),
-			default       => array( 'compression', 'metadata' ),
+			'compression' => [ 'compression' ],
+			'metadata'    => [ 'metadata' ],
+			'webp'        => [ 'webp' ],
+			'compress+webp' => [ 'compression', 'webp' ],
+			default       => [ 'compression', 'metadata' ],
 		};
 
 		// Full / original image.
@@ -303,7 +232,7 @@ class MM_Job_Queue {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Wp_generate_attachment_metadata hook: enqueue both job types on upload.
+	 * wp_generate_attachment_metadata hook: enqueue both job types on upload.
 	 *
 	 * Fresh upload (no completed jobs in DB): reads embedded metadata into WP,
 	 * then queues both compression and metadata-embedding jobs.
@@ -315,7 +244,7 @@ class MM_Job_Queue {
 	 * @return array Unmodified metadata (we are a passthrough filter).
 	 */
 	public static function on_upload( array $metadata, int $attachment_id ): array {
-		$mime     = (string) get_post_mime_type( $attachment_id );
+		$mime = (string) get_post_mime_type( $attachment_id );
 		$is_image = wp_attachment_is_image( $attachment_id );
 		$is_video = MM_Metadata::is_video_mime( $mime );
 		$is_audio = MM_Metadata::is_audio_mime( $mime );
@@ -328,16 +257,17 @@ class MM_Job_Queue {
 		$is_regeneration = '1' === (string) get_post_meta( $attachment_id, MM_Metadata::META_SYNCED, true );
 
 		if ( $is_image ) {
-			// ---- Images: regen-aware logic ----
+			// Step 1 (JPEG/PNG): queue webp generation + compression.
+			// Step 2: webp daemon generates optimal WebP (cwebp -q 80), registers as attachment.
+			// Step 3 (WebP): cascade queues metadata only — WebP is already
+			//   optimal from the daemon; running compression again would
+			//   losslessly re-encode a lossy file (wasteful, potentially larger).
+			$job_types = ( 'image/webp' === $mime ) ? 'metadata' : 'compress+webp';
 			if ( $is_regeneration ) {
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compression', array( 'trigger' => 'thumbnail_regen' ) );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'thumbnail_regen' ] );
 			} else {
-				// Queue an import job so the daemon reads embedded tags and reports
-				// them back via result JSON. The metadata write-back job is queued by
-				// mm_import_completed_jobs() after the import result arrives, at which
-				// point the WP fields have been populated from the file.
 				MM_Metadata::enqueue_import_job( $attachment_id );
-				self::enqueue_all_sizes( $attachment_id, $metadata, 'compression', array( 'trigger' => 'upload' ) );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'upload' ] );
 			}
 			return $metadata;
 		}
@@ -354,26 +284,26 @@ class MM_Job_Queue {
 		} else {
 			// Re-upload of an existing file: write current WP fields back.
 			if ( MM_Metadata::can_write_meta( $mime ) ) {
-				self::write_job( 'metadata', $attachment_id, $file, 'full', array( 'trigger' => 'upload' ) );
+				self::write_job( 'metadata', $attachment_id, $file, 'full', [ 'trigger' => 'upload' ] );
 			}
 		}
 
 		// Queue video remux (container repack, lossless) — audio and PDF have no remux.
 		if ( $is_video ) {
-			self::write_job( 'compression', $attachment_id, $file, 'full', array( 'trigger' => 'upload' ) );
+			self::write_job( 'compression', $attachment_id, $file, 'full', [ 'trigger' => 'upload' ] );
 		}
 
 		return $metadata;
 	}
 
 	/**
-	 * Delete_attachment hook: remove queued job files and compression meta.
+	 * delete_attachment hook: remove queued job files and compression meta.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public static function on_delete_attachment( int $attachment_id ): void {
 		// Remove any unprocessed job files for this attachment.
-		foreach ( array( MM_JOB_COMPRESS, MM_JOB_META ) as $dir ) {
+		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP ] as $dir ) {
 			if ( ! is_dir( $dir ) ) {
 				continue;
 			}
@@ -387,7 +317,7 @@ class MM_Job_Queue {
 		}
 
 		// Remove all Metamanager custom metadata fields.
-		foreach ( array(
+		foreach ( [
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_OWNER,
@@ -402,7 +332,7 @@ class MM_Job_Queue {
 			MM_Metadata::META_GPS_LAT,
 			MM_Metadata::META_GPS_LON,
 			MM_Metadata::META_GPS_ALT,
-		) as $key ) {
+		] as $key ) {
 			delete_post_meta( $attachment_id, $key );
 		}
 	}
@@ -412,20 +342,18 @@ class MM_Job_Queue {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Return all pending jobs from compress and meta directories.
+	 * Return all pending jobs from compress, meta, and webp directories.
 	 *
-	 * @return array[ 'compression' => [...], 'metadata' => [...] ]
+	 * @return array[ 'compression' => [...], 'metadata' => [...], 'webp' => [...] ]
 	 */
 	public static function get_pending_jobs(): array {
-		$result = array(
-			'compression' => array(),
-			'metadata'    => array(),
-		);
+		$result = [ 'compression' => [], 'metadata' => [], 'webp' => [] ];
 
-		foreach ( array(
+		foreach ( [
 			'compression' => MM_JOB_COMPRESS,
 			'metadata'    => MM_JOB_META,
-		) as $type => $dir ) {
+			'webp'        => MM_JOB_WEBP,
+		] as $type => $dir ) {
 			// Include both pending (.json) and in-progress (.json.processing) files
 			// so that daemon-locked jobs are visible in the dashboard rather than
 			// silently disappearing from the queue count.
@@ -473,10 +401,7 @@ class MM_Job_Queue {
 			(int) $row->attachment_id,
 			$row->file_path,
 			$row->size,
-			array(
-				'trigger'           => 'requeue',
-				'requeue_source_id' => $job_id,
-			)
+			[ 'trigger' => 'requeue', 'requeue_source_id' => $job_id ]
 		);
 
 		return true;

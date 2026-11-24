@@ -25,10 +25,10 @@ class MM_Status {
 	/**
 	 * Candidate paths for daemon scripts installed by the .deb package.
 	 */
-	private const DAEMON_PATHS = array(
+	private const DAEMON_PATHS = [
 		'/usr/local/bin/metamanager-compress-daemon.sh',
 		'/usr/local/bin/metamanager-meta-daemon.sh',
-	);
+	];
 
 	/**
 	 * Check whether the daemon package is installed.
@@ -54,47 +54,47 @@ class MM_Status {
 	/**
 	 * Candidate paths for ExifTool.
 	 */
-	private const EXIFTOOL_PATHS = array(
+	private const EXIFTOOL_PATHS = [
 		'/usr/bin/exiftool',
 		'/usr/local/bin/exiftool',
 		'/opt/homebrew/bin/exiftool',
-	);
+	];
 
 	/**
 	 * Candidate paths for jpegtran (libjpeg / libjpeg-turbo).
 	 */
-	private const JPEGTRAN_PATHS = array(
+	private const JPEGTRAN_PATHS = [
 		'/usr/bin/jpegtran',
 		'/usr/local/bin/jpegtran',
 		'/opt/homebrew/bin/jpegtran',
-	);
+	];
 
 	/**
 	 * Candidate paths for optipng.
 	 */
-	private const OPTIPNG_PATHS = array(
+	private const OPTIPNG_PATHS = [
 		'/usr/bin/optipng',
 		'/usr/local/bin/optipng',
 		'/opt/homebrew/bin/optipng',
-	);
+	];
 
 	/**
 	 * Candidate paths for cwebp (WebP lossless compression).
 	 */
-	private const CWEBP_PATHS = array(
+	private const CWEBP_PATHS = [
 		'/usr/bin/cwebp',
 		'/usr/local/bin/cwebp',
 		'/opt/homebrew/bin/cwebp',
-	);
+	];
 
 	/**
 	 * Candidate paths for ffmpeg (video container remux).
 	 */
-	private const FFMPEG_PATHS = array(
+	private const FFMPEG_PATHS = [
 		'/usr/bin/ffmpeg',
 		'/usr/local/bin/ffmpeg',
 		'/opt/homebrew/bin/ffmpeg',
-	);
+	];
 
 	/**
 	 * Check whether ExifTool is installed and executable.
@@ -214,6 +214,13 @@ class MM_Status {
 	}
 
 	/**
+	 * Check whether the WebP generation daemon process is alive.
+	 */
+	public static function webp_daemon_running(): bool {
+		return defined( 'MM_PID_WEBP' ) && self::is_pid_alive( MM_PID_WEBP );
+	}
+
+	/**
 	 * Read a PID file and check /proc/<pid> to confirm the process is alive.
 	 *
 	 * @param string $pid_file Absolute path to the PID file.
@@ -262,38 +269,22 @@ class MM_Status {
 
 		// Audio and PDF are not compressed by Metamanager daemons.
 		if ( ! $is_image && ! $is_video ) {
-			return array(
-				'status' => 'na',
-				'label'  => '—',
-				'color'  => '#bbb',
-			);
+			return [ 'status' => 'na', 'label' => '—', 'color' => '#bbb' ];
 		}
 
 		// Videos only have a single 'full' size (ffmpeg remux).
 		if ( $is_video ) {
 			$file = get_attached_file( $attachment_id );
 			if ( ! $file || ! file_exists( $file ) ) {
-				return array(
-					'status' => 'na',
-					'label'  => '—',
-					'color'  => '#bbb',
-				);
+				return [ 'status' => 'na', 'label' => '—', 'color' => '#bbb' ];
 			}
 			if ( self::is_compressed( $attachment_id, 'full' ) ) {
-				return array(
-					'status' => 'all',
-					'label'  => '✔ Compressed',
-					'color'  => '#13bb2c',
-				);
+				return [ 'status' => 'all', 'label' => '✔ Compressed', 'color' => '#13bb2c' ];
 			}
-			return array(
-				'status' => 'none',
-				'label'  => '✘ Not Compressed',
-				'color'  => '#e54c3c',
-			);
+			return [ 'status' => 'none', 'label' => '✘ Not Compressed', 'color' => '#e54c3c' ];
 		}
 
-		$meta = wp_get_attachment_metadata( $attachment_id ) ?: array();
+		$meta = wp_get_attachment_metadata( $attachment_id ) ?: [];
 		$file = get_attached_file( $attachment_id );
 
 		$all_compressed = true;
@@ -322,24 +313,12 @@ class MM_Status {
 		}
 
 		if ( $all_compressed && $any_compressed ) {
-			return array(
-				'status' => 'all',
-				'label'  => '✔ Compressed',
-				'color'  => '#13bb2c',
-			);
+			return [ 'status' => 'all', 'label' => '✔ Compressed', 'color' => '#13bb2c' ];
 		}
 		if ( $any_compressed ) {
-			return array(
-				'status' => 'partial',
-				'label'  => '● Partial',
-				'color'  => '#e6b800',
-			);
+			return [ 'status' => 'partial', 'label' => '● Partial', 'color' => '#e6b800' ];
 		}
-		return array(
-			'status' => 'none',
-			'label'  => '✘ Not Compressed',
-			'color'  => '#e54c3c',
-		);
+		return [ 'status' => 'none', 'label' => '✘ Not Compressed', 'color' => '#e54c3c' ];
 	}
 
 	// -----------------------------------------------------------------------
@@ -352,16 +331,17 @@ class MM_Status {
 	 * @return array<string, bool>
 	 */
 	public static function system_status(): array {
-		return array(
-			'daemon_package'  => self::daemon_package_installed(),
-			'exiftool'        => self::exiftool_available(),
-			'jpegtran'        => self::jpegtran_available(),
-			'optipng'         => self::optipng_available(),
-			'cwebp'           => self::cwebp_available(),
-			'ffmpeg'          => self::ffmpeg_available(),
-			'compress_daemon' => self::compress_daemon_running(),
-			'meta_daemon'     => self::meta_daemon_running(),
-		);
+		return [
+			'daemon_package'    => self::daemon_package_installed(),
+			'exiftool'         => self::exiftool_available(),
+			'jpegtran'         => self::jpegtran_available(),
+			'optipng'          => self::optipng_available(),
+			'cwebp'            => self::cwebp_available(),
+			'ffmpeg'           => self::ffmpeg_available(),
+			'compress_daemon'  => self::compress_daemon_running(),
+			'meta_daemon'      => self::meta_daemon_running(),
+			'webp_daemon'      => self::webp_daemon_running(),
+		];
 	}
 
 	/**
@@ -373,7 +353,7 @@ class MM_Status {
 	 * @return void
 	 */
 	public static function write_status_json(): void {
-		$job_root    = defined( 'MM_JOB_ROOT' ) ? MM_JOB_ROOT : WP_CONTENT_DIR . '/metamanager-jobs';
+		$job_root = defined( 'MM_JOB_ROOT' ) ? MM_JOB_ROOT : WP_CONTENT_DIR . '/metamanager-jobs';
 		$status_file = $job_root . '/metamanager-status.json';
 
 		$system = self::system_status();
@@ -381,14 +361,10 @@ class MM_Status {
 		// Queue depth from job directories.
 		$compress_queue = 0;
 		$meta_queue     = 0;
+		$webp_queue     = 0;
 		$completed      = 0;
 		$failed         = 0;
-		foreach ( array(
-			'compress'  => 'compress_queue',
-			'meta'      => 'meta_queue',
-			'completed' => 'completed',
-			'failed'    => 'failed',
-		) as $dir => $key ) {
+		foreach ( [ 'compress' => 'compress_queue', 'meta' => 'meta_queue', 'webp' => 'webp_queue', 'completed' => 'completed', 'failed' => 'failed' ] as $dir => $key ) {
 			$path = $job_root . '/' . $dir;
 			if ( is_dir( $path ) ) {
 				$$key = count( glob( $path . '/*.json' ) ) + count( glob( $path . '/*.json.processing' ) );
@@ -398,22 +374,28 @@ class MM_Status {
 		// Daemon PIDs.
 		$compress_pid = null;
 		$meta_pid     = null;
+		$webp_pid     = null;
 		if ( file_exists( MM_PID_COMPRESS ) ) {
 			$compress_pid = (int) trim( file_get_contents( MM_PID_COMPRESS ) );
 		}
 		if ( file_exists( MM_PID_META ) ) {
 			$meta_pid = (int) trim( file_get_contents( MM_PID_META ) );
 		}
+		if ( defined( 'MM_PID_WEBP' ) && file_exists( MM_PID_WEBP ) ) {
+			$webp_pid = (int) trim( file_get_contents( MM_PID_WEBP ) );
+		}
 
 		// Version info.
-		$installed_ver = MM_Daemon_Updater::get_daemon_version();
+		$daemon_ver_file = '/usr/local/lib/metamanager/VERSION';
+		$installed_ver = ( file_exists( $daemon_ver_file ) ) ? trim( (string) file_get_contents( $daemon_ver_file ) ) : null;
+		if ( '' === $installed_ver ) { $installed_ver = null; }
 		$plugin_ver    = defined( 'MM_VERSION' ) ? MM_VERSION : 'unknown';
 
 		$data = array(
-			'ts'             => gmdate( 'Y-m-d\TH:i:s\Z' ),
-			'plugin_version' => $plugin_ver,
-			'daemon_version' => $installed_ver,
-			'daemons'        => array(
+			'ts'              => gmdate( 'Y-m-d\TH:i:s\Z' ),
+			'plugin_version'  => $plugin_ver,
+			'daemon_version'  => $installed_ver,
+			'daemons'         => array(
 				'compress' => array(
 					'running' => $system['compress_daemon'],
 					'pid'     => $compress_pid,
@@ -422,22 +404,27 @@ class MM_Status {
 					'running' => $system['meta_daemon'],
 					'pid'     => $meta_pid,
 				),
+				'webp'     => array(
+					'running' => $system['webp_daemon'] ?? false,
+					'pid'     => $webp_pid,
+				),
 			),
-			'queues'         => array(
+			'queues'          => array(
 				'compress'  => $compress_queue,
 				'meta'      => $meta_queue,
+				'webp'      => $webp_queue,
 				'completed' => $completed,
 				'failed'    => $failed,
 			),
-			'tools'          => array(
-				'exiftool' => $system['exiftool'],
-				'jpegtran' => $system['jpegtran'],
-				'optipng'  => $system['optipng'],
-				'cwebp'    => $system['cwebp'],
-				'ffmpeg'   => $system['ffmpeg'],
+			'tools'           => array(
+				'exiftool'  => $system['exiftool'],
+				'jpegtran'  => $system['jpegtran'],
+				'optipng'   => $system['optipng'],
+				'cwebp'     => $system['cwebp'],
+				'ffmpeg'    => $system['ffmpeg'],
 			),
-			'cron'           => MM_Cron_Tracker::get_all(),
-			'links'          => self::link_stats(),
+			'cron'            => MM_Cron_Tracker::get_all(),
+			'links'           => self::link_stats(),
 		);
 
 		$json = wp_json_encode( $data, JSON_PRETTY_PRINT );
@@ -462,12 +449,7 @@ class MM_Status {
 		global $wpdb;
 		$table = MM_Mod_Links::table_name();
 		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
-			return array(
-				'total'        => 0,
-				'broken'       => 0,
-				'ignored'      => 0,
-				'last_checked' => null,
-			);
+			return array( 'total' => 0, 'broken' => 0, 'ignored' => 0, 'last_checked' => null );
 		}
 		$total    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_ignored = 0', $table ) );
 		$broken   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_broken = 1 AND is_ignored = 0', $table ) );

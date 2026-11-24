@@ -44,11 +44,12 @@ Metamanager is a WordPress plugin that provides:
 ### 1. Add the apt repository
 
 ```bash
-# Import the signing key
-curl -fsSL https://apt.richardkentgates.com/metamanager.asc | sudo gpg --dearmor -o /usr/share/keyrings/metamanager.gpg
+# Install the signing keyring (binary keyring — download as-is, do NOT dearmor)
+sudo curl -fsSL https://apt.richardkentgates.com/gcm-repo-key.gpg \
+    -o /usr/share/keyrings/gcm-repo-key.gpg
 
 # Add the repository
-echo "deb [signed-by=/usr/share/keyrings/metamanager.gpg] https://apt.richardkentgates.com bookworm main" | sudo tee /etc/apt/sources.list.d/metamanager.list
+echo "deb [signed-by=/usr/share/keyrings/gcm-repo-key.gpg] https://apt.richardkentgates.com stable main" | sudo tee /etc/apt/sources.list.d/metamanager.list
 
 sudo apt update
 ```
@@ -88,46 +89,34 @@ wp metamanager status --path=/srv/www/wordpress
 
 ## Test vs Release Channels
 
-The apt server hosts two types of daemon packages:
+The apt server hosts two suites of daemon packages:
 
-| Channel | Version format | Example | Source |
-|---------|---------------|---------|--------|
-| **Release** | `X.Y.Z` | `2.4.15` | `main` branch (tagged releases) |
-| **Test** | `X.Y.Z~testEPOCH` | `2.4.15~test1722500000` | `test` branch (pre-release builds) |
+| Suite | Source | Use case |
+|-------|--------|----------|
+| `stable` | `main` branch (tagged releases) | Production |
+| `test` | `test` branch (pre-release builds) | Pre-release testing |
+
+Both suites carry the same `X.Y.Z-N` package version format (from
+`debian/changelog`); the suite separates them.
 
 ### Release (stable)
 
 ```bash
 # Install or upgrade to the latest stable version
 sudo apt update && sudo apt install metamanager
-
-# Pin to a specific version
-sudo apt install metamanager=2.4.15
 ```
-
-`apt upgrade` always prefers release builds over test builds because Debian version ordering treats `~` as sorting before everything (`2.4.15~test...` < `2.4.15`). This means upgrading from a test build to a release build works automatically.
 
 ### Test (pre-release)
 
-Test builds are produced from the `test` branch. They include the latest fixes but have not been promoted to `main` yet.
+Test builds are produced from the `test` branch. They include the latest
+fixes but have not been promoted to `main` yet.
 
 ```bash
-# See all available versions (test builds appear before release)
+# Install from the test suite
+sudo apt-get install -t test metamanager
+
+# See all available versions
 apt-cache policy metamanager
-
-# Install a specific test version
-sudo apt install metamanager=2.4.15~test1722500000
-
-# Prevent apt from "downgrading" back to release
-# (optional — only if you want to stay on test)
-sudo apt-mark hold metamanager
-```
-
-To release back to stable, unhold and upgrade:
-
-```bash
-sudo apt-mark unhold metamanager
-sudo apt update && sudo apt install metamanager
 ```
 
 ### How updates flow
@@ -137,29 +126,32 @@ dev  ──push──>  CI (ShellCheck + version bump)
                     │
                     │  workflow_dispatch
                     ▼
-              test  ──push──>  CI (build .deb + deploy to apt)
-                                   │  version: X.Y.Z~testEPOCH
-                                   │
-                                   │  workflow_dispatch
-                                   ▼
-              main  ──push──>  CI (tag + GitHub release + deploy to apt)
-                                   │  version: X.Y.Z
-                                   ▼
-                              apt upgrade on production
+              test  ──merge + build .deb + deploy to apt `test` suite
+                    │
+                    │  workflow_dispatch
+                    ▼
+              main  ──merge + tag + GitHub release + deploy to apt `stable` suite
+                    ▼
+              apt upgrade (inside the GCM maintenance window)
 ```
-
-The WordPress plugin auto-updates independently via `MM_Updater` (checks GitHub releases). When the plugin updates, it automatically triggers `apt upgrade metamanager` on the server to keep the daemon package in sync.
 
 ### Plugin auto-updater
 
-The plugin checks `https://apt.richardkentgates.com/metamanager/metadata.json` every 12 hours. When a new release is found:
-
-1. WordPress downloads and installs the plugin zip
-2. WordPress activates the updated plugin
+The plugin's `MM_Updater` fetches
+`https://apt.richardkentgates.com/metamanager/metadata.json` (or
+`metamanager-test/metadata.json` on the test channel) fresh on every WordPress
+update check — WordPress rebuilds its update data on its own ~twice-daily
+cadence. When a new version is published to the feed, WordPress downloads and
+installs the plugin zip through the native update pipeline. A "Check for
+Updates" link on the Plugins page forces an immediate re-check.
 
 ### Daemon updates
 
-Daemon updates are handled by the plugin's `MM_Daemon_Updater` class. When the plugin is updated, it triggers `apt-get update && apt-get install -y metamanager`. The server's apt channel determines which version is installed. No manual SSH required.
+Daemon updates are handled by OS apt inside the GCM maintenance window — the
+server's apt channel (test/stable) determines which version installs. The
+plugin's `MM_Daemon_Updater` is display-only (reads
+`/usr/local/lib/metamanager/VERSION` for the dashboard); it never triggers
+updates.
 
 ## Documentation
 

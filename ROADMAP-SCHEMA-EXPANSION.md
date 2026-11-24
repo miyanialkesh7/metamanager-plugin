@@ -1,7 +1,7 @@
 # Schema Expansion Roadmap
 
 **Created:** 2026-09-13
-**Status:** Planning — research complete, implementation not started
+**Status:** Implemented — Phases 1–5 done (2026-09-13); §3.6/§3.7 done (2026-11-12). Phase 6 (advanced features) remains future work. This document is now a design record.
 **Scope:** MetaManager plugin schema type expansion for tourism, charters, education, home services, and publication sites
 
 ---
@@ -430,7 +430,7 @@ Add to `MM_Schema_Types::get_schema_types()`:
 'Course'             => 'Course — Educational course or certification',
 ```
 
-### 3.5 WebPage Node Type List Update
+### 3.5.1 WebPage Node Type List Update
 
 In `add_webpage_node()`, add new content types to the "content types" list:
 

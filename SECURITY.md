@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-|---------|--------------------|
-| 2.x     | ✅ Current release |
+| Release | Supported |
+|---------|-----------|
+| Current | ✅       |
 
 ---
 
@@ -55,7 +55,7 @@ All REST endpoints under `/wp-json/metamanager/v1/` enforce WordPress capability
 | `/attachment/{id}/embed` | POST | `edit_others_posts` |
 | `/compression-status` | POST | `upload_files` |
 
-All endpoints also validate a `X-WP-Nonce` header or cookie on every request. The entire API can be disabled, or restricted to a list of allowed IP addresses, from **Media → MM Settings → REST API** — blocked requests receive `403 Forbidden` before any WordPress capability check runs.
+All endpoints also validate a `X-WP-Nonce` header or cookie on every request. The entire API can be disabled, or restricted to a list of allowed IP addresses, from **Metamanager → Preferences → REST API** — blocked requests receive `403 Forbidden` before any WordPress capability check runs.
 
 ### AJAX handlers
 All AJAX actions verify nonces via `check_ajax_referer()` before processing. Re-queue and clear-history require `upload_files` and `manage_options` capabilities respectively.

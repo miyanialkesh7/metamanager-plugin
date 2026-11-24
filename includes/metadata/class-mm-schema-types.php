@@ -6,17 +6,10 @@
  *   - The narrowed list of schema types relevant to GCM clients
  *   - Per-type field definitions for the admin UI (metabox + settings tab)
  *   - A builder that converts flat stored overrides into nested JSON-LD properties
-  *
-  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Schema types.
- *
- * @package Metamanager
- */
 class MM_Schema_Types {
 
 	// -------------------------------------------------------------------------
@@ -31,7 +24,7 @@ class MM_Schema_Types {
 	 * @return array<string, string>
 	 */
 	public static function get_schema_types( bool $include_empty = false ): array {
-		$types = array(
+		$types = [
 			// ── Page types ────────────────────────────────────────────────────
 			'WebPage'            => 'WebPage — Generic page',
 			'AboutPage'          => 'AboutPage',
@@ -56,10 +49,10 @@ class MM_Schema_Types {
 			// ── Directory ────────────────────────────────────────────────────
 			'LocalBusiness'      => 'LocalBusiness — Business listing',
 			'Organization'       => 'Organization — Nonprofit/public org',
-		);
+		];
 
 		if ( $include_empty ) {
-			return array_merge( array( '' => '— Use post type default —' ), $types );
+			return array_merge( [ '' => '— Use post type default —' ], $types );
 		}
 
 		return $types;
@@ -90,17 +83,17 @@ class MM_Schema_Types {
 	public static function get_fields_by_type( bool $wc_active = false ): array {
 		// LocalBusiness subtype options — same taxonomy the Business Profile
 		// uses (MM_Mod_Local::get_business_types()), flattened for the metabox.
-		$business_type_options = array( '' => '— LocalBusiness (general) —' );
+		$business_type_options = [ '' => '— LocalBusiness (general) —' ];
 		foreach ( MM_Mod_Local::get_business_types() as $group => $members ) {
 			foreach ( $members as $subtype_slug => $subtype_label ) {
 				$business_type_options[ $subtype_slug ] = $subtype_label;
 			}
 		}
 
-		return array(
+		return [
 			// ── Event ─────────────────────────────────────────────────────────
-			'Event'              => array(
-				array(
+			'Event' => [
+				[
 					'key'         => 'event_start_date',
 					'label'       => 'Start Date & Time',
 					'type'        => 'datetime-local',
@@ -108,8 +101,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Required for Google rich results. Format: YYYY-MM-DDTHH:MM.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_end_date',
 					'label'       => 'End Date & Time',
 					'type'        => 'datetime-local',
@@ -117,8 +110,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_location_name',
 					'label'       => 'Venue / Location Name',
 					'type'        => 'text',
@@ -126,8 +119,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Crab Island, Destin Harbor',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_location_address',
 					'label'       => 'Location Address',
 					'type'        => 'text',
@@ -135,8 +128,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Destin, FL 32541',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_organizer_name',
 					'label'       => 'Organizer Name',
 					'type'        => 'text',
@@ -144,8 +137,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Auto-populated from business profile if empty.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_organizer_email',
 					'label'       => 'Organizer Email',
 					'type'        => 'email',
@@ -153,8 +146,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Auto-populated from business profile if empty.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_organizer_phone',
 					'label'       => 'Organizer Phone',
 					'type'        => 'text',
@@ -162,8 +155,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Auto-populated from business profile if empty.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_organizer_url',
 					'label'       => 'Organizer URL',
 					'type'        => 'url',
@@ -171,8 +164,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_price',
 					'label'       => 'Price',
 					'type'        => 'text',
@@ -180,8 +173,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 150 or 75-200',
 					'description' => 'Numeric or range. Leave blank to omit offers from schema.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_currency',
 					'label'       => 'Currency',
 					'type'        => 'text',
@@ -189,8 +182,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217 currency code. Defaults to USD.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_ticket_url',
 					'label'       => 'Ticket URL',
 					'type'        => 'url',
@@ -198,8 +191,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Link to purchase tickets.',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_status',
 					'label'       => 'Event Status',
 					'type'        => 'select',
@@ -207,14 +200,14 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-					'options'     => array(
+					'options'     => [
 						'EventScheduled'   => 'Scheduled',
 						'EventCancelled'   => 'Cancelled',
 						'EventPostponed'   => 'Postponed',
 						'EventRescheduled' => 'Rescheduled',
-					),
-				),
-				array(
+					],
+				],
+				[
 					'key'         => 'event_offers',
 					'label'       => 'Offers Description',
 					'type'        => 'textarea',
@@ -222,8 +215,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Optional description for offers (e.g. "Early bird pricing available").',
-				),
-				array(
+				],
+				[
 					'key'         => 'event_attendance_mode',
 					'label'       => 'Attendance Mode',
 					'type'        => 'select',
@@ -231,14 +224,14 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Required for Google rich results if event is online or mixed.',
-					'options'     => array(
-						''                           => '— Not specified —',
-						'OfflineEventAttendanceMode' => 'In-Person Only',
-						'OnlineEventAttendanceMode'  => 'Online Only',
-						'MixedEventAttendanceMode'   => 'Mixed (In-Person + Online)',
-					),
-				),
-				array(
+					'options'     => [
+						''                                    => '— Not specified —',
+						'OfflineEventAttendanceMode'         => 'In-Person Only',
+						'OnlineEventAttendanceMode'          => 'Online Only',
+						'MixedEventAttendanceMode'           => 'Mixed (In-Person + Online)',
+					],
+				],
+				[
 					'key'         => 'event_type',
 					'label'       => 'Event Type',
 					'type'        => 'select',
@@ -246,30 +239,30 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Category of event (used by Google for rich results filtering).',
-					'options'     => array(
-						''                => '— Not specified —',
-						'BusinessEvent'   => 'Business Event',
-						'ChildrensEvent'  => "Children's Event",
-						'ComedyEvent'     => 'Comedy Event',
-						'DanceEvent'      => 'Dance Event',
-						'ExhibitionEvent' => 'Exhibition Event',
-						'FestivalEvent'   => 'Festival Event',
-						'FoodEvent'       => 'Food Event',
-						'LiteraryEvent'   => 'Literary Event',
-						'MusicEvent'      => 'Music Event',
-						'PoliticalEvent'  => 'Political Event',
-						'SaleEvent'       => 'Sale Event',
-						'SocialEvent'     => 'Social Event',
-						'SportsEvent'     => 'Sports Event',
-						'TheaterEvent'    => 'Theater Event',
-						'VisualArtsEvent' => 'Visual Arts Event',
-					),
-				),
-			),
+					'options'     => [
+						''                  => '— Not specified —',
+						'BusinessEvent'     => 'Business Event',
+						'ChildrensEvent'    => "Children's Event",
+						'ComedyEvent'       => 'Comedy Event',
+						'DanceEvent'        => 'Dance Event',
+						'ExhibitionEvent'   => 'Exhibition Event',
+						'FestivalEvent'     => 'Festival Event',
+						'FoodEvent'         => 'Food Event',
+						'LiteraryEvent'     => 'Literary Event',
+						'MusicEvent'        => 'Music Event',
+						'PoliticalEvent'    => 'Political Event',
+						'SaleEvent'         => 'Sale Event',
+						'SocialEvent'       => 'Social Event',
+						'SportsEvent'       => 'Sports Event',
+						'TheaterEvent'      => 'Theater Event',
+						'VisualArtsEvent'   => 'Visual Arts Event',
+					],
+				],
+			],
 
 			// ── Service ───────────────────────────────────────────────────────
-			'Service'            => array(
-				array(
+			'Service' => [
+				[
 					'key'         => 'service_type',
 					'label'       => 'Service Type',
 					'type'        => 'text',
@@ -277,8 +270,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Pontoon Charter, Canvas Repair',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_price',
 					'label'       => 'Price / Range',
 					'type'        => 'text',
@@ -286,8 +279,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 150 or Starting at $75',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_currency',
 					'label'       => 'Currency',
 					'type'        => 'text',
@@ -295,8 +288,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217. Used only when Price is a number.',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_booking_url',
 					'label'       => 'Booking URL',
 					'type'        => 'url',
@@ -304,8 +297,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Link to book/purchase this service.',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_duration',
 					'label'       => 'Duration',
 					'type'        => 'text',
@@ -313,8 +306,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 2 hours, Half day',
 					'description' => 'Estimated service duration.',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_includes',
 					'label'       => 'What\'s Included',
 					'type'        => 'textarea',
@@ -322,8 +315,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'List what the service includes.',
-				),
-				array(
+				],
+				[
 					'key'         => 'service_provider_name',
 					'label'       => 'Provider Name',
 					'type'        => 'text',
@@ -331,17 +324,17 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Auto-populated from business profile if empty.',
-				),
-			),
+				],
+			],
 
 			// ── FAQPage ──────────────────────────────────────────────────────
 			// Fields are dynamically rendered in the metabox (not static field defs).
-			'FAQPage'            => array(),
+			'FAQPage' => [],
 
 			// ── HowTo ──────────────────────────────────────────────────────
 			// Steps are dynamically rendered; these are HowTo-level fields.
-			'HowTo'              => array(
-				array(
+			'HowTo' => [
+				[
 					'key'         => 'howto_total_time',
 					'label'       => 'Total Time',
 					'type'        => 'text',
@@ -349,8 +342,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. PT30M, PT1H, P1D',
 					'description' => 'ISO 8601 duration. PT30M = 30 minutes, PT1H = 1 hour, P1D = 1 day.',
-				),
-				array(
+				],
+				[
 					'key'         => 'howto_cost_amount',
 					'label'       => 'Estimated Cost',
 					'type'        => 'text',
@@ -358,8 +351,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 25.00',
 					'description' => 'Numeric cost value. Leave blank to omit.',
-				),
-				array(
+				],
+				[
 					'key'         => 'howto_cost_currency',
 					'label'       => 'Cost Currency',
 					'type'        => 'text',
@@ -367,12 +360,12 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217 currency code.',
-				),
-			),
+				],
+			],
 
 			// ── Product ───────────────────────────────────────────────────────
-			'Product'            => array(
-				array(
+			'Product' => [
+				[
 					'key'         => 'product_brand',
 					'label'       => 'Brand',
 					'type'        => 'text',
@@ -380,8 +373,8 @@ class MM_Schema_Types {
 					'auto_label'  => $wc_active ? 'from WooCommerce product data' : null,
 					'placeholder' => '',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'product_price',
 					'label'       => 'Price',
 					'type'        => 'text',
@@ -389,8 +382,8 @@ class MM_Schema_Types {
 					'auto_label'  => $wc_active ? 'from WooCommerce product data' : null,
 					'placeholder' => 'e.g. 49.99',
 					'description' => 'Numeric price.',
-				),
-				array(
+				],
+				[
 					'key'         => 'product_currency',
 					'label'       => 'Currency',
 					'type'        => 'text',
@@ -398,8 +391,8 @@ class MM_Schema_Types {
 					'auto_label'  => $wc_active ? 'from WooCommerce settings' : null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217 currency code.',
-				),
-				array(
+				],
+				[
 					'key'         => 'product_availability',
 					'label'       => 'Availability',
 					'type'        => 'select',
@@ -407,18 +400,18 @@ class MM_Schema_Types {
 					'auto_label'  => $wc_active ? 'from WooCommerce stock status' : null,
 					'placeholder' => '',
 					'description' => '',
-					'options'     => array(
+					'options'     => [
 						''           => '— Not specified —',
 						'InStock'    => 'In Stock',
 						'OutOfStock' => 'Out of Stock',
 						'PreOrder'   => 'Pre-Order',
-					),
-				),
-			),
+					],
+				],
+			],
 
 			// ── TouristTrip ───────────────────────────────────────────────────
-			'TouristTrip'        => array(
-				array(
+			'TouristTrip' => [
+				[
 					'key'         => 'trip_departure_name',
 					'label'       => 'Departure Location',
 					'type'        => 'text',
@@ -426,8 +419,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Harborwalk Village, Destin',
 					'description' => 'Boarding/departure location name.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_departure_address',
 					'label'       => 'Departure Address',
 					'type'        => 'text',
@@ -435,8 +428,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 10 Harbor Blvd, Destin FL 32541',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_departure_lat',
 					'label'       => 'Departure Latitude',
 					'type'        => 'text',
@@ -444,8 +437,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '30.3935',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_departure_lng',
 					'label'       => 'Departure Longitude',
 					'type'        => 'text',
@@ -453,8 +446,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '-86.5085',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_destination_name',
 					'label'       => 'Destination',
 					'type'        => 'text',
@@ -462,8 +455,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Crab Island, Gulf of Mexico',
 					'description' => 'Primary destination for this trip.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_duration',
 					'label'       => 'Duration (display)',
 					'type'        => 'text',
@@ -471,8 +464,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 4 hours, Half day',
 					'description' => 'Human-readable duration.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_duration_iso',
 					'label'       => 'Duration (ISO 8601)',
 					'type'        => 'text',
@@ -480,8 +473,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. PT4H, PT30M',
 					'description' => 'ISO 8601 duration for schema.org.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_max_passengers',
 					'label'       => 'Max Passengers',
 					'type'        => 'number',
@@ -489,8 +482,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '13',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_price',
 					'label'       => 'Price',
 					'type'        => 'text',
@@ -498,8 +491,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 350 or 75-200',
 					'description' => 'Numeric or range.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_currency',
 					'label'       => 'Currency',
 					'type'        => 'text',
@@ -507,8 +500,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217 currency code. Defaults to USD.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_booking_url',
 					'label'       => 'Booking URL',
 					'type'        => 'url',
@@ -516,8 +509,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Link to book this trip.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_departure_time',
 					'label'       => 'Departure Time',
 					'type'        => 'text',
@@ -525,8 +518,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 09:00',
 					'description' => 'Typical departure time.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_arrival_time',
 					'label'       => 'Arrival Time',
 					'type'        => 'text',
@@ -534,8 +527,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 13:00',
 					'description' => 'Typical return/arrival time.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_tourist_type',
 					'label'       => 'Tourist Type',
 					'type'        => 'text',
@@ -543,8 +536,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Family tourism, Adventure tourism',
 					'description' => 'Comma-separated audience types.',
-				),
-				array(
+				],
+				[
 					'key'         => 'trip_includes',
 					'label'       => 'What\'s Included',
 					'type'        => 'textarea',
@@ -552,12 +545,12 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'What the trip includes (cooler, lily pad, stereo, etc.).',
-				),
-			),
+				],
+			],
 
 			// ── TouristDestination ────────────────────────────────────────────
-			'TouristDestination' => array(
-				array(
+			'TouristDestination' => [
+				[
 					'key'         => 'destination_address',
 					'label'       => 'Address',
 					'type'        => 'text',
@@ -565,8 +558,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Destin, FL 32541',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_lat',
 					'label'       => 'Latitude',
 					'type'        => 'text',
@@ -574,8 +567,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '30.3935',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_lng',
 					'label'       => 'Longitude',
 					'type'        => 'text',
@@ -583,8 +576,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '-86.5085',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_tourist_type',
 					'label'       => 'Tourist Type',
 					'type'        => 'text',
@@ -592,8 +585,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Water tourism, Cultural tourism',
 					'description' => 'Comma-separated types.',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_map_url',
 					'label'       => 'Map URL',
 					'type'        => 'url',
@@ -601,8 +594,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Google Maps or similar URL.',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_attractions',
 					'label'       => 'Attractions',
 					'type'        => 'text',
@@ -610,8 +603,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Crab Island Sandbar, Destin Harbor',
 					'description' => 'Comma-separated attraction names.',
-				),
-				array(
+				],
+				[
 					'key'         => 'destination_booking_url',
 					'label'       => 'Booking URL',
 					'type'        => 'url',
@@ -619,12 +612,12 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'URL to book tours of this destination.',
-				),
-			),
+				],
+			],
 
 			// ── Vehicle ───────────────────────────────────────────────────────
-			'Vehicle'            => array(
-				array(
+			'Vehicle' => [
+				[
 					'key'         => 'vessel_year',
 					'label'       => 'Year',
 					'type'        => 'text',
@@ -632,8 +625,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '2022',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_length',
 					'label'       => 'Length',
 					'type'        => 'text',
@@ -641,8 +634,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 24 ft',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_engine',
 					'label'       => 'Engine',
 					'type'        => 'text',
@@ -650,8 +643,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 200HP Mercury Verado',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_passengers',
 					'label'       => 'Max Passengers',
 					'type'        => 'number',
@@ -659,8 +652,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '13',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_type',
 					'label'       => 'Vessel Type',
 					'type'        => 'text',
@@ -668,8 +661,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Tritoon, Sportfish, Parasail boat',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_manufacturer',
 					'label'       => 'Manufacturer',
 					'type'        => 'text',
@@ -677,8 +670,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Barletta, Bertram',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'vessel_amenities',
 					'label'       => 'Amenities',
 					'type'        => 'textarea',
@@ -686,12 +679,12 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Cooler with ice, Bluetooth stereo, Lily pad',
 					'description' => 'One amenity per line.',
-				),
-			),
+				],
+			],
 
 			// ── Course ────────────────────────────────────────────────────────
-			'Course'             => array(
-				array(
+			'Course' => [
+				[
 					'key'         => 'course_credential',
 					'label'       => 'Credential Awarded',
 					'type'        => 'text',
@@ -699,8 +692,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. CPR Certification, Phlebotomy Technician',
 					'description' => 'Certificate or credential awarded on completion.',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_mode',
 					'label'       => 'Delivery Mode',
 					'type'        => 'select',
@@ -708,14 +701,14 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-					'options'     => array(
+					'options'     => [
 						''          => '— Not specified —',
 						'In-person' => 'In-person',
 						'Online'    => 'Online',
 						'Hybrid'    => 'Hybrid',
-					),
-				),
-				array(
+					],
+				],
+				[
 					'key'         => 'course_duration',
 					'label'       => 'Duration',
 					'type'        => 'text',
@@ -723,8 +716,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. PT8H, P2D',
 					'description' => 'ISO 8601 duration.',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_prerequisites',
 					'label'       => 'Prerequisites',
 					'type'        => 'text',
@@ -732,8 +725,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. High school diploma',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_price',
 					'label'       => 'Price',
 					'type'        => 'text',
@@ -741,8 +734,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 150',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_currency',
 					'label'       => 'Currency',
 					'type'        => 'text',
@@ -750,8 +743,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'USD',
 					'description' => 'ISO 4217 currency code.',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_enrollment_url',
 					'label'       => 'Enrollment URL',
 					'type'        => 'url',
@@ -759,8 +752,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Link to enroll in this course.',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_provider',
 					'label'       => 'Provider Name',
 					'type'        => 'text',
@@ -768,8 +761,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'Auto-populated from business profile if empty.',
-				),
-				array(
+				],
+				[
 					'key'         => 'course_code',
 					'label'       => 'Course Code',
 					'type'        => 'text',
@@ -777,12 +770,12 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. CPR-101',
 					'description' => 'Internal course code/ID.',
-				),
-			),
+				],
+			],
 
 			// ── LocalBusiness (directory listings) ───────────────────────────
-			'LocalBusiness'      => array(
-				array(
+			'LocalBusiness' => [
+				[
 					'key'         => 'business_type',
 					'label'       => 'Business Type',
 					'type'        => 'select',
@@ -791,35 +784,17 @@ class MM_Schema_Types {
 					'placeholder' => '',
 					'description' => 'The most specific Schema.org LocalBusiness subtype.',
 					'options'     => $business_type_options,
-				),
-				array(
-					'key'         => 'business_address',
-					'label'       => 'Address',
-					'type'        => 'text',
+				],
+				[
+					'key'         => 'business_email',
+					'label'       => 'Email',
+					'type'        => 'email',
 					'required'    => false,
 					'auto_label'  => null,
-					'placeholder' => 'e.g. 820 Kiroli Road, West Monroe, LA 71291',
+					'placeholder' => 'e.g. info@example.com',
 					'description' => '',
-				),
-				array(
-					'key'         => 'business_lat',
-					'label'       => 'Latitude',
-					'type'        => 'text',
-					'required'    => false,
-					'auto_label'  => null,
-					'placeholder' => '32.5093',
-					'description' => '',
-				),
-				array(
-					'key'         => 'business_lng',
-					'label'       => 'Longitude',
-					'type'        => 'text',
-					'required'    => false,
-					'auto_label'  => null,
-					'placeholder' => '-92.1193',
-					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'business_telephone',
 					'label'       => 'Telephone',
 					'type'        => 'tel',
@@ -827,8 +802,85 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 318-555-0100',
 					'description' => '',
-				),
-				array(
+				],
+				[
+					'key'         => 'business_street',
+					'label'       => 'Street Address',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 820 Kiroli Road',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_city',
+					'label'       => 'City',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. West Monroe',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_state',
+					'label'       => 'State',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. LA',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_zip',
+					'label'       => 'ZIP Code',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 71291',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_country',
+					'label'       => 'Country',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'US',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_lat',
+					'label'       => 'Latitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '32.5093',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_lng',
+					'label'       => 'Longitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '-92.1193',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_location_type',
+					'label'       => 'Location Type',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Controls address/geo visibility in schema and detail output.',
+					'options'     => [
+						'brick_and_mortar' => 'Brick & Mortar',
+						'service_area'     => 'Service Area (no exact coordinates)',
+						'none'             => 'None (online only)',
+					],
+				],
+				[
 					'key'         => 'business_url',
 					'label'       => 'Website',
 					'type'        => 'url',
@@ -836,8 +888,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'business_price_range',
 					'label'       => 'Price Range',
 					'type'        => 'select',
@@ -845,15 +897,24 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-					'options'     => array(
-						''     => '— Not specified —',
-						'$'    => '$ — Inexpensive',
-						'$$'   => '$$ — Moderate',
-						'$$$'  => '$$$ — Upscale',
+					'options'     => [
+						''    => '— Not specified —',
+						'$'   => '$ — Inexpensive',
+						'$$'  => '$$ — Moderate',
+						'$$$' => '$$$ — Upscale',
 						'$$$$' => '$$$$ — Premium',
-					),
-				),
-				array(
+					],
+				],
+				[
+					'key'         => 'business_payment_accepted',
+					'label'       => 'Payment Accepted',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Cash, Credit Card, Check',
+					'description' => 'Comma-separated.',
+				],
+				[
 					'key'         => 'business_hours',
 					'label'       => 'Opening Hours',
 					'type'        => 'text',
@@ -861,12 +922,170 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Mo-Fr 09:00-17:00; Sa 10:00-14:00',
 					'description' => 'Schema.org openingHours syntax.',
-				),
-			),
+				],
+				[
+					'key'         => 'business_service_areas',
+					'label'       => 'Service Areas',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Ouachita Parish LA, Monroe LA',
+					'description' => 'Comma-separated.',
+				],
+				[
+					'key'         => 'business_booking_link',
+					'label'       => 'Booking Link',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_booking_link_label',
+					'label'       => 'Booking Link Label',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'Book Now',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_founding_date',
+					'label'       => 'Founding Date',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 2015',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_number_of_employees',
+					'label'       => 'Number of Employees',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 10',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_show_phone',
+					'label'       => 'Show Phone',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display phone in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_email',
+					'label'       => 'Show Email',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display email in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_vcard',
+					'label'       => 'Show vCard Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer .vcf download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_json',
+					'label'       => 'Show JSON Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer JSON download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_show_csv',
+					'label'       => 'Show CSV Download',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Offer CSV download in the detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'business_facebook',
+					'label'       => 'Facebook',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_instagram',
+					'label'       => 'Instagram',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_linkedin',
+					'label'       => 'LinkedIn',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_youtube',
+					'label'       => 'YouTube',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_twitter',
+					'label'       => 'Twitter / X',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_bluesky',
+					'label'       => 'Bluesky',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'business_pinterest',
+					'label'       => 'Pinterest',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+			],
 
 			// ── Organization (nonprofits, public assistance) ─────────────────
-			'Organization'       => array(
-				array(
+			'Organization' => [
+				[
 					'key'         => 'org_type',
 					'label'       => 'Organization Type',
 					'type'        => 'select',
@@ -874,15 +1093,15 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => 'The most specific Schema.org Organization subtype.',
-					'options'     => array(
-						''                        => '— Organization —',
-						'NGO'                     => 'NGO — Non-governmental organization',
-						'GovernmentOrganization'  => 'Government Organization',
+					'options'     => [
+						''                      => '— Organization —',
+						'NGO'                   => 'NGO — Non-governmental organization',
+						'GovernmentOrganization' => 'Government Organization',
 						'EducationalOrganization' => 'Educational Organization',
-						'MedicalOrganization'     => 'Medical Organization',
-					),
-				),
-				array(
+						'MedicalOrganization'   => 'Medical Organization',
+					],
+				],
+				[
 					'key'         => 'org_address',
 					'label'       => 'Address',
 					'type'        => 'text',
@@ -890,8 +1109,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 1201 Hudson Lane, Monroe, LA 71201',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'org_telephone',
 					'label'       => 'Telephone',
 					'type'        => 'tel',
@@ -899,8 +1118,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. 318-555-0100',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'org_url',
 					'label'       => 'Website',
 					'type'        => 'url',
@@ -908,8 +1127,8 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => '',
 					'description' => '',
-				),
-				array(
+				],
+				[
 					'key'         => 'org_area_served',
 					'label'       => 'Area Served',
 					'type'        => 'text',
@@ -917,9 +1136,266 @@ class MM_Schema_Types {
 					'auto_label'  => null,
 					'placeholder' => 'e.g. Ouachita Parish LA',
 					'description' => 'Comma-separated areas.',
-				),
-			),
-		);
+				],
+			],
+			// ── VacationRental ─────────────────────────────────────────────────
+			'VacationRental' => [
+				[
+					'key'         => 'rental_property_type',
+					'label'       => 'Property Type',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Type of rental property.',
+					'options'     => [
+						'House'          => 'House',
+						'Apartment'      => 'Apartment',
+						'Condominium'    => 'Condominium',
+						'Villa'          => 'Villa',
+						'Cabin'          => 'Cabin',
+						'Cottage'        => 'Cottage',
+						'Townhouse'      => 'Townhouse',
+					],
+				],
+				[
+					'key'         => 'rental_address',
+					'label'       => 'Address',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_lat',
+					'label'       => 'Latitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '30.3935',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_lng',
+					'label'       => 'Longitude',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '-86.5085',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_phone',
+					'label'       => 'Telephone',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_price_range',
+					'label'       => 'Price Range',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. $$$ or 150-300 per night',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_checkin_time',
+					'label'       => 'Check-in Time',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 16:00',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_checkout_time',
+					'label'       => 'Check-out Time',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. 10:00',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_pets_allowed',
+					'label'       => 'Pets Allowed',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+					'options'     => [
+						''     => '— Not specified —',
+						'yes'  => 'Yes',
+						'no'   => 'No',
+					],
+				],
+				[
+					'key'         => 'rental_amenities',
+					'label'       => 'Amenities',
+					'type'        => 'textarea',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. WiFi, Pool, Parking, Kitchen',
+					'description' => 'Comma-separated list of amenities.',
+				],
+				[
+					'key'         => 'rental_max_guests',
+					'label'       => 'Max Guests',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '8',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_bedrooms',
+					'label'       => 'Bedrooms',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_bathrooms',
+					'label'       => 'Bathrooms',
+					'type'        => 'number',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'rental_booking_url',
+					'label'       => 'Booking URL',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Link to book this rental (Lodgify, etc.).',
+				],
+			],
+
+			// ── Person (captains, professionals, team members) ──────────────
+			'Person' => [
+				[
+					'key'         => 'person_job_title',
+					'label'       => 'Job Title',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Licensed Boat Captain, Realtor, Master Electrician',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_works_for',
+					'label'       => 'Works For',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Prime Time Charters',
+					'description' => 'Business or organization name.',
+				],
+				[
+					'key'         => 'person_credentials',
+					'label'       => 'Credentials & Licenses',
+					'type'        => 'textarea',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. USCG Licensed Master Captain, Licensed Real Estate Broker',
+					'description' => 'One per line.',
+				],
+				[
+					'key'         => 'person_knows_about',
+					'label'       => 'Areas of Expertise',
+					'type'        => 'text',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => 'e.g. Offshore Navigation, Deep Sea Fishing, Luxury Home Sales',
+					'description' => 'Comma-separated.',
+				],
+				[
+					'key'         => 'person_email',
+					'label'       => 'Email',
+					'type'        => 'email',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_phone',
+					'label'       => 'Phone',
+					'type'        => 'tel',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_url',
+					'label'       => 'Personal Website',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_facebook',
+					'label'       => 'Facebook',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_linkedin',
+					'label'       => 'LinkedIn',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_instagram',
+					'label'       => 'Instagram',
+					'type'        => 'url',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => '',
+				],
+				[
+					'key'         => 'person_show_email',
+					'label'       => 'Show Email',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display email in detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+				[
+					'key'         => 'person_show_phone',
+					'label'       => 'Show Phone',
+					'type'        => 'select',
+					'required'    => false,
+					'auto_label'  => null,
+					'placeholder' => '',
+					'description' => 'Display phone in detail output.',
+					'options'     => [ '1' => 'Yes', '0' => 'No' ],
+				],
+			],
+		];
 	}
 
 	// -------------------------------------------------------------------------
@@ -935,12 +1411,8 @@ class MM_Schema_Types {
 	 * @return array JSON-LD properties to merge.
 	 */
 	public static function build_node_additions( array $fields, string $type ): array {
-		/**
-		 * Collected schema property additions.
-		 *
-		 * @var array<string, mixed> $out
-		 */
-		$out = array();
+		/** @var array<string, mixed> $out */
+		$out = [];
 
 		// ── Helpers ──────────────────────────────────────────────────────────
 
@@ -955,11 +1427,11 @@ class MM_Schema_Types {
 				return null;
 			}
 			$currency = $str( $currency_key ) ?: 'USD';
-			return array(
+			return [
 				'@type'         => 'Offer',
 				'price'         => $price,
 				'priceCurrency' => $currency,
-			);
+			];
 		};
 
 		// ── Event ─────────────────────────────────────────────────────────────
@@ -981,7 +1453,7 @@ class MM_Schema_Types {
 			$loc_name = $str( 'event_location_name' );
 			$loc_addr = $str( 'event_location_address' );
 			if ( $loc_name || $loc_addr ) {
-				$place = array( '@type' => 'Place' );
+				$place = [ '@type' => 'Place' ];
 				if ( $loc_name ) {
 					$place['name'] = $loc_name;
 				}
@@ -1003,18 +1475,18 @@ class MM_Schema_Types {
 				if ( isset( $out['offers'] ) ) {
 					$out['offers']['url'] = $tickets;
 				} else {
-					$out['offers'] = array(
+					$out['offers'] = [
 						'@type' => 'Offer',
 						'url'   => $tickets,
-					);
+					];
 				}
 			}
 			$org_name = $str( 'event_organizer_name' );
 			if ( $org_name ) {
-				$organizer = array(
+				$organizer = [
 					'@type' => 'Organization',
 					'name'  => $org_name,
-				);
+				];
 				if ( $str( 'event_organizer_phone' ) ) {
 					$organizer['telephone'] = $str( 'event_organizer_phone' );
 				}
@@ -1040,28 +1512,28 @@ class MM_Schema_Types {
 			}
 			$provider = $str( 'service_provider_name' );
 			if ( $provider ) {
-				$out['provider'] = array(
+				$out['provider'] = [
 					'@type' => 'Organization',
 					'name'  => $provider,
-				);
+				];
 			}
 		}
 
 		// ── FAQPage ──────────────────────────────────────────────────────────
 		if ( 'FAQPage' === $type ) {
-			$main_entity = array();
+			$main_entity = [];
 			for ( $i = 1; $i <= 20; $i++ ) {
 				$question = $str( "faq_question_{$i}" );
 				$answer   = $str( "faq_answer_{$i}" );
 				if ( $question && $answer ) {
-					$main_entity[] = array(
+					$main_entity[] = [
 						'@type'          => 'Question',
 						'name'           => $question,
-						'acceptedAnswer' => array(
+						'acceptedAnswer' => [
 							'@type' => 'Answer',
 							'text'  => $answer,
-						),
-					);
+						],
+					];
 				}
 			}
 			if ( ! empty( $main_entity ) ) {
@@ -1077,49 +1549,49 @@ class MM_Schema_Types {
 			}
 			$cost_amount = $str( 'howto_cost_amount' );
 			if ( $cost_amount ) {
-				$out['estimatedCost'] = array(
-					'@type'    => 'MonetaryAmount',
-					'currency' => $str( 'howto_cost_currency' ) ?: 'USD',
-					'value'    => $cost_amount,
-				);
+				$out['estimatedCost'] = [
+					'@type'         => 'MonetaryAmount',
+					'currency'      => $str( 'howto_cost_currency' ) ?: 'USD',
+					'value'         => $cost_amount,
+				];
 			}
-			$supply = array();
+			$supply = [];
 			for ( $i = 1; $i <= 20; $i++ ) {
 				$item = $str( "howto_supply_{$i}" );
 				if ( $item ) {
-					$supply[] = array(
+					$supply[] = [
 						'@type' => 'HowToSupply',
 						'name'  => $item,
-					);
+					];
 				}
 			}
 			if ( ! empty( $supply ) ) {
 				$out['supply'] = $supply;
 			}
-			$tool = array();
+			$tool = [];
 			for ( $i = 1; $i <= 20; $i++ ) {
 				$item = $str( "howto_tool_{$i}" );
 				if ( $item ) {
-					$tool[] = array(
+					$tool[] = [
 						'@type' => 'HowToTool',
 						'name'  => $item,
-					);
+					];
 				}
 			}
 			if ( ! empty( $tool ) ) {
 				$out['tool'] = $tool;
 			}
-			$steps = array();
+			$steps = [];
 			for ( $i = 1; $i <= 20; $i++ ) {
 				$step_name  = $str( "howto_step_name_{$i}" );
 				$step_text  = $str( "howto_step_text_{$i}" );
 				$step_image = $str( "howto_step_image_{$i}" );
 				if ( $step_name || $step_text ) {
-					$step = array(
-						'@type' => 'HowToStep',
-						'name'  => $step_name,
-						'text'  => $step_text,
-					);
+					$step = [
+						'@type'          => 'HowToStep',
+						'name'           => $step_name,
+						'text'           => $step_text,
+					];
 					if ( $step_image ) {
 						$step['image'] = $step_image;
 					}
@@ -1134,17 +1606,14 @@ class MM_Schema_Types {
 		// ── Product ───────────────────────────────────────────────────────────
 		if ( 'Product' === $type ) {
 			if ( $str( 'product_brand' ) ) {
-				$out['brand'] = array(
-					'@type' => 'Brand',
-					'name'  => $str( 'product_brand' ),
-				);
+				$out['brand'] = [ '@type' => 'Brand', 'name' => $str( 'product_brand' ) ];
 			}
 			$offer = $make_offer( 'product_price', 'product_currency' );
 			if ( $offer ) {
 				$avail = $str( 'product_availability' );
-				if ( in_array( $avail, array( 'InStock', 'OutOfStock', 'PreOrder' ), true ) ) {
-					$offer['availability'] = 'https://schema.org/' . $avail;
-				}
+			if ( in_array( $avail, [ 'InStock', 'OutOfStock', 'PreOrder' ], true ) ) {
+				$offer['availability'] = 'https://schema.org/' . $avail;
+			}
 				$out['offers'] = $offer;
 			}
 		}
@@ -1153,39 +1622,25 @@ class MM_Schema_Types {
 		if ( 'TouristTrip' === $type ) {
 			$dep_name = $str( 'trip_departure_name' );
 			if ( $dep_name ) {
-				$place = array(
-					'@type' => 'Place',
-					'name'  => $dep_name,
-				);
+				$place = [ '@type' => 'Place', 'name' => $dep_name ];
 				if ( $str( 'trip_departure_address' ) ) {
 					$place['address'] = $str( 'trip_departure_address' );
 				}
 				$lat = $str( 'trip_departure_lat' );
 				$lng = $str( 'trip_departure_lng' );
 				if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
-					$place['geo'] = array(
-						'@type'     => 'GeoCoordinates',
-						'latitude'  => (float) $lat,
-						'longitude' => (float) $lng,
-					);
+					$place['geo'] = [ '@type' => 'GeoCoordinates', 'latitude' => (float) $lat, 'longitude' => (float) $lng ];
 				}
 				$out['tripOrigin'] = $place;
 			}
 			$dest_name = $str( 'trip_destination_name' );
 			if ( $dest_name ) {
-				$out['itinerary'] = array(
+				$out['itinerary'] = [
 					'@type'           => 'ItemList',
-					'itemListElement' => array(
-						array(
-							'@type'    => 'ListItem',
-							'position' => 1,
-							'item'     => array(
-								'@type' => 'TouristAttraction',
-								'name'  => $dest_name,
-							),
-						),
-					),
-				);
+					'itemListElement' => [
+						[ '@type' => 'ListItem', 'position' => 1, 'item' => [ '@type' => 'TouristAttraction', 'name' => $dest_name ] ],
+					],
+				];
 			}
 			if ( $str( 'trip_duration_iso' ) ) {
 				$out['estimatedDuration'] = $str( 'trip_duration_iso' );
@@ -1195,7 +1650,7 @@ class MM_Schema_Types {
 				$out['maximumAttendeeCapacity'] = (int) $passengers;
 			}
 			if ( $str( 'trip_tourist_type' ) ) {
-				$ttypes             = array_map( 'trim', explode( ',', $str( 'trip_tourist_type' ) ) );
+				$ttypes = array_map( 'trim', explode( ',', $str( 'trip_tourist_type' ) ) );
 				$out['touristType'] = count( $ttypes ) === 1 ? $ttypes[0] : array_values( $ttypes );
 			}
 			if ( $str( 'trip_departure_time' ) ) {
@@ -1222,14 +1677,10 @@ class MM_Schema_Types {
 			$lat = $str( 'destination_lat' );
 			$lng = $str( 'destination_lng' );
 			if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
-				$out['geo'] = array(
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => (float) $lat,
-					'longitude' => (float) $lng,
-				);
+				$out['geo'] = [ '@type' => 'GeoCoordinates', 'latitude' => (float) $lat, 'longitude' => (float) $lng ];
 			}
 			if ( $str( 'destination_tourist_type' ) ) {
-				$ttypes             = array_map( 'trim', explode( ',', $str( 'destination_tourist_type' ) ) );
+				$ttypes = array_map( 'trim', explode( ',', $str( 'destination_tourist_type' ) ) );
 				$out['touristType'] = count( $ttypes ) === 1 ? $ttypes[0] : array_values( $ttypes );
 			}
 			if ( $str( 'destination_map_url' ) ) {
@@ -1240,14 +1691,11 @@ class MM_Schema_Types {
 			}
 			$attractions = $str( 'destination_attractions' );
 			if ( $attractions ) {
-				$names    = array_map( 'trim', explode( ',', $attractions ) );
-				$includes = array();
+				$names = array_map( 'trim', explode( ',', $attractions ) );
+				$includes = [];
 				foreach ( $names as $aname ) {
 					if ( $aname ) {
-						$includes[] = array(
-							'@type' => 'TouristAttraction',
-							'name'  => $aname,
-						);
+						$includes[] = [ '@type' => 'TouristAttraction', 'name' => $aname ];
 					}
 				}
 				if ( ! empty( $includes ) ) {
@@ -1265,10 +1713,7 @@ class MM_Schema_Types {
 				$out['bodyType'] = $str( 'vessel_type' );
 			}
 			if ( $str( 'vessel_manufacturer' ) ) {
-				$out['manufacturer'] = array(
-					'@type' => 'Organization',
-					'name'  => $str( 'vessel_manufacturer' ),
-				);
+				$out['manufacturer'] = [ '@type' => 'Organization', 'name' => $str( 'vessel_manufacturer' ) ];
 			}
 			$passengers = $str( 'vessel_passengers' );
 			if ( $passengers && is_numeric( $passengers ) ) {
@@ -1277,19 +1722,15 @@ class MM_Schema_Types {
 			$length = $str( 'vessel_length' );
 			$engine = $str( 'vessel_engine' );
 			if ( $length || $engine ) {
-				$parts                       = array_filter( array( $length, $engine ) );
+				$parts = array_filter( [ $length, $engine ] );
 				$out['vehicleConfiguration'] = implode( ', ', $parts );
 			}
 			$amenities = $str( 'vessel_amenities' );
 			if ( $amenities ) {
 				$items = array_filter( array_map( 'trim', explode( "\n", $amenities ) ) );
-				$props = array();
+				$props = [];
 				foreach ( $items as $item ) {
-					$props[] = array(
-						'@type' => 'PropertyValue',
-						'name'  => 'Amenity',
-						'value' => $item,
-					);
+					$props[] = [ '@type' => 'PropertyValue', 'name' => 'Amenity', 'value' => $item ];
 				}
 				if ( ! empty( $props ) ) {
 					$out['additionalProperty'] = $props;
@@ -1315,10 +1756,7 @@ class MM_Schema_Types {
 				$out['courseCode'] = $str( 'course_code' );
 			}
 			if ( $str( 'course_provider' ) ) {
-				$out['provider'] = array(
-					'@type' => 'Organization',
-					'name'  => $str( 'course_provider' ),
-				);
+				$out['provider'] = [ '@type' => 'Organization', 'name' => $str( 'course_provider' ) ];
 			}
 			$offer = $make_offer( 'course_price', 'course_currency' );
 			if ( $offer ) {
@@ -1339,11 +1777,27 @@ class MM_Schema_Types {
 			if ( $subtype ) {
 				$out['@type'] = $subtype;
 			}
-			if ( $str( 'business_address' ) ) {
-				$out['address'] = $str( 'business_address' );
+			// Structured PostalAddress from individual fields.
+			$street  = $str( 'business_street' );
+			$city    = $str( 'business_city' );
+			$state   = $str( 'business_state' );
+			$zip     = $str( 'business_zip' );
+			$country = $str( 'business_country' );
+			if ( $street || $city || $state || $zip || $country ) {
+				$addr = [ '@type' => 'PostalAddress' ];
+				if ( $street )  { $addr['streetAddress']   = $street; }
+				if ( $city )    { $addr['addressLocality']  = $city; }
+				if ( $state )   { $addr['addressRegion']    = $state; }
+				if ( $zip )     { $addr['postalCode']       = $zip; }
+				if ( $country ) { $addr['addressCountry']   = $country; }
+				$out['address'] = $addr;
 			}
 			if ( $str( 'business_telephone' ) ) {
 				$out['telephone'] = $str( 'business_telephone' );
+			}
+			$biz_email = sanitize_email( $str( 'business_email' ) );
+			if ( $biz_email ) {
+				$out['email'] = $biz_email;
 			}
 			$biz_url = esc_url_raw( $str( 'business_url' ) );
 			if ( $biz_url ) {
@@ -1358,11 +1812,57 @@ class MM_Schema_Types {
 			$lat = $str( 'business_lat' );
 			$lng = $str( 'business_lng' );
 			if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
-				$out['geo'] = array(
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => (float) $lat,
-					'longitude' => (float) $lng,
-				);
+				$out['geo'] = [ '@type' => 'GeoCoordinates', 'latitude' => (float) $lat, 'longitude' => (float) $lng ];
+			}
+			// areaServed from comma-separated service areas.
+			$areas_raw = $str( 'business_service_areas' );
+			if ( $areas_raw ) {
+				$areas = array_map( 'trim', explode( ',', $areas_raw ) );
+				$areas = array_filter( $areas );
+				if ( count( $areas ) === 1 ) {
+					$out['areaServed'] = [ '@type' => 'City', 'name' => $areas[0] ];
+				} elseif ( $areas ) {
+					$out['areaServed'] = array_map( fn( $a ) => [ '@type' => 'City', 'name' => $a ], array_values( $areas ) );
+				}
+			}
+			if ( $str( 'business_payment_accepted' ) ) {
+				$out['paymentAccepted'] = $str( 'business_payment_accepted' );
+			}
+			// Social profiles → sameAs.
+			$same_as = [];
+			foreach ( [ 'facebook', 'instagram', 'linkedin', 'youtube', 'twitter', 'bluesky', 'pinterest' ] as $network ) {
+				$social_url = esc_url_raw( $str( 'business_' . $network ) );
+				if ( $social_url ) {
+					$same_as[] = $social_url;
+				}
+			}
+			if ( $same_as ) {
+				$out['sameAs'] = $same_as;
+			}
+			// Booking link → ReserveAction potentialAction.
+			$booking = esc_url_raw( $str( 'business_booking_link' ) );
+			if ( $booking ) {
+				$out['potentialAction'] = [
+					'@type'  => 'ReserveAction',
+					'target' => [
+						'@type'           => 'EntryPoint',
+						'urlTemplate'     => $booking,
+						'actionPlatform'  => [
+							'http://schema.org/DesktopWebPlatform',
+							'http://schema.org/MobileWebPlatform',
+						],
+					],
+					'reservationFor' => [
+						'@type' => 'Service',
+						'name'  => sanitize_text_field( $str( 'business_booking_link_label' ) ?: 'Book Now' ),
+					],
+				];
+			}
+			if ( $str( 'business_founding_date' ) ) {
+				$out['foundingDate'] = $str( 'business_founding_date' );
+			}
+			if ( $str( 'business_number_of_employees' ) ) {
+				$out['numberOfEmployees'] = $str( 'business_number_of_employees' );
 			}
 		}
 
@@ -1387,8 +1887,118 @@ class MM_Schema_Types {
 				$out['url'] = $org_url;
 			}
 			if ( $str( 'org_area_served' ) ) {
-				$areas             = array_map( 'trim', explode( ',', $str( 'org_area_served' ) ) );
+				$areas = array_map( 'trim', explode( ',', $str( 'org_area_served' ) ) );
 				$out['areaServed'] = count( $areas ) === 1 ? $areas[0] : array_values( $areas );
+			}
+		}
+
+		// ── VacationRental ───────────────────────────────────────────────────
+		if ( 'VacationRental' === $type ) {
+			if ( $str( 'rental_property_type' ) ) {
+				$out['additionalType'] = $str( 'rental_property_type' );
+			}
+			if ( $str( 'rental_address' ) ) {
+				$out['address'] = $str( 'rental_address' );
+			}
+			$lat = $str( 'rental_lat' );
+			$lng = $str( 'rental_lng' );
+			if ( $lat && $lng && is_numeric( $lat ) && is_numeric( $lng ) ) {
+				$out['latitude'] = (float) $lat;
+				$out['longitude'] = (float) $lng;
+			}
+			if ( $str( 'rental_phone' ) ) {
+				$out['telephone'] = $str( 'rental_phone' );
+			}
+			if ( $str( 'rental_price_range' ) ) {
+				$out['priceRange'] = $str( 'rental_price_range' );
+			}
+			if ( $str( 'rental_checkin_time' ) ) {
+				$out['checkinTime'] = $str( 'rental_checkin_time' );
+			}
+			if ( $str( 'rental_checkout_time' ) ) {
+				$out['checkoutTime'] = $str( 'rental_checkout_time' );
+			}
+			if ( '' !== $str( 'rental_pets_allowed' ) ) {
+				$out['petsAllowed'] = 'yes' === $str( 'rental_pets_allowed' );
+			}
+			if ( $str( 'rental_amenities' ) ) {
+				$amenities = array_map( 'trim', explode( ',', $str( 'rental_amenities' ) ) );
+				$out['amenityFeature'] = array_map( function ( $a ) {
+					return [
+						'@type' => 'LocationFeatureSpecification',
+						'name'  => $a,
+						'value' => true,
+					];
+				}, array_filter( $amenities ) );
+			}
+			if ( $str( 'rental_max_guests' ) && is_numeric( $str( 'rental_max_guests' ) ) ) {
+				$out['containsPlace'] = [
+					'@type'     => 'Accommodation',
+					'occupancy' => [ '@type' => 'QuantitativeValue', 'value' => (int) $str( 'rental_max_guests' ) ],
+				];
+				if ( $str( 'rental_bedrooms' ) && is_numeric( $str( 'rental_bedrooms' ) ) ) {
+					$out['containsPlace']['numberOfRooms'] = (int) $str( 'rental_bedrooms' );
+				}
+			}
+			if ( $str( 'rental_booking_url' ) ) {
+				$booking = esc_url_raw( $str( 'rental_booking_url' ) );
+				if ( $booking ) {
+					$out['potentialAction'] = [
+						'@type'    => 'ReserveAction',
+						'target'   => $booking,
+						'result'   => [ '@type' => 'LodgingReservation' ],
+					];
+				}
+			}
+		}
+
+		// ── Person (captains, professionals, team members) ──────────────────
+		if ( 'Person' === $type ) {
+			if ( $str( 'person_job_title' ) ) {
+				$out['jobTitle'] = $str( 'person_job_title' );
+			}
+			if ( $str( 'person_works_for' ) ) {
+				$out['worksFor'] = [
+					'@type' => 'Organization',
+					'name'  => $str( 'person_works_for' ),
+				];
+			}
+			if ( $str( 'person_credentials' ) ) {
+				$creds = array_filter( array_map( 'trim', explode( "\n", $str( 'person_credentials' ) ) ) );
+				if ( $creds ) {
+					$out['hasCredential'] = array_map( function ( $c ) {
+						return [ '@type' => 'EducationalOccupationalCredential', 'name' => $c ];
+					}, $creds );
+				}
+			}
+			if ( $str( 'person_knows_about' ) ) {
+				$skills = array_filter( array_map( 'trim', explode( ',', $str( 'person_knows_about' ) ) ) );
+				if ( count( $skills ) === 1 ) {
+					$out['knowsAbout'] = $skills[0];
+				} elseif ( $skills ) {
+					$out['knowsAbout'] = array_values( $skills );
+				}
+			}
+			$p_email = sanitize_email( $str( 'person_email' ) );
+			if ( $p_email ) {
+				$out['email'] = $p_email;
+			}
+			if ( $str( 'person_phone' ) ) {
+				$out['telephone'] = $str( 'person_phone' );
+			}
+			$p_url = esc_url_raw( $str( 'person_url' ) );
+			if ( $p_url ) {
+				$out['url'] = $p_url;
+			}
+			$same_as = [];
+			foreach ( [ 'facebook', 'linkedin', 'instagram' ] as $network ) {
+				$social = esc_url_raw( $str( 'person_' . $network ) );
+				if ( $social ) {
+					$same_as[] = $social;
+				}
+			}
+			if ( $same_as ) {
+				$out['sameAs'] = $same_as;
 			}
 		}
 

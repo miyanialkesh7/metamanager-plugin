@@ -4,52 +4,22 @@
  *
  * All reads are from a deep-merged in-memory copy (defaults + saved).
  * Dot-notation keys: e.g. get('titles.separator'), get('social.og_locale').
-  *
-  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Site settings.
- *
- * @package Metamanager
- */
 class MM_Site_Settings {
 
-	/**
-	 * Instance.
-	 *
-	 * @var ?self
-	 */
 	private static ?self $instance = null;
-	/**
-	 * Settings data.
-	 *
-	 * @var ?array
-	 */
-	private ?array $settings_data  = null;
-	/**
-	 * Business data.
-	 *
-	 * @var ?array
-	 */
-	private ?array $business_data  = null;
+	private ?array $settings_data = null;
+	private ?array $business_data = null;
 
-	/**
-	 * Constructor.
-	 */
 	private function __construct() {}
 
-	/**
-	 * Get instance.
-	 *
-	 * @return self Return value.
-	 */
 	public static function get_instance(): self {
 		if ( null === self::$instance ) {
 			self::$instance = new self();
-			add_filter( 'pre_update_option_' . MM_META_OPT_SETTINGS, array( self::class, 'intercept_save' ), 10, 3 );
+			add_filter( 'pre_update_option_' . MM_META_OPT_SETTINGS, [ self::class, 'intercept_save' ], 10, 3 );
 		}
 		return self::$instance;
 	}
@@ -80,9 +50,6 @@ class MM_Site_Settings {
 
 	/**
 	 * Get a business profile value using dot-notation.
-	 *
-	 * @param string $key Key.
-	 * @param mixed  $default Default value.
 	 */
 	public function get_business( string $key = '', mixed $default = null ) {
 		$this->load();
@@ -92,17 +59,13 @@ class MM_Site_Settings {
 		return self::dot_get( $this->business_data, $key, $default );
 	}
 
-	/**
-	 * Return the full (merged) settings array.
-	 */
+	/** Return the full (merged) settings array. */
 	public function all(): array {
 		$this->load();
 		return $this->settings_data;
 	}
 
-	/**
-	 * Return the full (merged) business array.
-	 */
+	/** Return the full (merged) business array. */
 	public function all_business(): array {
 		$this->load();
 		return $this->business_data;
@@ -112,62 +75,33 @@ class MM_Site_Settings {
 	// Entity meta helpers
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Return decoded _mm_meta postmeta for a post, or [].
-	 *
-	 * @param int $post_id Post ID.
-	 */
+	/** Return decoded _mm_meta postmeta for a post, or []. */
 	public function get_post_meta( int $post_id ): array {
 		$raw = get_post_meta( $post_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/**
-	 * Return decoded _mm_meta termmeta for a term, or [].
-	 *
-	 * @param int $term_id Term ID.
-	 */
+	/** Return decoded _mm_meta termmeta for a term, or []. */
 	public function get_term_meta( int $term_id ): array {
 		$raw = get_term_meta( $term_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/**
-	 * Return decoded _mm_meta usermeta for a user, or [].
-	 *
-	 * @param int $user_id User ID.
-	 */
+	/** Return decoded _mm_meta usermeta for a user, or []. */
 	public function get_user_meta( int $user_id ): array {
 		$raw = get_user_meta( $user_id, MM_META_KEY, true );
 		return $this->decode_meta( $raw );
 	}
 
-	/**
-	 * Save entity meta (post/term/user) — always stores clean JSON.
-	 *
-	 * @param int   $post_id Post ID.
-	 * @param array $data Data.
-	 */
+	/** Save entity meta (post/term/user) — always stores clean JSON. */
 	public function save_post_meta( int $post_id, array $data ): void {
 		update_post_meta( $post_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
 
-	/**
-	 * Save term meta.
-	 *
-	 * @param int   $term_id Term ID.
-	 * @param array $data Data.
-	 */
 	public function save_term_meta( int $term_id, array $data ): void {
 		update_term_meta( $term_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
 
-	/**
-	 * Save user meta.
-	 *
-	 * @param int   $user_id User ID.
-	 * @param array $data Data.
-	 */
 	public function save_user_meta( int $user_id, array $data ): void {
 		update_user_meta( $user_id, MM_META_KEY, wp_json_encode( $data ) );
 	}
@@ -176,31 +110,22 @@ class MM_Site_Settings {
 	// Save settings
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Persist settings to the database and bust the in-memory cache.
-	 *
-	 * @param array $data Data.
-	 */
+	/** Persist settings to the database and bust the in-memory cache. */
 	public function save_settings( array $data ): void {
 		update_option( MM_META_OPT_SETTINGS, $data, false );
 		$this->settings_data = null; // Bust instance cache.
 	}
 
-	/**
-	 * Save business.
-	 *
-	 * @param array $data Data.
-	 */
 	public function save_business( array $data ): void {
 		// Auto-derive coordinates via Google Maps Geocoding API when:
 		// - API key is set
 		// - Address has a street
-		// - Coordinates are missing OR address changed.
-		$old            = get_option( MM_META_OPT_BUSINESS, array() );
-		$key            = sanitize_text_field( $data['google_maps_api_key'] ?? '' );
-		$has_addr       = ! empty( $data['address']['street'] ?? '' );
+		// - Coordinates are missing OR address changed
+		$old = get_option( MM_META_OPT_BUSINESS, [] );
+		$key = sanitize_text_field( $data['google_maps_api_key'] ?? '' );
+		$has_addr = ! empty( $data['address']['street'] ?? '' );
 		$coords_missing = empty( $data['lat'] ) || empty( $data['lng'] );
-		$addr_changed   = ( $old['address']['street'] ?? '' ) !== ( $data['address']['street'] ?? '' )
+		$addr_changed = ( $old['address']['street'] ?? '' ) !== ( $data['address']['street'] ?? '' )
 			|| ( $old['address']['city'] ?? '' ) !== ( $data['address']['city'] ?? '' )
 			|| ( $old['address']['state'] ?? '' ) !== ( $data['address']['state'] ?? '' )
 			|| ( $old['address']['zip'] ?? '' ) !== ( $data['address']['zip'] ?? '' );
@@ -236,34 +161,26 @@ class MM_Site_Settings {
 	 * @return array|false ['lat' => float, 'lng' => float] or false.
 	 */
 	public static function geocode_with_key( string $key, array $addr ): array|false {
-		$parts = array_filter(
-			array(
-				$addr['street'] ?? '',
-				$addr['city'] ?? '',
-				$addr['state'] ?? '',
-				$addr['zip'] ?? '',
-				$addr['country'] ?? 'US',
-			)
-		);
+		$parts = array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+			$addr['country'] ?? 'US',
+		] );
 		if ( empty( $parts ) ) {
 			return false;
 		}
 		$address = implode( ', ', $parts );
-		$url     = add_query_arg(
-			array(
-				'address' => rawurlencode( $address ),
-				'key'     => $key,
-			),
-			'https://maps.googleapis.com/maps/api/geocode/json'
-		);
+		$url = add_query_arg( [
+			'address' => rawurlencode( $address ),
+			'key'     => $key,
+		], 'https://maps.googleapis.com/maps/api/geocode/json' );
 
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout' => 15,
-				'headers' => array( 'Referer' => home_url( '/' ) ),
-			)
-		);
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'Referer' => home_url( '/' ) ],
+		] );
 		if ( is_wp_error( $response ) ) {
 			return false;
 		}
@@ -272,10 +189,60 @@ class MM_Site_Settings {
 			return false;
 		}
 		$loc = $body['results'][0]['geometry']['location'];
-		return array(
+		return [
 			'lat' => (float) $loc['lat'],
 			'lng' => (float) $loc['lng'],
-		);
+		];
+	}
+
+	/**
+	 * Reverse geocode GPS coordinates to an address using Google Maps API.
+	 *
+	 * @param string $key Google Maps API key.
+	 * @param float  $lat Latitude.
+	 * @param float  $lng Longitude.
+	 * @return array{city: string, state: string, country: string}|false
+	 */
+	public static function reverse_geocode( string $key, float $lat, float $lng ): array|false {
+		$url = add_query_arg( [
+			'latlng' => $lat . ',' . $lng,
+			'key'    => $key,
+		], 'https://maps.googleapis.com/maps/api/geocode/json' );
+
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'Referer' => home_url( '/' ) ],
+		] );
+		if ( is_wp_error( $response ) ) {
+			return false;
+		}
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $body['results'][0]['address_components'] ) ) {
+			return false;
+		}
+
+		$city = $state = $country = '';
+		foreach ( $body['results'][0]['address_components'] as $comp ) {
+			$types = (array) ( $comp['types'] ?? [] );
+			if ( in_array( 'locality', $types, true ) || in_array( 'administrative_area_level_3', $types, true ) ) {
+				$city = $comp['long_name'] ?? '';
+			}
+			if ( in_array( 'administrative_area_level_1', $types, true ) ) {
+				$state = $comp['short_name'] ?? '';
+			}
+			if ( in_array( 'country', $types, true ) ) {
+				$country = $comp['short_name'] ?? '';
+			}
+		}
+
+		if ( '' === $city && '' === $state && '' === $country ) {
+			return false;
+		}
+		return [
+			'city'    => $city,
+			'state'   => $state,
+			'country' => $country,
+		];
 	}
 
 	/**
@@ -285,27 +252,22 @@ class MM_Site_Settings {
 	 * @return array|false ['lat' => float, 'lng' => float] or false.
 	 */
 	public static function geocode_nominatim( array $addr ): array|false {
-		$parts = array_filter(
-			array(
-				$addr['street'] ?? '',
-				$addr['city'] ?? '',
-				$addr['state'] ?? '',
-				$addr['zip'] ?? '',
-				$addr['country'] ?? 'US',
-			)
-		);
+		$parts = array_filter( [
+			$addr['street'] ?? '',
+			$addr['city'] ?? '',
+			$addr['state'] ?? '',
+			$addr['zip'] ?? '',
+			$addr['country'] ?? 'US',
+		] );
 		if ( empty( $parts ) ) {
 			return false;
 		}
-		$address  = implode( ', ', $parts );
-		$url      = 'https://nominatim.openstreetmap.org/search?q=' . rawurlencode( $address ) . '&format=json&limit=1';
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout' => 15,
-				'headers' => array( 'User-Agent' => 'MetaManager/1.0 (WordPress plugin)' ),
-			)
-		);
+		$address = implode( ', ', $parts );
+		$url = 'https://nominatim.openstreetmap.org/search?q=' . rawurlencode( $address ) . '&format=json&limit=1';
+		$response = wp_remote_get( $url, [
+			'timeout' => 15,
+			'headers' => [ 'User-Agent' => 'MetaManager/1.0 (WordPress plugin)' ],
+		] );
 		if ( is_wp_error( $response ) ) {
 			return false;
 		}
@@ -313,10 +275,10 @@ class MM_Site_Settings {
 		if ( empty( $body[0]['lat'] ) || empty( $body[0]['lon'] ) ) {
 			return false;
 		}
-		return array(
+		return [
 			'lat' => (float) $body[0]['lat'],
 			'lng' => (float) $body[0]['lon'],
-		);
+		];
 	}
 
 	// -------------------------------------------------------------------------
@@ -326,7 +288,7 @@ class MM_Site_Settings {
 	/**
 	 * Intercept options.php save to merge the submitted section into the full option.
 	 *
-	 * Options.php calls update_option() which first runs sanitize_option(). When
+	 * options.php calls update_option() which first runs sanitize_option(). When
 	 * multiple sections register sanitize_callbacks on the same shared option,
 	 * they chain in the sanitize_option filter — each callback reloads from DB
 	 * via get_option(), destroying the POST data by the time the matching
@@ -341,10 +303,6 @@ class MM_Site_Settings {
 	 * NOTE: Because the sanitize callbacks were removed from register_setting()
 	 * for the shared option, the value here IS the raw POST data (unmodified
 	 * by sanitize_option). This is the correct behavior.
-	 *
-	 * @param mixed $value Value.
-	 * @param mixed $old_value Old value.
-	 * @param mixed $option Option.
 	 */
 	public static function intercept_save( $value, $old_value, $option ) {
 		if ( ! is_array( $value ) ) {
@@ -377,9 +335,14 @@ class MM_Site_Settings {
 		// Use the old value (current full option from the database).
 		$current = is_array( $old_value ) ? $old_value : $defaults;
 
-		// Sanitize the submitted section against defaults (casts types, fills missing keys).
+		// Sanitize the submitted section against defaults (casts types, fills
+		// missing keys). Missing non-bool keys are preserved from the stored
+		// value — a partial form save must not reset fields the form doesn't
+		// render (e.g. the Schema tab does not submit archive_layouts, which
+		// is edited in the Customizer).
 		$section_defaults = $defaults[ $section ];
-		$sanitized        = self::deep_sanitize_section( $submitted, $section_defaults );
+		$section_current  = is_array( $current[ $section ] ?? null ) ? $current[ $section ] : [];
+		$sanitized        = self::deep_sanitize_section( $submitted, $section_defaults, $section_current );
 
 		// Merge the sanitized section into the full option.
 		$current[ $section ] = $sanitized;
@@ -389,19 +352,32 @@ class MM_Site_Settings {
 
 	/**
 	 * Recursively sanitize $input against $defaults.
-	 * Known keys: type-cast and fill missing from defaults.
+	 * Known keys: type-cast and fill missing from $preserve (stored value),
+	 * falling back to defaults.
 	 * Unknown keys in nested associative arrays: preserved and recursively
 	 * sanitized using the first default value as a structural template.
 	 * Missing bool keys (unchecked checkboxes) default to false.
+	 * Missing non-bool keys keep the stored value from $preserve when present
+	 * (a form that does not render a field must not reset it), else default.
 	 *
-	 * @param array $input Raw input.
-	 * @param array $defaults Defaults.
+	 * @param array $input    Submitted (raw) data for this section/level.
+	 * @param array $defaults Defaults for this section/level.
+	 * @param array $preserve Current stored value for this section/level,
+	 *                        used to keep keys the form did not submit.
 	 */
-	public static function deep_sanitize_section( array $input, array $defaults ): array {
-		$out = array();
+	public static function deep_sanitize_section( array $input, array $defaults, array $preserve = [] ): array {
+		$out = [];
 		foreach ( $defaults as $key => $default_val ) {
 			if ( ! array_key_exists( $key, $input ) ) {
-				$out[ $key ] = is_bool( $default_val ) ? false : $default_val;
+				if ( is_bool( $default_val ) ) {
+					// Unchecked checkbox — absent from POST means false.
+					$out[ $key ] = false;
+				} elseif ( array_key_exists( $key, $preserve ) ) {
+					// Field not rendered by this form — keep the stored value.
+					$out[ $key ] = $preserve[ $key ];
+				} else {
+					$out[ $key ] = $default_val;
+				}
 				continue;
 			}
 
@@ -414,50 +390,47 @@ class MM_Site_Settings {
 					$items_are_arrays = ! empty( $val ) && is_array( reset( $val ) );
 					if ( $items_are_arrays ) {
 						// Sanitize each row as an associative array, preserving structure.
-						$out[ $key ] = array_values(
-							array_map(
-								function ( $item ) {
-									if ( ! is_array( $item ) ) {
-										return sanitize_text_field( (string) $item );
+						$out[ $key ] = array_values( array_map(
+							function ( $item ) {
+								if ( ! is_array( $item ) ) {
+									return sanitize_text_field( (string) $item );
+								}
+								$clean = [];
+								foreach ( $item as $ik => $iv ) {
+									if ( is_array( $iv ) ) {
+										$clean[ $ik ] = array_map( function( $v ) {
+											return sanitize_text_field( (string) $v );
+										}, $iv );
+									} elseif ( is_bool( $iv ) ) {
+										$clean[ $ik ] = (bool) $iv;
+									} elseif ( is_int( $iv ) ) {
+										$clean[ $ik ] = (int) $iv;
+									} else {
+										$clean[ $ik ] = sanitize_text_field( (string) $iv );
 									}
-									$clean = array();
-									foreach ( $item as $ik => $iv ) {
-										if ( is_array( $iv ) ) {
-											$clean[ $ik ] = array_map(
-												function ( $v ) {
-													return sanitize_text_field( (string) $v );
-												},
-												$iv
-											);
-										} elseif ( is_bool( $iv ) ) {
-											$clean[ $ik ] = (bool) $iv;
-										} elseif ( is_int( $iv ) ) {
-											$clean[ $ik ] = (int) $iv;
-										} else {
-											$clean[ $ik ] = sanitize_text_field( (string) $iv );
-										}
-									}
-									return $clean;
-								},
-								$val
-							)
-						);
+								}
+								return $clean;
+							},
+							$val
+						) );
 					} else {
 						$first_default = reset( $default_val );
-						$out[ $key ]   = array_values(
-							array_map(
-								function ( $item ) use ( $first_default ) {
-									if ( is_array( $item ) && is_array( $first_default ) ) {
-										return self::deep_sanitize_section( $item, $first_default );
-									}
-									return sanitize_text_field( (string) $item );
-								},
-								$val
-							)
-						);
+						$out[ $key ] = array_values( array_map(
+							function ( $item ) use ( $first_default ) {
+								if ( is_array( $item ) && is_array( $first_default ) ) {
+									return self::deep_sanitize_section( $item, $first_default );
+								}
+								return sanitize_text_field( (string) $item );
+							},
+							$val
+						) );
 					}
 				} else {
-					$out[ $key ] = self::deep_sanitize_section( $val, $default_val );
+					$out[ $key ] = self::deep_sanitize_section(
+						$val,
+						$default_val,
+						is_array( $preserve[ $key ] ?? null ) ? $preserve[ $key ] : []
+					);
 				}
 			} elseif ( is_bool( $default_val ) ) {
 				$out[ $key ] = (bool) $val;
@@ -488,10 +461,10 @@ class MM_Site_Settings {
 					$out[ $key ] = self::deep_sanitize_section( $val, $template );
 				} else {
 					// No template — recursively sanitize with empty defaults.
-					$out[ $key ] = self::deep_sanitize_section( $val, array() );
+					$out[ $key ] = self::deep_sanitize_section( $val, [] );
 				}
 			} else {
-				$str         = (string) $val;
+				$str = (string) $val;
 				$out[ $key ] = sanitize_text_field( $str );
 			}
 		}
@@ -521,31 +494,31 @@ class MM_Site_Settings {
 	/**
 	 * Replace %%variable%% tokens in a template string.
 	 *
-	 * @param string        $tpl     The template string.
-	 * @param \WP_Post|null $post    Optional post object for post-specific vars.
-	 * @param \WP_Term|null $term    Optional term object.
-	 * @param \WP_User|null $author  Optional author.
-	 * @param int           $page    Current page number (for pagination).
+	 * @param string          $tpl     The template string.
+	 * @param \WP_Post|null   $post    Optional post object for post-specific vars.
+	 * @param \WP_Term|null   $term    Optional term object.
+	 * @param \WP_User|null   $author  Optional author.
+	 * @param int             $page    Current page number (for pagination).
 	 * @return string
 	 */
 	public function resolve( string $tpl, ?\WP_Post $post = null, ?\WP_Term $term = null, ?\WP_User $author = null, int $page = 0 ): string {
 		$this->load();
 
-		$replacements = array(
-			'%%sitetitle%%'     => esc_html( get_bloginfo( 'name' ) ),
-			'%%tagline%%'       => esc_html( get_bloginfo( 'description' ) ),
-			'%%sep%%'           => esc_html( $this->settings_data['titles']['separator'] ?? '|' ),
-			'%%current_year%%'  => (string) gmdate( 'Y' ),
-			'%%current_month%%' => esc_html( gmdate( 'F' ) ),
-		);
+		$replacements = [
+			'%%sitetitle%%'       => esc_html( get_bloginfo( 'name' ) ),
+			'%%tagline%%'         => esc_html( get_bloginfo( 'description' ) ),
+			'%%sep%%'             => esc_html( $this->settings_data['titles']['separator'] ?? '|' ),
+			'%%current_year%%'    => (string) gmdate( 'Y' ),
+			'%%current_month%%'   => esc_html( gmdate( 'F' ) ),
+		];
 
 		if ( $post ) {
-			$replacements['%%post_title%%']      = esc_html( get_the_title( $post ) );
-			$replacements['%%post_excerpt%%']    = esc_html( $this->get_excerpt( $post ) );
-			$replacements['%%post_type_label%%'] = esc_html( $this->get_post_type_label( $post->post_type ) );
+			$replacements['%%post_title%%']       = esc_html( get_the_title( $post ) );
+			$replacements['%%post_excerpt%%']     = esc_html( $this->get_excerpt( $post ) );
+			$replacements['%%post_type_label%%']  = esc_html( $this->get_post_type_label( $post->post_type ) );
 
 			// Primary category.
-			$cats                         = get_the_category( $post->ID );
+			$cats = get_the_category( $post->ID );
 			$replacements['%%category%%'] = $cats ? esc_html( $cats[0]->name ) : '';
 		}
 
@@ -586,14 +559,9 @@ class MM_Site_Settings {
 	// Defaults
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Settings defaults.
-	 *
-	 * @return array Resulting array.
-	 */
 	public static function settings_defaults(): array {
-		return array(
-			'titles'    => array(
+		return [
+			'titles' => [
 				'separator'                  => '|',
 				'home_title'                 => '%%sitetitle%% %%sep%% %%tagline%%',
 				'home_description'           => '',
@@ -604,44 +572,41 @@ class MM_Site_Settings {
 				'paginate_append'            => true,
 				'date_archive_noindex'       => true,
 				'search_noindex'             => true,
-				'post_types'                 => array(
-					'post' => array(
+				'post_types'                 => [
+					'post' => [
 						'single_title'       => '%%post_title%% %%sep%% %%sitetitle%%',
 						'archive_title'      => 'Blog %%sep%% %%sitetitle%%',
-						'description_source' => 'excerpt',
 						'noindex'            => false,
 						'noindex_archive'    => false,
-					),
-					'page' => array(
+					],
+					'page' => [
 						'single_title'       => '%%post_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'excerpt',
 						'noindex'            => false,
-					),
-				),
-				'taxonomies'                 => array(
-					'category' => array(
+					],
+				],
+				'taxonomies' => [
+					'category' => [
 						'archive_title'      => '%%term_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'term_description',
 						'noindex'            => false,
-					),
-					'post_tag' => array(
+					],
+					'post_tag' => [
 						'archive_title'      => '%%term_title%% %%sep%% %%sitetitle%%',
-						'description_source' => 'term_description',
 						'noindex'            => false,
-					),
-				),
-			),
+					],
+				],
+			],
 
-			'social'    => array(
-				'og_enabled'          => true,
-				'twitter_enabled'     => true,
-				'og_default_image'    => '',
-				'og_default_image_id' => 0,
-				'og_locale'           => 'en_US',
-				'fb_app_id'           => '',
-				'twitter_site'        => '',
-				'twitter_card_type'   => 'summary_large_image',
-				'accounts'            => array(
+			'social' => [
+				'og_enabled'            => true,
+				'twitter_enabled'       => true,
+				'og_default_image'      => '',
+				'og_default_image_id'   => 0,
+				'og_locale'             => 'en_US',
+				'fb_app_id'             => '',
+				'fb_page_id'            => '',
+				'twitter_site'          => '',
+				'twitter_card_type'     => 'summary_large_image',
+				'accounts'              => [
 					'facebook'  => '',
 					'instagram' => '',
 					'pinterest' => '',
@@ -649,154 +614,148 @@ class MM_Site_Settings {
 					'linkedin'  => '',
 					'twitter'   => '',
 					'bluesky'   => '',
-				),
-				'pinterest_verify'    => '',
-			),
+				],
+				'pinterest_verify'      => '',
+			],
 
-			'schema'    => array(
-				'knowledge_entity'     => 'LocalBusiness',
-				'website_searchaction' => true,
-				'breadcrumbs'          => true,
-				'archive_itemlist'     => true,
-				'archive_media'        => false,
-				'custom_json_ld'       => '',
-				'archive_layouts'      => array(
-					'mm_service'      => 'menu',
-					'mm_event'        => 'menu',
-					'mm_trip'         => 'menu',
-					'mm_destination'  => 'menu',
-					'mm_vessel'       => 'menu',
-					'mm_course'       => 'menu',
-					'mm_how_to'       => 'menu',
-					'mm_faq_page'     => 'menu',
-					'mm_business'     => 'menu',
-					'mm_organization' => 'menu',
-				),
-			),
+		'schema' => [
+			'knowledge_entity'      => 'LocalBusiness',
+			'website_searchaction'  => true,
+			'breadcrumbs'           => true,
+			'archive_itemlist'      => true,
+			'archive_media'         => false,
+			'custom_json_ld'        => '',
+			'archive_layouts'       => [
+				'mm_service'     => 'menu',
+				'mm_event'       => 'menu',
+				'mm_trip'        => 'menu',
+				'mm_destination' => 'menu',
+				'mm_vessel'      => 'menu',
+				'mm_course'      => 'menu',
+				'mm_how_to'      => 'menu',
+				'mm_faq_page'    => 'menu',
+				'mm_business'    => 'menu',
+				'mm_organization'=> 'menu',
+			],
+		],
 
-			'media'     => array(
+			'media' => [
 				'featured_image_citation' => false,
-			),
+			],
 
-			'sitemap'   => array(
+			'sitemap' => [
 				'enabled'                    => true,
-				'post_types'                 => array(
-					'post' => true,
-					'page' => true,
-				),
-				'taxonomies'                 => array( 'category' => true ),
+				'post_types'                 => [ 'post' => true, 'page' => true ],
+				'taxonomies'                 => [ 'category' => true ],
 				'images'                     => true,
-				'video'                      => true,
-				'video_selfhosted'           => true,
+			'video'                      => true,
+			'video_selfhosted'           => true,
 				'exclude_password_protected' => true,
 				'exclude_noindexed'          => true,
 				'records_per_file'           => 1000,
 				'ping_google'                => true,
 				'ping_bing'                  => true,
-				'html_sitemap'               => array(
-					'enabled'            => true,
-					'post_types'         => array( 'page', 'post' ),
-					'taxonomies'         => array(),
-					'columns'            => 1,
-					'order_by'           => 'menu_order',
-					'exclude_ids'        => array(),
-					'flat_limit'         => 500,
+				'html_sitemap'               => [
+					'enabled'           => true,
+					'post_types'        => [ 'page', 'post' ],
+					'taxonomies'        => [],
+					'columns'           => 1,
+					'order_by'          => 'menu_order',
+					'exclude_ids'       => [],
+					'flat_limit'        => 500,
 					'hierarchical_limit' => 500,
-				),
-			),
+				],
+			],
 
-			'robots'    => array(
-				'enabled'     => true,
-				'disallow'    => array( '/wp-admin/', '/wp-login.php' ),
-				'allow'       => array( '/wp-admin/admin-ajax.php' ),
-				'crawl_delay' => '',
-				'custom'      => '',
-			),
+			'robots' => [
+				'enabled'      => true,
+				'disallow'     => [ '/wp-admin/', '/wp-login.php' ],
+				'allow'        => [ '/wp-admin/admin-ajax.php' ],
+				'crawl_delay'  => '',
+				'custom'       => '',
+			],
 
-			'authors'   => array(
-				'enabled'               => true,
-				'noindex_default'       => false,
-				'title_template'        => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
-				'description_template'  => '%%author_bio%%',
-				'person_schema'         => true,
-				'profile_social_fields' => true,
-			),
+			'authors' => [
+				'enabled'              => true,
+				'noindex_default'      => false,
+				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
+				'description_template' => '%%author_bio%%',
+				'person_schema_posts'  => true,
+				'person_schema_pages'  => true,
+				'person_schema_archives' => true,
+				'profile_social_fields'=> true,
+			],
 
-			'links'     => array(
+			'links' => [
 				'enabled'        => true,
 				'cron_frequency' => 'twicedaily',
 				'timeout'        => 10,
 				'batch_size'     => 50,
 				'check_external' => true,
-				'ignore_domains' => array(),
+				'ignore_domains' => [],
 				'email_alerts'   => false,
 				'email_address'  => '',
-			),
+			],
 
-			'hygiene'   => array(
+			'hygiene' => [
 				'remove_generator'       => true,
 				'remove_oembed_links'    => true,
 				'remove_shortlink'       => true,
 				'remove_wlw_manifest'    => true,
 				'remove_rsd_link'        => true,
 				'remove_pingback_header' => true,
-				'remove_x_powered_by'    => true,
+				'remove_x_powered_by'   => true,
 				'remove_wp_dns_prefetch' => true,
 				'remove_hentry'          => true,
-			),
+			],
 
-			'feed'      => array(
+			'feed' => [
 				'cleanup_enabled'          => true,
 				'remove_generator'         => true,
 				'remove_comments_elements' => true,
 				'use_excerpt'              => false,
 				'feed_title'               => '',
 				'feed_copyright'           => '',
-			),
+			],
 
-			'discovery' => array(
+			'discovery' => [
 				'llms_txt_enabled' => true,
 				'mcp_server'       => true,
-			),
+			],
 
-			'listing'   => array(
-				'btn_text'              => 'Learn more',
-				'btn_bg'                => '#0073aa',
-				'btn_text_color'        => '#ffffff',
-				'btn_radius'            => '4px',
-				'btn_padding'           => '10px 16px',
-				'btn_font_size'         => '14px',
-				'btn_font_weight'       => '600',
-				'btn_border_thickness'  => '0px',
-				'btn_border_color'      => '#0073aa',
-				'btn_box_shadow'        => false,
-				'btn_box_shadow_color'  => 'rgba(0,0,0,0.3)',
-				'btn_box_shadow_x'      => '0px',
-				'btn_box_shadow_y'      => '2px',
-				'btn_box_shadow_blur'   => '4px',
-				'btn_box_shadow_spread' => '0px',
-				'btn_hover_enabled'     => true,
-				'btn_hover_bg'          => '',
-				'btn_hover_text'        => '',
-				'btn_display'           => 'inline-block',
-			),
+			'listing' => [
+				'btn_text'      => 'Learn more',
+				'btn_bg'        => '#0073aa',
+				'btn_text_color'=> '#ffffff',
+				'btn_radius'    => '4px',
+				'btn_padding'   => '10px 16px',
+				'btn_font_size' => '14px',
+				'btn_font_weight' => '600',
+			'btn_border_thickness' => '0px',
+			'btn_border_color' => '#0073aa',
+			'btn_box_shadow' => false,
+			'btn_box_shadow_color' => 'rgba(0,0,0,0.3)',
+			'btn_box_shadow_x' => '0px',
+			'btn_box_shadow_y' => '2px',
+			'btn_box_shadow_blur' => '4px',
+			'btn_box_shadow_spread' => '0px',
+			'btn_hover_enabled' => true,
+			'btn_hover_bg' => '',
+			'btn_hover_text' => '',
+				'btn_display'   => 'inline-block',
+			],
 
-			'templates' => array(
+			'templates' => [
 				'noindex_about'    => false,
 				'noindex_contact'  => false,
 				'noindex_calendar' => false,
-			),
+			],
 
-		);
+		];
 	}
 
-	/**
-	 * Business defaults.
-	 *
-	 * @return array Resulting array.
-	 */
 	public static function business_defaults(): array {
-		return array(
+		return [
 			'name'                 => '',
 			'type'                 => 'LocalBusiness',
 			'logo_id'              => 0,
@@ -806,16 +765,16 @@ class MM_Site_Settings {
 			'description'          => '',
 			'founding_date'        => '',
 			'number_of_employees'  => '',
-			'address'              => array(
+			'address'              => [
 				'street'  => '',
 				'city'    => '',
 				'state'   => '',
 				'zip'     => '',
 				'country' => 'US',
-			),
+			],
 			'lat'                  => '',
 			'lng'                  => '',
-			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area'
+			'location_type'        => 'brick_and_mortar',  // 'brick_and_mortar' | 'service_area' | 'none'
 			'google_maps_api_key'  => '',
 			'show_sms'             => true,
 			'show_phone'           => true,
@@ -823,20 +782,26 @@ class MM_Site_Settings {
 			'show_vcard'           => true,
 			'show_json'            => true,
 			'show_csv'             => true,
+			'contact_form_enabled' => true,
+			'contact_form_subject_prefix' => '',
+			'contact_form_submit_text' => 'Submit',
+			'contact_form_tos_page_id' => 0,
+			'contact_form_recaptcha_site' => '',
+			'contact_form_recaptcha_secret' => '',
 			'booking_link'         => '',
 			'booking_link_label'   => 'Book Now',
 			'booking_link_new_tab' => true,
-			'map_links'            => array(
+			'map_links'            => [
 				'google' => true,
 				'bing'   => true,
 				'apple'  => true,
 				'geo'    => true,
-			),
+			],
 			'price_range'          => '',
-			'payment_accepted'     => array(),
-			'hours'                => array(),
-			'service_areas'        => array(),
-			'accounts'             => array(
+			'payment_accepted'     => [],
+			'hours'                => [],
+			'service_areas'        => [],
+			'accounts'             => [
 				'facebook'  => '',
 				'instagram' => '',
 				'linkedin'  => '',
@@ -844,40 +809,29 @@ class MM_Site_Settings {
 				'twitter'   => '',
 				'bluesky'   => '',
 				'pinterest' => '',
-			),
-		);
+			],
+		];
 	}
 
 	// -------------------------------------------------------------------------
 	// Internal helpers
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Load.
-	 */
 	private function load(): void {
 		if ( null === $this->settings_data ) {
-			$saved               = get_option( MM_META_OPT_SETTINGS, array() );
-			$this->settings_data = self::deep_merge( self::settings_defaults(), is_array( $saved ) ? $saved : array() );
+			$saved              = get_option( MM_META_OPT_SETTINGS, [] );
+			$this->settings_data = self::deep_merge( self::settings_defaults(), is_array( $saved ) ? $saved : [] );
 		}
 		if ( null === $this->business_data ) {
-			$saved               = get_option( MM_META_OPT_BUSINESS, array() );
-			$this->business_data = self::deep_merge( self::business_defaults(), is_array( $saved ) ? $saved : array() );
+			$saved             = get_option( MM_META_OPT_BUSINESS, [] );
+			$this->business_data = self::deep_merge( self::business_defaults(), is_array( $saved ) ? $saved : [] );
 		}
 	}
 
-	/**
-	 * Deep merge.
-	 *
-	 * @param array $base Base.
-	 * @param array $override Override.
-	 * @param bool  $merge_lists Merge lists.
-	 * @return array Resulting array.
-	 */
 	public static function deep_merge( array $base, array $override, bool $merge_lists = false ): array {
 		foreach ( $override as $key => $value ) {
 			if ( isset( $base[ $key ] ) && is_array( $base[ $key ] ) && is_array( $value ) ) {
-				$is_list      = array_is_list( $base[ $key ] ) && array_is_list( $value );
+				$is_list = array_is_list( $base[ $key ] ) && array_is_list( $value );
 				$base[ $key ] = ( $is_list && ! $merge_lists )
 					? $value
 					: self::deep_merge( $base[ $key ], $value, $merge_lists );
@@ -888,14 +842,6 @@ class MM_Site_Settings {
 		return $base;
 	}
 
-	/**
-	 * Dot get.
-	 *
-	 * @param array  $data Data.
-	 * @param string $key Key.
-	 * @param mixed  $default Default value.
-	 * @return mixed Return value.
-	 */
 	private static function dot_get( array $data, string $key, mixed $default ): mixed {
 		$keys    = explode( '.', $key );
 		$current = $data;
@@ -908,50 +854,26 @@ class MM_Site_Settings {
 		return $current;
 	}
 
-	/**
-	 * Decode meta.
-	 *
-	 * @param mixed $raw Raw.
-	 * @return array Resulting array.
-	 */
 	private function decode_meta( mixed $raw ): array {
 		if ( ! $raw ) {
-			return array();
+			return [];
 		}
 		if ( is_array( $raw ) ) {
 			return $raw;
 		}
 		$decoded = json_decode( $raw, true );
-		return is_array( $decoded ) ? $decoded : array();
+		return is_array( $decoded ) ? $decoded : [];
 	}
 
-	/**
-	 * Get excerpt.
-	 *
-	 * @param \WP_Post $post Post object.
-	 * @return string Resulting string.
-	 */
 	private function get_excerpt( \WP_Post $post ): string {
 		return $post->post_excerpt ? wp_strip_all_tags( $post->post_excerpt ) : '';
 	}
 
-	/**
-	 * Get post type label.
-	 *
-	 * @param string $pt Pt.
-	 * @return string Resulting string.
-	 */
 	private function get_post_type_label( string $pt ): string {
 		$obj = get_post_type_object( $pt );
 		return $obj ? $obj->labels->singular_name : $pt;
 	}
 
-	/**
-	 * Get post type label for tax.
-	 *
-	 * @param string $taxonomy Taxonomy.
-	 * @return string Resulting string.
-	 */
 	private function get_post_type_label_for_tax( string $taxonomy ): string {
 		$tax = get_taxonomy( $taxonomy );
 		if ( ! $tax || empty( $tax->object_type ) ) {

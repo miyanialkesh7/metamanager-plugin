@@ -7,26 +7,12 @@
  * business:contact_data:* tags for Facebook's business card format.
  *
  * Supports 45 schema.org LocalBusiness subtypes grouped by industry.
-  *
-  * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Mod local.
- *
- * @package Metamanager
- */
 class MM_Mod_Local extends MM_Mod_Base {
 
-	/**
-	 * Populate.
-	 *
-	 * @param array            $data Data.
-	 * @param MM_Page_Context  $context Context.
-	 * @param MM_Site_Settings $settings Settings.
-	 */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {
 		// A publication/content site (knowledge entity = WebSite) has no
 		// organization node: the WebSite node is the graph root and every
@@ -39,15 +25,12 @@ class MM_Mod_Local extends MM_Mod_Base {
 
 		if ( empty( $biz['name'] ) ) {
 			// No business profile configured yet — add minimal Organization node.
-			$this->add_node(
-				$data,
-				array(
-					'@type' => 'Organization',
-					'@id'   => $this->site_id( 'organization' ),
-					'name'  => get_bloginfo( 'name' ),
-					'url'   => $this->site_url(),
-				)
-			);
+			$this->add_node( $data, [
+				'@type' => 'Organization',
+				'@id'   => $this->site_id( 'organization' ),
+				'name'  => get_bloginfo( 'name' ),
+				'url'   => $this->site_url(),
+			] );
 			return;
 		}
 
@@ -55,30 +38,30 @@ class MM_Mod_Local extends MM_Mod_Base {
 
 		// Validate against known schema.org types — silently fall back to
 		// LocalBusiness if the stored type is not in the recognised list.
-		$valid_types = array();
+		$valid_types = [];
 		foreach ( self::get_business_types() as $group ) {
 			$valid_types += $group;
 		}
 		if ( ! isset( $valid_types[ $type ] ) ) {
 			$type = 'LocalBusiness';
 		}
-		$node = array(
-			'@type' => $type,
-			'@id'   => $this->site_id( 'organization' ),
-			'name'  => $biz['name'],
-			'url'   => $this->site_url(),
-		);
+		$node = [
+			'@type'  => $type,
+			'@id'    => $this->site_id( 'organization' ),
+			'name'   => $biz['name'],
+			'url'    => $this->site_url(),
+		];
 
 		// Logo.
 		if ( ! empty( $biz['logo_url'] ) || ! empty( $biz['logo_id'] ) ) {
 			$logo = $this->image_data( (int) ( $biz['logo_id'] ?? 0 ), $biz['logo_url'] ?? '' );
 			if ( $logo['url'] ) {
-				$node['logo']  = array(
+				$node['logo'] = [
 					'@type'  => 'ImageObject',
 					'url'    => $logo['url'],
 					'width'  => $logo['width'],
 					'height' => $logo['height'],
-				);
+				];
 				$node['image'] = $node['logo'];
 			}
 		}
@@ -92,27 +75,30 @@ class MM_Mod_Local extends MM_Mod_Base {
 		if ( ! empty( $biz['phone'] ) ) {
 			$node['telephone'] = sanitize_text_field( $biz['phone'] );
 		}
-		if ( ! empty( $biz['email'] ) ) {
+		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ) ) {
 			$node['email'] = sanitize_email( $biz['email'] );
 		}
 
-		// Address & geo — always in schema (mailing address is valid structured data).
-		$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? array() );
-		if ( $addr ) {
-			$node['address'] = $addr;
-		}
+		// Address & geo — suppressed for location_type 'none' (online-only/publication).
+		$location_type = $biz['location_type'] ?? 'brick_and_mortar';
+		if ( 'none' !== $location_type ) {
+			$addr = MM_Mod_Base::postal_address_node( $biz['address'] ?? [] );
+			if ( $addr ) {
+				$node['address'] = $addr;
+			}
 
-		// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
-		// Suppressed for service_area businesses (home address — don't publish exact coordinates).
-		if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) && ( ( $biz['location_type'] ?? 'brick_and_mortar' ) !== 'service_area' ) ) {
-			$node['location'] = array(
-				'@type' => 'Place',
-				'geo'   => array(
-					'@type'     => 'GeoCoordinates',
-					'latitude'  => (float) $biz['lat'],
-					'longitude' => (float) $biz['lng'],
-				),
-			);
+			// Geo coordinates: Organization has no 'geo'; use 'location' (Place) which does.
+			// Suppressed for service_area businesses (home address — don't publish exact coordinates).
+			if ( ! empty( $biz['lat'] ) && ! empty( $biz['lng'] ) && ( $location_type !== 'service_area' ) ) {
+				$node['location'] = [
+					'@type' => 'Place',
+					'geo'   => [
+						'@type'     => 'GeoCoordinates',
+						'latitude'  => (float) $biz['lat'],
+						'longitude' => (float) $biz['lng'],
+					],
+				];
+			}
 		}
 
 		// Price range.
@@ -129,20 +115,20 @@ class MM_Mod_Local extends MM_Mod_Base {
 		}
 
 		// ContactPoint nodes.
-		$contact_points = array();
+		$contact_points = [];
 		if ( ! empty( $biz['phone'] ) ) {
-			$contact_points[] = array(
+			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'telephone'   => sanitize_text_field( $biz['phone'] ),
 				'contactType' => 'customer service',
-			);
+			];
 		}
-		if ( ! empty( $biz['email'] ) ) {
-			$contact_points[] = array(
+		if ( ! empty( $biz['email'] ) && ! empty( $biz['show_email'] ) ) {
+			$contact_points[] = [
 				'@type'       => 'ContactPoint',
 				'email'       => sanitize_email( $biz['email'] ),
 				'contactType' => 'customer service',
-			);
+			];
 		}
 		if ( $contact_points ) {
 			$node['contactPoint'] = ( 1 === count( $contact_points ) ) ? $contact_points[0] : $contact_points;
@@ -153,30 +139,26 @@ class MM_Mod_Local extends MM_Mod_Base {
 			$node['paymentAccepted'] = implode( ', ', array_map( 'sanitize_text_field', $biz['payment_accepted'] ) );
 		}
 
-		// Opening hours.
-		$hours = $this->build_opening_hours( $biz['hours'] ?? array() );
-		if ( $hours ) {
-			$node['openingHoursSpecification'] = $hours;
+		// Opening hours — suppressed for location_type 'none'.
+		if ( 'none' !== $location_type ) {
+			$hours = $this->build_opening_hours( $biz['hours'] ?? [] );
+			if ( $hours ) {
+				$node['openingHoursSpecification'] = $hours;
+			}
 		}
 
-		// Service areas (areaServed).
-		if ( ! empty( $biz['service_areas'] ) ) {
-			$service_areas      = array_map(
-				function ( $area ) {
-					return array(
-						'@type' => 'City',
-						'name'  => sanitize_text_field( $area ),
-					);
-				},
-				$biz['service_areas']
-			);
+		// Service areas (areaServed) — suppressed for location_type 'none'.
+		if ( 'none' !== $location_type && ! empty( $biz['service_areas'] ) ) {
+			$service_areas = array_map( function ( $area ) {
+				return [ '@type' => 'City', 'name' => sanitize_text_field( $area ) ];
+			}, $biz['service_areas'] );
 			$node['areaServed'] = $service_areas;
 		}
 
 		// Social profiles → sameAs (merge both Social settings and Business Profile accounts).
 		// Filter empty values first so non-empty social URLs aren't overwritten by empty business defaults.
-		$social_accounts = array_filter( $settings->get( 'social.accounts', array() ) );
-		$biz_accounts    = array_filter( $biz['accounts'] ?? array() );
+		$social_accounts = array_filter( $settings->get( 'social.accounts', [] ) );
+		$biz_accounts    = array_filter( $biz['accounts'] ?? [] );
 		$all_accounts    = array_merge( $social_accounts, $biz_accounts );
 		$same_as         = array_values( array_filter( array_map( 'esc_url_raw', $all_accounts ) ) );
 		if ( $same_as ) {
@@ -185,21 +167,27 @@ class MM_Mod_Local extends MM_Mod_Base {
 
 		// Booking link → ReserveAction potentialAction.
 		if ( ! empty( $biz['booking_link'] ) ) {
-			$node['potentialAction'] = array(
-				'@type'          => 'ReserveAction',
-				'target'         => array(
-					'@type'          => 'EntryPoint',
-					'urlTemplate'    => esc_url_raw( $biz['booking_link'] ),
-					'actionPlatform' => array(
+			$node['potentialAction'] = [
+				'@type'     => 'ReserveAction',
+				'target'    => [
+					'@type'       => 'EntryPoint',
+					'urlTemplate' => esc_url_raw( $biz['booking_link'] ),
+					'actionPlatform' => [
 						'http://schema.org/DesktopWebPlatform',
 						'http://schema.org/MobileWebPlatform',
-					),
-				),
-				'reservationFor' => array(
+					],
+				],
+				'reservationFor' => [
 					'@type' => 'Service',
 					'name'  => sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' ),
-				),
-			);
+				],
+			];
+		}
+
+		// makesOffer — link to published service CPTs (derived from posts, no UI field).
+		$offers = $this->build_makes_offer();
+		if ( $offers ) {
+			$node['makesOffer'] = $offers;
 		}
 
 		$this->add_node( $data, $node );
@@ -218,18 +206,77 @@ class MM_Mod_Local extends MM_Mod_Base {
 	}
 
 	// -------------------------------------------------------------------------
-	// Opening hours
+	// makesOffer — published service CPTs as Offer/Service on the business node
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Build opening hours.
+	 * Build the makesOffer array from published mm_service posts.
 	 *
-	 * @param array $hours Hours.
-	 * @return array Resulting array.
+	 * Each published service becomes an Offer with itemOffered = Service.
+	 * Derived from CPT data — no Business Profile field needed.
+	 *
+	 * @return array<int, array<string, mixed>> Offer nodes, or empty array.
 	 */
+	private function build_makes_offer(): array {
+		// Cache in transient — results change only when services are edited.
+		// Bust on service save via the mm_business_profile_saved / save_post hooks.
+		$cached = get_transient( 'mm_makes_offer_cache' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$service_ids = get_posts( [
+			'post_type'      => 'mm_service',
+			'post_status'    => 'publish',
+			'posts_per_page' => 50,
+			'fields'         => 'ids',
+			'orderby'        => 'menu_order',
+			'order'          => 'ASC',
+		] );
+
+		if ( empty( $service_ids ) ) {
+			return [];
+		}
+
+		$offers = [];
+		foreach ( $service_ids as $sid ) {
+			$sfields = get_post_meta( $sid, 'mm_schema_fields', true );
+			if ( ! is_array( $sfields ) ) {
+				$sfields = [];
+			}
+
+			$service_obj = [
+				'@type' => 'Service',
+				'name'  => html_entity_decode( get_the_title( $sid ), ENT_QUOTES, 'UTF-8' ),
+				'url'   => get_permalink( $sid ),
+			];
+			if ( ! empty( $sfields['service_type'] ) ) {
+				$service_obj['serviceType'] = sanitize_text_field( $sfields['service_type'] );
+			}
+
+			$offer = [
+				'@type'       => 'Offer',
+				'itemOffered' => $service_obj,
+			];
+			if ( ! empty( $sfields['service_price'] ) ) {
+				$offer['price']         = sanitize_text_field( $sfields['service_price'] );
+				$offer['priceCurrency'] = sanitize_text_field( $sfields['service_currency'] ?? 'USD' );
+			}
+
+			$offers[] = $offer;
+		}
+
+		set_transient( 'mm_makes_offer_cache', $offers, HOUR_IN_SECONDS );
+		return $offers;
+	}
+
+	// -------------------------------------------------------------------------
+	// Opening hours
+	// -------------------------------------------------------------------------
+
 	private function build_opening_hours( array $hours ): array {
-		$specs   = array();
-		$day_map = array(
+		$specs = [];
+		$day_map = [
 			'monday'    => 'Monday',
 			'tuesday'   => 'Tuesday',
 			'wednesday' => 'Wednesday',
@@ -237,7 +284,7 @@ class MM_Mod_Local extends MM_Mod_Base {
 			'friday'    => 'Friday',
 			'saturday'  => 'Saturday',
 			'sunday'    => 'Sunday',
-		);
+		];
 
 		foreach ( $hours as $entry ) {
 			if ( empty( $entry['days'] ) || empty( $entry['open'] ) || empty( $entry['close'] ) ) {
@@ -246,12 +293,12 @@ class MM_Mod_Local extends MM_Mod_Base {
 			foreach ( $entry['days'] as $day ) {
 				$day_name = $day_map[ strtolower( $day ) ] ?? null;
 				if ( $day_name ) {
-					$specs[] = array(
+					$specs[] = [
 						'@type'     => 'OpeningHoursSpecification',
 						'dayOfWeek' => 'https://schema.org/' . $day_name,
 						'opens'     => sanitize_text_field( $entry['open'] ),
 						'closes'    => sanitize_text_field( $entry['close'] ),
-					);
+					];
 				}
 			}
 		}
@@ -262,30 +309,22 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// Multiple locations
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Build location node.
-	 *
-	 * @param array $loc Loc.
-	 * @param array $parent Parent.
-	 * @param int   $index Index.
-	 * @return array Resulting array.
-	 */
 	private function build_location_node( array $loc, array $parent, int $index ): array {
-		$node = array(
-			'@type'              => $parent['@type'],
-			'@id'                => $this->site_id( 'location-' . ( $index + 1 ) ),
-			'name'               => sanitize_text_field( $loc['name'] ?? $parent['name'] ),
-			'url'                => $parent['url'],
-			'parentOrganization' => array( '@id' => $parent['@id'] ),
-		);
-		$addr = MM_Mod_Base::postal_address_node( $loc['address'] ?? array() );
+		$node = [
+			'@type'  => $parent['@type'],
+			'@id'    => $this->site_id( 'location-' . ( $index + 1 ) ),
+			'name'   => sanitize_text_field( $loc['name'] ?? $parent['name'] ),
+			'url'    => $parent['url'],
+			'parentOrganization' => [ '@id' => $parent['@id'] ],
+		];
+		$addr = MM_Mod_Base::postal_address_node( $loc['address'] ?? [] );
 		if ( $addr ) {
 			$node['address'] = $addr;
 		}
 		if ( ! empty( $loc['phone'] ) ) {
 			$node['telephone'] = sanitize_text_field( $loc['phone'] );
 		}
-		$hours = $this->build_opening_hours( $loc['hours'] ?? array() );
+		$hours = $this->build_opening_hours( $loc['hours'] ?? [] );
 		if ( $hours ) {
 			$node['openingHoursSpecification'] = $hours;
 		}
@@ -296,13 +335,6 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// OG business.business (homepage Facebook card)
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Emit OG business.
-	 *
-	 * @param array $data Data.
-	 * @param array $biz Biz.
-	 * @param array $node Node.
-	 */
 	private function emit_og_business( array &$data, array $biz, array $node ): void {
 		// Override og:type to business.business.
 		foreach ( $data['meta'] as &$mt ) {
@@ -313,24 +345,19 @@ class MM_Mod_Local extends MM_Mod_Base {
 		}
 		unset( $mt );
 
-		$addr           = $biz['address'] ?? array();
-		$contact_fields = array_filter(
-			array(
-				'business:contact_data:street_address' => $addr['street'] ?? '',
-				'business:contact_data:locality'       => $addr['city'] ?? '',
-				'business:contact_data:region'         => $addr['state'] ?? '',
-				'business:contact_data:postal_code'    => $addr['zip'] ?? '',
-				'business:contact_data:country_name'   => $addr['country'] ?? '',
-				'business:contact_data:phone_number'   => $biz['phone'] ?? '',
-				'business:contact_data:email'          => $biz['email'] ?? '',
-			)
-		);
+		$addr = $biz['address'] ?? [];
+		$contact_fields = array_filter( [
+			'business:contact_data:street_address' => $addr['street']  ?? '',
+			'business:contact_data:locality'       => $addr['city']    ?? '',
+			'business:contact_data:region'         => $addr['state']   ?? '',
+			'business:contact_data:postal_code'    => $addr['zip']     ?? '',
+			'business:contact_data:country_name'   => $addr['country'] ?? '',
+			'business:contact_data:phone_number'   => $biz['phone']    ?? '',
+			'business:contact_data:email'          => ( ! empty( $biz['show_email'] ) ? ( $biz['email'] ?? '' ) : '' ),
+		] );
 
 		foreach ( $contact_fields as $prop => $val ) {
-			$data['meta'][] = array(
-				'property' => $prop,
-				'content'  => esc_attr( sanitize_text_field( $val ) ),
-			);
+			$data['meta'][] = [ 'property' => $prop, 'content' => esc_attr( sanitize_text_field( $val ) ) ];
 		}
 	}
 
@@ -339,44 +366,39 @@ class MM_Mod_Local extends MM_Mod_Base {
 	// Used by admin settings UI.
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Get business types.
-	 *
-	 * @return array Resulting array.
-	 */
 	public static function get_business_types(): array {
-		return array(
-			'General'                => array(
-				'LocalBusiness' => 'Local Business (generic)',
-				'Organization'  => 'Organization',
-				'Corporation'   => 'Corporation',
-				'NGO'           => 'Non-Profit / NGO',
-			),
-			'Professional Services'  => array(
-				'LegalService'      => 'Legal Service',
-				'Attorney'          => 'Attorney / Law Firm',
-				'AccountingService' => 'Accounting Service / CPA',
-				'FinancialService'  => 'Financial Services',
-				'InsuranceAgency'   => 'Insurance Agency',
-				'RealEstateAgent'   => 'Real Estate Agent',
-				'NotaryService'     => 'Notary Service',
-				'EmploymentAgency'  => 'Employment / Staffing Agency',
-				'ITService'         => 'IT Service / Tech Consulting',
-				'MarketingAgency'   => 'Marketing Agency',
-			),
-			'Medical & Wellness'     => array(
-				'MedicalBusiness'  => 'Medical Business (generic)',
-				'Dentist'          => 'Dentist',
-				'Physician'        => 'Physician / Doctor',
-				'Optician'         => 'Optician',
-				'Optometrist'      => 'Optometrist',
-				'Pharmacy'         => 'Pharmacy',
-				'AnimalShelter'    => 'Veterinarian / Animal Hospital',
-				'Chiropractor'     => 'Chiropractor',
-				'MassageTherapist' => 'Massage Therapist',
-				'Therapist'        => 'Therapist / Counselor',
-			),
-			'Home & Construction'    => array(
+		return [
+			'General' => [
+				'LocalBusiness'    => 'Local Business (generic)',
+				'Organization'     => 'Organization',
+				'Corporation'      => 'Corporation',
+				'NGO'              => 'Non-Profit / NGO',
+			],
+			'Professional Services' => [
+				'LegalService'           => 'Legal Service',
+				'Attorney'               => 'Attorney / Law Firm',
+				'AccountingService'      => 'Accounting Service / CPA',
+				'FinancialService'       => 'Financial Services',
+				'InsuranceAgency'        => 'Insurance Agency',
+				'RealEstateAgent'        => 'Real Estate Agent',
+				'NotaryService'          => 'Notary Service',
+				'EmploymentAgency'       => 'Employment / Staffing Agency',
+				'ITService'              => 'IT Service / Tech Consulting',
+				'MarketingAgency'        => 'Marketing Agency',
+			],
+			'Medical & Wellness' => [
+				'MedicalBusiness'      => 'Medical Business (generic)',
+				'Dentist'              => 'Dentist',
+				'Physician'            => 'Physician / Doctor',
+				'Optician'             => 'Optician',
+				'Optometrist'          => 'Optometrist',
+				'Pharmacy'             => 'Pharmacy',
+				'AnimalShelter'        => 'Veterinarian / Animal Hospital',
+				'Chiropractor'         => 'Chiropractor',
+				'MassageTherapist'     => 'Massage Therapist',
+				'Therapist'            => 'Therapist / Counselor',
+			],
+			'Home & Construction' => [
 				'HomeAndConstructionBusiness' => 'Home & Construction (generic)',
 				'Electrician'                 => 'Electrician',
 				'GeneralContractor'           => 'General Contractor',
@@ -388,65 +410,65 @@ class MM_Mod_Local extends MM_Mod_Base {
 				'RoofingContractor'           => 'Roofing Contractor',
 				'LandscapingBusiness'         => 'Landscaping',
 				'HouseCleaning'               => 'House Cleaning / Maid Service',
-			),
-			'Food & Dining'          => array(
-				'FoodEstablishment'  => 'Food Establishment (generic)',
-				'Bakery'             => 'Bakery',
-				'BarOrPub'           => 'Bar / Pub',
-				'Brewery'            => 'Brewery / Winery',
-				'CafeOrCoffeeShop'   => 'Café / Coffee Shop',
-				'FastFoodRestaurant' => 'Fast Food',
-				'IceCreamShop'       => 'Ice Cream Shop',
-				'Restaurant'         => 'Restaurant',
-				'FoodTruck'          => 'Food Truck',
-			),
-			'Retail'                 => array(
-				'Store'            => 'Retail Store (generic)',
-				'AutoPartsStore'   => 'Auto Parts Store',
-				'BookStore'        => 'Book Store',
-				'ClothingStore'    => 'Clothing Store',
-				'ConvenienceStore' => 'Convenience Store',
-				'FlowerShop'       => 'Florist',
-				'FurnitureStore'   => 'Furniture Store',
-				'GroceryStore'     => 'Grocery Store',
-				'HardwareStore'    => 'Hardware Store',
-				'JewelryStore'     => 'Jewelry Store',
-				'PetStore'         => 'Pet Store',
-			),
-			'Automotive'             => array(
-				'AutoDealer'   => 'Auto Dealer',
-				'AutoBodyShop' => 'Auto Body Shop',
-				'AutoRepair'   => 'Auto Repair',
-				'AutoWash'     => 'Car Wash',
-			),
-			'Beauty & Personal Care' => array(
-				'BeautySalon'  => 'Beauty Salon',
-				'HairSalon'    => 'Hair Salon',
-				'NailSalon'    => 'Nail Salon',
-				'TattooParlor' => 'Tattoo Parlor',
-				'SpaService'   => 'Spa',
-			),
-			'Education & Fitness'    => array(
+			],
+			'Food & Dining' => [
+				'FoodEstablishment'   => 'Food Establishment (generic)',
+				'Bakery'              => 'Bakery',
+				'BarOrPub'            => 'Bar / Pub',
+				'Brewery'             => 'Brewery / Winery',
+				'CafeOrCoffeeShop'    => 'Café / Coffee Shop',
+				'FastFoodRestaurant'  => 'Fast Food',
+				'IceCreamShop'        => 'Ice Cream Shop',
+				'Restaurant'          => 'Restaurant',
+				'FoodTruck'           => 'Food Truck',
+			],
+			'Retail' => [
+				'Store'              => 'Retail Store (generic)',
+				'AutoPartsStore'     => 'Auto Parts Store',
+				'BookStore'          => 'Book Store',
+				'ClothingStore'      => 'Clothing Store',
+				'ConvenienceStore'   => 'Convenience Store',
+				'FlowerShop'         => 'Florist',
+				'FurnitureStore'     => 'Furniture Store',
+				'GroceryStore'       => 'Grocery Store',
+				'HardwareStore'      => 'Hardware Store',
+				'JewelryStore'       => 'Jewelry Store',
+				'PetStore'           => 'Pet Store',
+			],
+			'Automotive' => [
+				'AutoDealer'          => 'Auto Dealer',
+				'AutoBodyShop'        => 'Auto Body Shop',
+				'AutoRepair'          => 'Auto Repair',
+				'AutoWash'            => 'Car Wash',
+			],
+			'Beauty & Personal Care' => [
+				'BeautySalon'     => 'Beauty Salon',
+				'HairSalon'       => 'Hair Salon',
+				'NailSalon'       => 'Nail Salon',
+				'TattooParlor'    => 'Tattoo Parlor',
+				'SpaService'      => 'Spa',
+			],
+			'Education & Fitness' => [
 				'EducationalOrganization' => 'School / Educational Org',
 				'SportsActivityLocation'  => 'Gym / Fitness Center',
 				'DanceSchool'             => 'Dance School',
 				'MusicSchool'             => 'Music School',
 				'TutoringService'         => 'Tutoring Service',
-			),
-			'Lodging & Travel'       => array(
-				'Hotel'             => 'Hotel',
-				'BedAndBreakfast'   => 'Bed & Breakfast',
+			],
+			'Lodging & Travel' => [
+				'Hotel'           => 'Hotel',
+				'BedAndBreakfast' => 'Bed & Breakfast',
 				'TouristAttraction' => 'Tourist Attraction',
-				'TravelAgency'      => 'Travel Agency',
-			),
-			'Tourism & Recreation'   => array(
-				'TourismBusiness' => 'Tourism Business (generic)',
-				'BoatRental'      => 'Boat Rental',
-				'BoatTour'        => 'Boat Tour',
-				'FishingCharter'  => 'Fishing Charter',
-				'AmusementPark'   => 'Amusement Park',
-				'Museum'          => 'Museum',
-			),
-		);
+				'TravelAgency'    => 'Travel Agency',
+			],
+			'Tourism & Recreation' => [
+				'TourismBusiness'        => 'Tourism Business (generic)',
+				'BoatRental'             => 'Boat Rental',
+				'BoatTour'               => 'Boat Tour',
+				'FishingCharter'         => 'Fishing Charter',
+				'AmusementPark'          => 'Amusement Park',
+				'Museum'                 => 'Museum',
+			],
+		];
 	}
 }
