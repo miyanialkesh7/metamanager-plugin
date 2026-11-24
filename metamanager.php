@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.407
+ * Version:      2.3.409
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.407' );
+define( 'MM_VERSION',     '2.3.409' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -77,7 +77,6 @@ require_once MM_PLUGIN_DIR . 'includes/class-mm-media-detector.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-upload-notify.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-admin.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-updater.php';
-require_once MM_PLUGIN_DIR . 'includes/class-mm-daemon-updater.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-cli.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-memory-manager.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-cron-tracker.php';
@@ -365,31 +364,14 @@ add_filter( 'cron_schedules', function ( array $schedules ): array {
 } );
 
 // ---------------------------------------------------------------------------
-// Cron handler: import daemon-completed jobs into DB
+// Cron handler: status reporting only.
 //
-// Philosophy: PHP never touches the image files. The daemons do all heavy
-// lifting (compression, metadata embedding). When a daemon finishes a job it
-// drops a small result JSON into MM_JOB_DONE or MM_JOB_FAILED. This cron
-// runs every minute, reads those files, records them in the DB for the
-// history dashboard, then deletes the result files.
+// Daemons handle all processing and call process-result.php directly via
+// wp eval-file after each job — no import cron. The only cron is
+// mm_write_status_json for status reporting.
 // ---------------------------------------------------------------------------
 
 add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json', [ 'MM_Status', 'write_status_json' ] ) );
-
-/**
- * Scan completed/failed result directories and persist to DB.
- * Sends a failure notification email if notifications are enabled.
- *
- * Shell cross-reference: This function reads result JSON files written by
- * the daemon scripts (metamanager-meta-daemon.sh and metamanager-compress-daemon.sh).
- * The daemons write result files to MM_JOB_DONE or MM_JOB_FAILED after processing
- * each job. This function runs every 60 seconds via WP-Cron and:
- *   1. Reads each result JSON
- *   2. Logs the result to the DB via MM_DB::log_job()
- *   3. For import jobs: applies embedded tags to WP fields and queues write-back
- *   4. For metadata write-back: queues a verification read-back
- *   5. Deletes the result file
- */
 
 /**
  * Register a daemon-generated WebP as a WordPress attachment.

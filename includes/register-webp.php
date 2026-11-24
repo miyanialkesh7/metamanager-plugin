@@ -44,6 +44,14 @@ if ( ! function_exists( 'mm_register_webp_attachment' ) ) {
 }
 
 mm_register_webp_attachment( $original_id, $webp_path );
+
+// Verify attachment was created.
+global $wpdb;
+$check = $wpdb->get_var( $wpdb->prepare(
+	"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
+	$original_id
+) );
+
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI-only script.
-echo "Registered WebP: {$webp_path} (parent: {$original_id})\n";
+echo "Registered WebP: {$webp_path} (parent: {$original_id}, attachment: {$check})\n";
 exit( 0 );
