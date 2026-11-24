@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.402
+ * Version:      2.3.407
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.402' );
+define( 'MM_VERSION',     '2.3.407' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -69,6 +69,7 @@ define( 'MM_PID_WEBP',     MM_JOB_ROOT . '/webp-daemon.pid' );
 require_once MM_PLUGIN_DIR . 'includes/class-mm-db.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-metadata-history.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-job-queue.php';
+require_once MM_PLUGIN_DIR . 'includes/class-mm-media-service.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-metadata.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-status.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-settings.php';

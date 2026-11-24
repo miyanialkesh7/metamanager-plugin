@@ -35,24 +35,7 @@ class MM_Admin {
 	 * The arrays list which of the $all_fields keys are writable for that level.
 	 * The JS uses data-write-cap on each grid item to show/hide fields dynamically.
 	 */
-	private const FIELD_COMPAT = [
-		'full' => [
-			MM_Metadata::META_CREATOR, MM_Metadata::META_COPYRIGHT, MM_Metadata::META_OWNER,
-			MM_Metadata::META_HEADLINE, MM_Metadata::META_CREDIT, MM_Metadata::META_KEYWORDS,
-			MM_Metadata::META_DATE, MM_Metadata::META_CITY, MM_Metadata::META_STATE,
-			MM_Metadata::META_COUNTRY, MM_Metadata::META_RATING,
-		],
-		'xmp_only' => [
-			MM_Metadata::META_CREATOR, MM_Metadata::META_COPYRIGHT,
-			MM_Metadata::META_HEADLINE, MM_Metadata::META_CREDIT, MM_Metadata::META_KEYWORDS,
-			MM_Metadata::META_DATE, MM_Metadata::META_CITY, MM_Metadata::META_STATE,
-			MM_Metadata::META_COUNTRY, MM_Metadata::META_RATING,
-		],
-		'vorbis_only' => [
-			MM_Metadata::META_CREATOR, MM_Metadata::META_COPYRIGHT,
-			MM_Metadata::META_HEADLINE, MM_Metadata::META_KEYWORDS, MM_Metadata::META_DATE,
-		],
-	];
+	// FIELD_COMPAT moved to MM_Metadata::FIELD_COMPAT (shared with MM_Media_Service).
 
 	/**
 	 * Register all admin hooks.
@@ -75,11 +58,7 @@ class MM_Admin {
 		// Per-image metadata pane (single image edit screen).
 		add_action( 'edit_form_advanced', [ __CLASS__, 'render_attachment_meta_pane' ] );
 
-		// Bulk actions.
-		add_filter( 'bulk_actions-upload', [ __CLASS__, 'register_bulk_actions' ] );
-		add_filter( 'handle_bulk_actions-upload', [ __CLASS__, 'handle_bulk_actions' ], 10, 3 );
-		add_action( 'admin_notices', [ __CLASS__, 'bulk_action_notices' ] );
-
+		// Bulk actions removed — operations live on the Media Processing page.
 		// Scripts and styles.
 		add_action( 'admin_enqueue_scripts', [ __CLASS__, 'enqueue_assets' ] );
 
@@ -104,6 +83,12 @@ class MM_Admin {
 
 		// AJAX: apply shared metadata values to a batch of selected images.
 		add_action( 'wp_ajax_mm_apply_bulk_meta', [ __CLASS__, 'ajax_apply_bulk_meta' ] );
+
+		// AJAX: Media Processing page operations (canonical MM_Media_Service calls).
+		add_action( 'wp_ajax_mm_op_compress', [ __CLASS__, 'ajax_op_compress' ] );
+		add_action( 'wp_ajax_mm_op_site_info', [ __CLASS__, 'ajax_op_site_info' ] );
+		add_action( 'wp_ajax_mm_op_geocode', [ __CLASS__, 'ajax_op_geocode' ] );
+		add_action( 'wp_ajax_mm_op_licensing', [ __CLASS__, 'ajax_op_licensing' ] );
 
 		// AJAX: search WooCommerce products for linking.
 		add_action( 'wp_ajax_mm_search_wc_products', [ __CLASS__, 'ajax_search_wc_products' ] );
@@ -160,7 +145,7 @@ class MM_Admin {
 				'content' =>
 					'<h2>' . esc_html__( 'Pending Jobs', 'metamanager' ) . '</h2>' .
 					'<p>' . esc_html__( 'Jobs enter the queue when you upload a media file, save metadata fields on an attachment edit screen, run Scan Existing Library from this dashboard, or trigger a bulk or batch action from the Media Library.', 'metamanager' ) . '</p>' .
-					'<p>' . esc_html__( 'Each job is written as a small JSON file to one of two directories inside wp-content/metamanager-jobs/: compress/ for image compression jobs, and meta/ for metadata embedding jobs.', 'metamanager' ) . '</p>' .
+					'<p>' . esc_html__( 'Each job is written as a small JSON file to one of three directories inside wp-content/metamanager-jobs/: compress/ for image compression jobs, meta/ for metadata embedding jobs, and webp/ for WebP generation jobs.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'The OS daemons watch these directories with inotifywait and process jobs immediately — no polling delay. Jobs disappear from this view as soon as a daemon processes them.', 'metamanager' ) . '</p>',
 			] );
 
@@ -179,16 +164,18 @@ class MM_Admin {
 				'title'   => __( 'Daemons', 'metamanager' ),
 				'content' =>
 					'<h2>' . esc_html__( 'OS Daemons', 'metamanager' ) . '</h2>' .
-					'<p>' . esc_html__( 'Two systemd services handle all media file processing:', 'metamanager' ) . '</p>' .
+					'<p>' . esc_html__( 'Three systemd services handle all media file processing:', 'metamanager' ) . '</p>' .
 					'<ul>' .
 					'<li><strong>metamanager-compress-daemon</strong> — ' . esc_html__( 'lossless JPEG compression via jpegtran; lossless PNG compression via optipng; lossless WebP recompression via cwebp; video container remux via ffmpeg. Files are only replaced if the result is smaller.', 'metamanager' ) . '</li>' .
 					'<li><strong>metamanager-meta-daemon</strong> — ' . esc_html__( 'writes metadata via ExifTool in a single pass, using each file\'s native tag system: EXIF/IPTC/XMP for images; ID3 for MP3; QuickTime atoms for MP4/MOV/M4A; Vorbis comments for OGG/FLAC; XMP-only for AVI/WAV/WMV/WMA/PDF; read-only for MKV/WebM/OGV.', 'metamanager' ) . '</li>' .
+					'<li><strong>metamanager-webp-daemon</strong> — ' . esc_html__( 'generates WebP copies of JPEG/PNG uploads via cwebp (quality 80). Registers each WebP as a WordPress attachment and cascades metadata embedding. Own queue, own status file.', 'metamanager' ) . '</li>' .
 					'</ul>' .
 					'<p>' . esc_html__( 'The banner at the top of the page shows tool availability and daemon health. A green icon means the tool is installed and reachable. A red icon means it is missing or the daemon is not running. Daemon status is read from a PID file — no elevated privileges are needed.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'The System Status section shows tool availability, the installed daemon version, the version required by the current plugin, and whether they match.', 'metamanager' ) . '</p>' .
 					'<p>' . esc_html__( 'To restart a daemon from the server:', 'metamanager' ) . '</p>' .
 					'<code>sudo systemctl restart metamanager-compress-daemon</code><br>' .
-					'<code>sudo systemctl restart metamanager-meta-daemon</code>',
+					'<code>sudo systemctl restart metamanager-meta-daemon</code><br>' .
+					'<code>sudo systemctl restart metamanager-webp-daemon</code>',
 			] );
 
 			$screen->add_help_tab( [
@@ -401,14 +388,6 @@ class MM_Admin {
 			'metamanager-bulk-meta',
 			[ __CLASS__, 'render_bulk_meta_page' ]
 		);
-		add_submenu_page(
-			'',
-			esc_html__( 'Set Image Licensing', 'metamanager' ),
-			esc_html__( 'Set Image Licensing', 'metamanager' ),
-			'edit_others_posts',
-			'mm-image-licensing',
-			[ __CLASS__, 'render_licensing_page' ]
-		);
 	}
 
 	// -----------------------------------------------------------------------
@@ -452,6 +431,7 @@ class MM_Admin {
 		echo ' &nbsp;ffmpeg '   . $icon( $status['ffmpeg'],    'ffmpeg found',     'ffmpeg missing — video remux disabled' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo ' &nbsp;Compress daemon ' . $icon( $status['compress_daemon'], 'Compression daemon running', 'Compression daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo ' &nbsp;Metadata daemon ' . $icon( $status['meta_daemon'],     'Metadata daemon running',    'Metadata daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo ' &nbsp;WebP daemon '     . $icon( $status['webp_daemon'] ?? false, 'WebP daemon running',     'WebP daemon not running' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	// -----------------------------------------------------------------------
@@ -489,6 +469,7 @@ class MM_Admin {
 			array( 'ffmpeg',            $status['ffmpeg'],          'ffmpeg found',                  'ffmpeg missing' ),
 			array( 'Compress daemon',   $status['compress_daemon'], 'Compression daemon running',    'Compression daemon stopped' ),
 			array( 'Metadata daemon',   $status['meta_daemon'],     'Metadata daemon running',       'Metadata daemon stopped' ),
+			array( 'WebP daemon',       $status['webp_daemon'] ?? false, 'WebP daemon running',       'WebP daemon stopped' ),
 		);
 
 		$installed_ver = $updater['installed_version'] ?? null;
@@ -531,9 +512,10 @@ class MM_Admin {
 		$queue_row = '';
 		if ( ! empty( $queues ) ) {
 			$queue_row = sprintf(
-				'<span style="color:#00a32a;">%d</span> compress, <span style="color:#00a32a;">%d</span> meta, <span style="color:#00a32a;">%d</span> completed, <span style="color:%s;">%d</span> failed',
+				'<span style="color:#00a32a;">%d</span> compress, <span style="color:#00a32a;">%d</span> meta, <span style="color:#00a32a;">%d</span> webp, <span style="color:#00a32a;">%d</span> completed, <span style="color:%s;">%d</span> failed',
 				(int) ( $queues['compress'] ?? 0 ),
 				(int) ( $queues['meta'] ?? 0 ),
+				(int) ( $queues['webp'] ?? 0 ),
 				(int) ( $queues['completed'] ?? 0 ),
 				( $queues['failed'] ?? 0 ) > 0 ? '#d63638' : '#00a32a',
 				(int) ( $queues['failed'] ?? 0 )
@@ -993,54 +975,7 @@ class MM_Admin {
 	// may belong to clients, photographers, or third parties.
 	// -----------------------------------------------------------------------
 
-	/**
-	 * @param array $actions Existing bulk actions.
-	 * @return array
-	 */
-	public static function register_bulk_actions( array $actions ): array {
-		$actions['mm_bulk_compress']   = esc_html__( 'Compress Lossless (Metamanager)', 'metamanager' );
-		$actions['mm_bulk_site_info']  = esc_html__( 'Inject Site Info into Metadata (Metamanager)', 'metamanager' );
-		$actions['mm_bulk_licensing']  = esc_html__( 'Set Image Licensing (Metamanager)', 'metamanager' );
-		$actions['mm_bulk_geocode']    = esc_html__( 'Geocode Image Addresses (Metamanager)', 'metamanager' );
-		return $actions;
-	}
-
-	/**
-	 * @param string $redirect_to Redirect URL.
-	 * @param string $doaction    Bulk action slug.
-	 * @param int[]  $post_ids    Selected attachment IDs.
-	 * @return string
-	 */
-	public static function handle_bulk_actions( string $redirect_to, string $doaction, array $post_ids ): string {
-		if ( ! current_user_can( 'edit_others_posts' ) ) {
-			return $redirect_to;
-		}
-
-		switch ( $doaction ) {
-			case 'mm_bulk_compress':
-				$count = self::do_bulk_compress( $post_ids );
-				return add_query_arg( 'mm_bulk_compress', $count, $redirect_to );
-
-			case 'mm_bulk_site_info':
-				$count = self::do_bulk_inject_site_info( $post_ids );
-				return add_query_arg( 'mm_bulk_site_info', $count, $redirect_to );
-
-			case 'mm_bulk_licensing':
-				$ids = implode( ',', array_map( 'intval', $post_ids ) );
-				return add_query_arg(
-					[ 'page' => 'mm-image-licensing', 'ids' => $ids ],
-					admin_url( 'admin.php' )
-				);
-
-			case 'mm_bulk_geocode':
-				$count = self::do_bulk_geocode( $post_ids );
-				return add_query_arg( 'mm_bulk_geocode', $count, $redirect_to );
-		}
-
-		return $redirect_to;
-	}
-
-	// -----------------------------------------------------------------------
+			// -----------------------------------------------------------------------
 	// Job queue status notices
 	// -----------------------------------------------------------------------
 
@@ -1135,389 +1070,11 @@ class MM_Admin {
 		return $messages;
 	}
 
-	/**
-	 * Display notices after bulk actions redirect back.
-	 */
-	public static function bulk_action_notices(): void {
-		// phpcs:disable WordPress.Security.NonceVerification
-		if ( ! empty( $_REQUEST['mm_bulk_compress'] ) ) {
-			$n = absint( $_REQUEST['mm_bulk_compress'] );
-			echo '<div class="notice notice-success is-dismissible"><p>'
-				. esc_html( sprintf(
-					/* translators: %d: number of media files */
-					__( 'Metamanager: Compression queued for %d media file(s).', 'metamanager' ),
-					absint( $n )
-				) )
-				. '</p></div>';
-		}
-		if ( ! empty( $_REQUEST['mm_bulk_site_info'] ) ) {
-			$n = absint( $_REQUEST['mm_bulk_site_info'] );
-			echo '<div class="notice notice-success is-dismissible"><p>'
-				. esc_html( sprintf(
-					/* translators: %d: number of media files */
-					__( 'Metamanager: Site provenance info (Publisher + Website) injected for %d media file(s).', 'metamanager' ),
-					absint( $n )
-				) )
-				. '</p></div>';
-		}
-		// phpcs:enable
-	}
-
-	// -----------------------------------------------------------------------
+		// -----------------------------------------------------------------------
 	// Bulk helpers
 	// -----------------------------------------------------------------------
 
-	/**
-	 * Enqueue lossless compression jobs for all selected images.
-	 * Only enqueues if the size has not already been compressed.
-	 *
-	 * @param int[] $post_ids Attachment IDs.
-	 * @return int Number of attachments with at least one job enqueued.
-	 */
-	private static function do_bulk_compress( array $post_ids ): int {
-		$count = 0;
-		foreach ( $post_ids as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-			$is_image = wp_attachment_is_image( $id );
-			$is_video = MM_Metadata::is_video_mime( $mime );
-
-			if ( ! $is_image && ! $is_video ) {
-				continue;
-			}
-
-			// Videos: queue remux (skip if already compressed).
-			if ( $is_video ) {
-				$file = get_attached_file( $id );
-				if ( $file && file_exists( $file ) && ! MM_Status::is_compressed( $id, 'full' ) ) {
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'bulk' ] );
-					++$count;
-				}
-				continue;
-			}
-
-			// Images: existing per-size logic.
-			$meta    = wp_get_attachment_metadata( $id ) ?: [];
-			$file    = get_attached_file( $id );
-			$queued  = false;
-
-			if ( $file && file_exists( $file ) && ! MM_Status::is_compressed( $id, 'full' ) ) {
-				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'bulk' ] );
-				$queued = true;
-			}
-
-			if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
-				$dir = trailingslashit( pathinfo( $file, PATHINFO_DIRNAME ) );
-				foreach ( $meta['sizes'] as $size => $info ) {
-					if ( empty( $info['file'] ) ) {
-						continue;
-					}
-					$img_path = $dir . $info['file'];
-					if ( file_exists( $img_path ) && ! MM_Status::is_compressed( $id, $size ) ) {
-						MM_Job_Queue::write_job( 'compression', $id, $img_path, $size, [ 'trigger' => 'bulk' ] );
-						$queued = true;
-					}
-				}
-			}
-
-			if ( $queued ) {
-				++$count;
-			}
-		}
-		return $count;
-	}
-
-	/**
-	 * Inject site provenance into image metadata for selected images.
-	 *
-	 * Sets Publisher = site name and Website = site URL.
-	 * Does NOT touch Creator, Copyright, or Owner.
-	 *
-	 * @param int[] $post_ids Attachment IDs.
-	 * @return int Number of attachments processed.
-	 */
-	private static function do_bulk_inject_site_info( array $post_ids ): int {
-		$count = 0;
-		foreach ( $post_ids as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-			if ( ! wp_attachment_is_image( $id ) && ! MM_Metadata::is_av_mime( $mime ) && ! MM_Metadata::is_pdf_mime( $mime ) ) {
-				continue;
-			}
-			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'bulk_site_info' ] );
-			} else {
-				$file = get_attached_file( $id );
-				if ( $file && file_exists( $file ) && MM_Metadata::can_write_meta( $mime ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'bulk_site_info' ] );
-				}
-			}
-			++$count;
-		}
-		return $count;
-	}
-
-	/**
-	 * Reverse-geocode GPS coordinates to address fields on selected images.
-	 * Only populates empty fields — never overwrites existing values.
-	 * Uses the Google Maps API key from the business profile.
-	 *
-	 * @param int[] $post_ids Attachment IDs.
-	 * @return int Number of attachments updated.
-	 */
-	private static function do_bulk_geocode( array $post_ids ): int {
-		$biz = MM_Site_Settings::get_instance()->all_business();
-		$key = (string) ( $biz['google_maps_api_key'] ?? '' );
-		if ( '' === $key ) {
-			return 0;
-		}
-
-		$count = 0;
-		foreach ( $post_ids as $id ) {
-			$id = (int) $id;
-			if ( ! wp_attachment_is_image( $id ) ) {
-				continue;
-			}
-
-			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
-			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
-			if ( 0.0 === $lat && 0.0 === $lng ) {
-				continue;
-			}
-
-			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
-			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
-			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
-
-			// Only geocode if at least one address field is empty.
-			if ( '' !== $city && '' !== $state && '' !== $country ) {
-				continue;
-			}
-
-			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
-			if ( ! $geo ) {
-				continue;
-			}
-
-			$updated = false;
-			if ( '' === $city && '' !== $geo['city'] ) {
-				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
-				$updated = true;
-			}
-			if ( '' === $state && '' !== $geo['state'] ) {
-				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
-				$updated = true;
-			}
-			if ( '' === $country && '' !== $geo['country'] ) {
-				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
-				$updated = true;
-			}
-			if ( $updated ) {
-				++$count;
-			}
-		}
-		return $count;
-	}
-
-	/**
-	 * Render the image licensing interstitial page.
-	 * Reached via the "Set Image Licensing" bulk action. The human specifies
-	 * license URL, creditText, and acquireLicensePage — the judgment loop for
-	 * third-party images where we cannot auto-derive credit.
-	 */
-	public static function render_licensing_page(): void {
-		if ( ! current_user_can( 'edit_others_posts' ) ) {
-			wp_die( esc_html__( 'You do not have permission to set image licensing.', 'metamanager' ) );
-		}
-
-		// phpcs:ignore WordPress.Security.NonceVerification -- IDs arrive via GET from the bulk action redirect; CSRF is handled by the form nonce below.
-		$raw_ids = isset( $_GET['ids'] ) ? sanitize_text_field( wp_unslash( $_GET['ids'] ) ) : '';
-		$ids     = array_filter( array_map( 'intval', explode( ',', $raw_ids ) ) );
-		if ( empty( $ids ) ) {
-			wp_die( esc_html__( 'No images selected.', 'metamanager' ) );
-		}
-
-		// Process form submission.
-		if ( isset( $_POST['mm_licensing_submit'] ) ) {
-			check_admin_referer( 'mm_licensing_' . implode( '_', $ids ) );
-
-			$license  = esc_url_raw( wp_unslash( $_POST['mm_license'] ?? '' ) );
-			$credit   = sanitize_text_field( wp_unslash( $_POST['mm_credit'] ?? '' ) );
-			$acquire  = esc_url_raw( wp_unslash( $_POST['mm_acquire_license_page'] ?? '' ) );
-			$creator  = sanitize_text_field( wp_unslash( $_POST['mm_creator'] ?? '' ) );
-			$copyright = sanitize_text_field( wp_unslash( $_POST['mm_copyright'] ?? '' ) );
-
-			$count = 0;
-			foreach ( $ids as $id ) {
-				if ( ! wp_attachment_is_image( $id ) ) {
-					continue;
-				}
-				if ( '' !== $license ) {
-					update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
-				}
-				if ( '' !== $credit ) {
-					update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
-				}
-				if ( '' !== $acquire ) {
-					update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
-				}
-				if ( '' !== $creator ) {
-					update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
-				}
-				if ( '' !== $copyright ) {
-					update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
-				}
-				// Queue daemon job to write synced fields (Creator, Copyright, Credit)
-				// to file metadata via two-way sync.
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'bulk' ] );
-				++$count;
-			}
-
-			printf(
-				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-				esc_html( sprintf(
-					/* translators: %d: number of images updated */
-					__( 'Attribution applied to %d images. Metadata sync jobs queued.', 'metamanager' ),
-					$count
-				) )
-			);
-			printf(
-				'<p><a href="%s">&larr; %s</a></p>',
-				esc_url( admin_url( 'upload.php' ) ),
-				esc_html__( 'Back to Media Library', 'metamanager' )
-			);
-			return;
-		}
-
-		// Collect unique EXIF attribution datasets from selected images.
-		// Different images may carry different creators/copyrights — present
-		// each unique set as a radio option for the admin to choose from.
-		$exif_sets = [];
-		foreach ( $ids as $id ) {
-			if ( ! wp_attachment_is_image( $id ) ) {
-				continue;
-			}
-			$att_meta  = wp_get_attachment_metadata( $id );
-			$img_meta  = $att_meta['image_meta'] ?? [];
-			$e_creator   = trim( (string) ( $img_meta['credit'] ?? '' ) );
-			$e_copyright = trim( (string) ( $img_meta['copyright'] ?? '' ) );
-			// License URL from IPTC Web Statement of Rights.
-			$e_license = trim( (string) ( $img_meta['web_statement_of_rights'] ?? '' ) );
-			// Also check mm_* fields (may have been set by previous import).
-			if ( '' === $e_creator ) {
-				$e_creator = trim( (string) get_post_meta( $id, MM_Metadata::META_CREATOR, true ) );
-			}
-			if ( '' === $e_copyright ) {
-				$e_copyright = trim( (string) get_post_meta( $id, MM_Metadata::META_COPYRIGHT, true ) );
-			}
-			if ( '' === $e_license ) {
-				$e_license = trim( (string) get_post_meta( $id, MM_Metadata::META_LICENSE, true ) );
-			}
-			if ( '' === $e_creator && '' === $e_copyright ) {
-				continue;
-			}
-			$set_key = $e_creator . '|' . $e_copyright . '|' . $e_license;
-			if ( ! isset( $exif_sets[ $set_key ] ) ) {
-				$exif_sets[ $set_key ] = [
-					'creator'   => $e_creator,
-					'copyright' => $e_copyright,
-					'license'   => $e_license,
-					'count'     => 0,
-				];
-			}
-			$exif_sets[ $set_key ]['count']++;
-		}
-
-		// Prefill from the first selected image (if it already has values).
-		$first = $ids[0];
-		$pre_license   = (string) get_post_meta( $first, MM_Metadata::META_LICENSE, true );
-		$pre_credit    = (string) get_post_meta( $first, MM_Metadata::META_CREDIT, true );
-		$pre_acquire   = (string) get_post_meta( $first, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true );
-		$pre_creator   = (string) get_post_meta( $first, MM_Metadata::META_CREATOR, true );
-		$pre_copyright = (string) get_post_meta( $first, MM_Metadata::META_COPYRIGHT, true );
-
-		?>
-		<div class="wrap">
-			<h1><?php esc_html_e( 'Set Image Licensing', 'metamanager' ); ?></h1>
-			<p><?php esc_html_e( 'Apply attribution and licensing metadata to the selected images. All values are specified by you — nothing is auto-derived. Review every value before submitting.', 'metamanager' ); ?></p>
-			<p><strong><?php printf( esc_html__( '%d images selected.', 'metamanager' ), count( $ids ) ); ?></strong></p>
-
-			<?php if ( $exif_sets ) : ?>
-			<div class="mm-exif-sets" style="background:#fff;border:1px solid #c3c4c7;border-radius:4px;padding:16px;margin:16px 0;">
-				<h2 style="margin-top:0;"><?php esc_html_e( 'EXIF Attribution Data Found', 'metamanager' ); ?></h2>
-				<p class="description"><?php esc_html_e( 'Select which attribution set to apply. The form below will populate from your selection — review and edit before submitting.', 'metamanager' ); ?></p>
-				<div style="max-height:200px;overflow-y:auto;border:1px solid #ddd;padding:8px;">
-					<?php $first_key = array_key_first( $exif_sets ); ?>
-					<?php foreach ( $exif_sets as $set_key => $set ) : ?>
-					<label style="display:block;padding:8px;border-bottom:1px solid #eee;cursor:pointer;">
-						<input type="radio" name="mm_exif_set" value="<?php echo esc_attr( $set_key ); ?>"
-							<?php checked( $set_key, $first_key ); ?>
-							data-creator="<?php echo esc_attr( $set['creator'] ); ?>"
-							data-copyright="<?php echo esc_attr( $set['copyright'] ); ?>"
-							data-license="<?php echo esc_attr( $set['license'] ); ?>"
-							onchange="document.getElementById('mm_creator').value=this.dataset.creator;document.getElementById('mm_copyright').value=this.dataset.copyright;if(this.dataset.license)document.getElementById('mm_license').value=this.dataset.license;">
-						<strong><?php echo esc_html( $set['creator'] ?: __( '(no creator)', 'metamanager' ) ); ?></strong>
-						— <?php echo esc_html( $set['copyright'] ?: __( '(no copyright)', 'metamanager' ) ); ?>
-						<?php if ( $set['license'] ) : ?>
-						<span style="color:#0073aa;font-size:12px;">(<?php echo esc_html( $set['license'] ); ?>)</span>
-						<?php endif; ?>
-						<span style="color:#888;font-size:12px;">(<?php printf( esc_html__( '%d images', 'metamanager' ), (int) $set['count'] ); ?>)</span>
-					</label>
-					<?php endforeach; ?>
-				</div>
-			</div>
-			<?php endif; ?>
-
-			<form method="post">
-				<?php wp_nonce_field( 'mm_licensing_' . implode( '_', $ids ) ); ?>
-				<table class="form-table">
-					<tr>
-						<th><label for="mm_license"><?php esc_html_e( 'License URL', 'metamanager' ); ?></label></th>
-						<td>
-							<input type="url" name="mm_license" id="mm_license" class="regular-text" value="<?php echo esc_attr( $pre_license ); ?>" placeholder="https://creativecommons.org/licenses/by/4.0/" />
-							<p class="description"><?php esc_html_e( 'URL of the license governing these images. Maps to schema license.', 'metamanager' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="mm_credit"><?php esc_html_e( 'Credit Text', 'metamanager' ); ?></label></th>
-						<td>
-							<input type="text" name="mm_credit" id="mm_credit" class="regular-text" value="<?php echo esc_attr( $pre_credit ); ?>" placeholder="Jane Photographer" />
-							<p class="description"><?php esc_html_e( 'Photographer or rights holder name. Maps to schema creditText.', 'metamanager' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="mm_acquire_license_page"><?php esc_html_e( 'Acquire License Page', 'metamanager' ); ?></label></th>
-						<td>
-							<input type="url" name="mm_acquire_license_page" id="mm_acquire_license_page" class="regular-text" value="<?php echo esc_attr( $pre_acquire ); ?>" placeholder="https://example.com/contact/" />
-							<p class="description"><?php esc_html_e( 'URL where a license can be obtained. Maps to schema acquireLicensePage.', 'metamanager' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="mm_creator"><?php esc_html_e( 'Creator', 'metamanager' ); ?></label></th>
-						<td>
-							<input type="text" name="mm_creator" id="mm_creator" class="regular-text" value="<?php echo esc_attr( $pre_creator ); ?>" placeholder="Jane Photographer" />
-							<p class="description"><?php esc_html_e( 'Photographer or creator name. Maps to schema creator. Google recommends this field when any attribution field is set.', 'metamanager' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th><label for="mm_copyright"><?php esc_html_e( 'Copyright Notice', 'metamanager' ); ?></label></th>
-						<td>
-							<input type="text" name="mm_copyright" id="mm_copyright" class="regular-text" value="<?php echo esc_attr( $pre_copyright ); ?>" placeholder="© 2025 Jane Photographer" />
-							<p class="description"><?php esc_html_e( 'Copyright notice. Maps to schema copyrightNotice. Google recommends this field when any attribution field is set.', 'metamanager' ); ?></p>
-						</td>
-					</tr>
-				</table>
-				<p class="submit">
-					<input type="hidden" name="ids" value="<?php echo esc_attr( implode( ',', $ids ) ); ?>" />
-					<input type="submit" name="mm_licensing_submit" class="button button-primary" value="<?php esc_attr_e( 'Apply Attribution & Licensing', 'metamanager' ); ?>" />
-					<a href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'metamanager' ); ?></a>
-				</p>
-			</form>
-		</div>
-		<?php
-	}
-
-	/**
+					/**
 	 * @param string $hook Current admin page hook.
 	 */
 	public static function enqueue_assets( string $hook ): void {
@@ -1810,22 +1367,21 @@ class MM_Admin {
 			return new \WP_Error( 'not_compressible', $detail, [ 'status' => 422 ] );
 		}
 
-		if ( $is_video ) {
-			$file = get_attached_file( $id );
-			if ( ! $file || ! file_exists( $file ) ) {
-				return new \WP_Error( 'file_not_found', __( 'Video file not found on disk.', 'metamanager' ), [ 'status' => 404 ] );
-			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
-		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'rest_api' ] );
+		$result = MM_Media_Service::compress( [ $id ], 'rest_api', $force );
+		if ( $result['count'] > 0 ) {
+			return rest_ensure_response( [
+				'id'      => $id,
+				'queued'  => true,
+				'message' => $is_video
+					? __( 'Video remux job queued.', 'metamanager' )
+					: __( 'Compression jobs queued.', 'metamanager' ),
+			] );
 		}
 
 		return rest_ensure_response( [
 			'id'      => $id,
-			'queued'  => true,
-			'message' => $is_video
-				? __( 'Video remux job queued.', 'metamanager' )
-				: __( 'Compression jobs queued.', 'metamanager' ),
+			'queued'  => false,
+			'message' => __( 'Already compressed or not compressible.', 'metamanager' ),
 		] );
 	}
 
@@ -1902,26 +1458,29 @@ class MM_Admin {
 			);
 		}
 
-		if ( $is_image ) {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'rest_api' ] );
-		} else {
-			if ( ! MM_Metadata::can_write_meta( $mime ) ) {
-				return new \WP_Error(
-					'not_embeddable',
-					__( 'This file type does not support metadata writing.', 'metamanager' ),
-					[ 'status' => 422 ]
-				);
-			}
-			$file = get_attached_file( $id );
-			MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
+		if ( ! $is_image && ! MM_Metadata::can_write_meta( $mime ) ) {
+			return new \WP_Error(
+				'not_embeddable',
+				__( 'This file type does not support metadata writing.', 'metamanager' ),
+				[ 'status' => 422 ]
+			);
+		}
+
+		$result = MM_Media_Service::embed_metadata( [ $id ], 'rest_api' );
+		if ( $result['count'] > 0 ) {
+			return rest_ensure_response( [
+				'id'      => $id,
+				'queued'  => true,
+				'message' => $is_image
+					? __( 'Metadata embedding jobs queued for all image sizes.', 'metamanager' )
+					: __( 'Metadata embedding job queued.', 'metamanager' ),
+			] );
 		}
 
 		return rest_ensure_response( [
 			'id'      => $id,
-			'queued'  => true,
-			'message' => $is_image
-				? __( 'Metadata embedding jobs queued for all image sizes.', 'metamanager' )
-				: __( 'Metadata embedding job queued.', 'metamanager' ),
+			'queued'  => false,
+			'message' => __( 'Not embeddable or file missing.', 'metamanager' ),
 		] );
 	}
 
@@ -2182,9 +1741,8 @@ class MM_Admin {
 		}
 		MM_Memory_Manager::clear_notice();
 
-		$offset     = max( 0, (int) wp_unslash( $_POST['offset']     ?? 0 ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- (int) cast is sanitization
+		$offset = max( 0, (int) wp_unslash( $_POST['offset'] ?? 0 ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- (int) cast is sanitization
 
-		// Include images plus all supported video and audio MIME types.
 		$all_mime_types = array_merge(
 			[ 'image' ],
 			MM_Metadata::VIDEO_MIME_TYPES,
@@ -2192,8 +1750,6 @@ class MM_Admin {
 			MM_Metadata::PDF_MIME_TYPES
 		);
 
-		// Build the list of IDs that have no completed metadata job — history table
-		// is the single source of truth; no post_meta queries needed.
 		$all_ids     = get_posts( [
 			'post_type'      => 'attachment',
 			'post_mime_type' => $all_mime_types,
@@ -2208,15 +1764,11 @@ class MM_Admin {
 
 		$total = count( $pending_ids );
 
-		// Build candidate job data for memory-aware batch sizing.
-		// Batch size is defined by memory calculation each pass — fluid, no fixed limit.
+		// Memory-aware batch sizing.
 		$candidate_jobs = [];
 		foreach ( $pending_ids as $id ) {
 			$mime = (string) get_post_mime_type( $id );
-			$job  = [
-				'mime_type' => $mime,
-				'size'      => 'full',
-			];
+			$job  = [ 'mime_type' => $mime, 'size' => 'full' ];
 			if ( wp_attachment_is_image( $id ) ) {
 				$meta = wp_get_attachment_metadata( $id );
 				if ( $meta ) {
@@ -2229,34 +1781,10 @@ class MM_Admin {
 		$batch_size = MM_Memory_Manager::calculate_batch_size( $candidate_jobs );
 		$batch      = array_slice( $pending_ids, $offset, $batch_size );
 
-		$count = 0;
-		foreach ( $batch as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-
-			// Queue daemon jobs — mirrors the on_upload() path for unsynced attachments.
-			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'scan' ] );
-			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
-				$file = get_attached_file( $id );
-				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-				}
-			} elseif ( MM_Metadata::is_audio_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime ) ) {
-				if ( MM_Metadata::can_write_meta( $mime ) ) {
-					$file = get_attached_file( $id );
-					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-					}
-				}
-			}
-
-			++$count;
-		}
-
+		$result    = MM_Media_Service::scan( $batch, 'scan' );
+		$count     = $result['count'];
 		$new_offset = $offset + $count;
-		$done       = empty( $batch ) || $new_offset >= $total;
+		$done      = empty( $batch ) || $new_offset >= $total;
 
 		wp_send_json_success( [
 			'count'  => $count,
@@ -2273,30 +1801,16 @@ class MM_Admin {
 		check_ajax_referer( 'mm_recompress', 'nonce' );
 
 		$id   = absint( $_POST['id'] ?? 0 );
-		$mime = $id ? (string) get_post_mime_type( $id ) : '';
-
 		if ( ! $id || ! current_user_can( 'edit_post', $id ) ) {
 			wp_send_json_error( 'Permission denied.' );
 		}
 
-		if ( ! wp_attachment_is_image( $id ) && ! MM_Metadata::is_video_mime( $mime ) ) {
-			wp_send_json_error( __( 'Invalid or unsupported attachment.', 'metamanager' ) );
+		$result = MM_Media_Service::compress( [ $id ], 'manual', true );
+		if ( $result['count'] > 0 ) {
+			$notices = self::get_and_clear_queue_notices();
+			wp_send_json_success( [ 'notices' => self::format_notices_for_ajax( $notices ) ] );
 		}
-
-		$meta = wp_get_attachment_metadata( $id ) ?: [];
-
-		if ( MM_Metadata::is_video_mime( $mime ) ) {
-			$file = get_attached_file( $id );
-			if ( ! $file || ! file_exists( $file ) ) {
-				wp_send_json_error( __( 'File not found.', 'metamanager' ) );
-			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'manual' ] );
-		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', [ 'trigger' => 'manual' ] );
-		}
-
-		$notices = self::get_and_clear_queue_notices();
-		wp_send_json_success( [ 'notices' => self::format_notices_for_ajax( $notices ) ] );
+		wp_send_json_error( __( 'Not compressible.', 'metamanager' ) );
 	}
 
 	/**
@@ -2313,9 +1827,10 @@ class MM_Admin {
 		}
 
 		$raw_ids      = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
-		$raw_fields   = (array) wp_unslash( $_POST['fields'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated against $allowed_fields allowlist below
+		$raw_fields   = (array) wp_unslash( $_POST['fields'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated by MM_Media_Service
 		$also_compress = ! empty( $_POST['also_compress'] );
 
+		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$allowed_fields = [
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
@@ -2329,64 +1844,96 @@ class MM_Admin {
 			MM_Metadata::META_COUNTRY,
 			MM_Metadata::META_RATING,
 		];
-
-		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$fields = [];
 		foreach ( $allowed_fields as $key ) {
-			if ( isset( $raw_fields[ $key ] ) && $raw_fields[ $key ] !== '' ) {
-				if ( MM_Metadata::META_RATING === $key ) {
-					$fields[ $key ] = min( 5, max( 0, (int) $raw_fields[ $key ] ) );
-				} else {
-					$fields[ $key ] = sanitize_text_field( (string) $raw_fields[ $key ] );
-				}
+			if ( isset( $raw_fields[ $key ] ) && '' !== $raw_fields[ $key ] ) {
+				$fields[ $key ] = $raw_fields[ $key ];
+			}
+		}
+
+		// Filter by per-attachment edit capability.
+		$ids = [];
+		foreach ( $raw_ids as $id ) {
+			if ( $id && get_post( $id ) && current_user_can( 'edit_post', $id ) ) {
+				$ids[] = $id;
 			}
 		}
 
 		$count = 0;
-		foreach ( $raw_ids as $raw_id ) {
-			$id = absint( $raw_id );
-			if ( ! $id || ! get_post( $id ) ) {
-				continue;
+		if ( ! empty( $fields ) ) {
+			$result = MM_Media_Service::embed_metadata( $ids, 'batch_apply', $fields );
+			$count  = $result['count'];
+		}
+		if ( $also_compress ) {
+			$c_result = MM_Media_Service::compress( $ids, 'batch_apply', true );
+			if ( empty( $fields ) ) {
+				$count = $c_result['count'];
 			}
-			if ( ! current_user_can( 'edit_post', $id ) ) {
-				continue;
-			}
-
-			// Server-side MIME-type validation — skip fields not writable for this format.
-			$mime     = (string) get_post_mime_type( $id );
-			$write_cap = MM_Metadata::write_capability( $mime );
-
-			if ( 'read_only' === $write_cap ) {
-				// Read-only formats: no metadata fields can be written.
-				if ( $also_compress ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
-				}
-				++$count;
-				continue;
-			}
-
-			$permitted = $fields;
-			if ( isset( self::FIELD_COMPAT[ $write_cap ] ) ) {
-				// Restrict to fields writable for this capability level.
-				$permitted = array_intersect_key( $permitted, array_flip( self::FIELD_COMPAT[ $write_cap ] ) );
-			}
-
-			foreach ( $permitted as $key => $val ) {
-				update_post_meta( $id, $key, $val );
-			}
-
-			if ( ! empty( $permitted ) && $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'batch_apply' ] );
-			} elseif ( ! empty( $permitted ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'batch_apply' ] );
-			} elseif ( $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
-			}
-
-			++$count;
 		}
 
 		wp_send_json_success( [ 'count' => $count ] );
+	}
+
+	// -----------------------------------------------------------------------
+	// Media Processing page operations — canonical MM_Media_Service calls
+	// -----------------------------------------------------------------------
+
+	/** AJAX: Queue lossless compression for selected attachments. */
+	public static function ajax_op_compress(): void {
+		check_ajax_referer( 'mm_op', 'nonce' );
+		if ( ! current_user_can( 'edit_others_posts' ) ) {
+			wp_send_json_error( 'Permission denied.' );
+		}
+		$ids   = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
+		$force = ! empty( $_POST['force'] );
+		$result = MM_Media_Service::compress( $ids, 'media_processing', $force );
+		wp_send_json_success( $result );
+	}
+
+	/** AJAX: Inject site provenance into metadata for selected attachments. */
+	public static function ajax_op_site_info(): void {
+		check_ajax_referer( 'mm_op', 'nonce' );
+		if ( ! current_user_can( 'edit_others_posts' ) ) {
+			wp_send_json_error( 'Permission denied.' );
+		}
+		$ids    = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
+		$result = MM_Media_Service::inject_site_info( $ids, 'media_processing' );
+		wp_send_json_success( $result );
+	}
+
+	/** AJAX: Reverse-geocode GPS to address fields for selected images. */
+	public static function ajax_op_geocode(): void {
+		check_ajax_referer( 'mm_op', 'nonce' );
+		if ( ! current_user_can( 'edit_others_posts' ) ) {
+			wp_send_json_error( 'Permission denied.' );
+		}
+		$ids    = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
+		$result = MM_Media_Service::geocode( $ids, 'media_processing' );
+		if ( ! empty( $result['errors'] ) ) {
+			wp_send_json_error( implode( ' ', $result['errors'] ) );
+		}
+		wp_send_json_success( $result );
+	}
+
+	/** AJAX: Set attribution (all-or-nothing, rule 21) for selected images. */
+	public static function ajax_op_licensing(): void {
+		check_ajax_referer( 'mm_op', 'nonce' );
+		if ( ! current_user_can( 'edit_others_posts' ) ) {
+			wp_send_json_error( 'Permission denied.' );
+		}
+		$ids = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
+		$fields = [
+			'creator'   => sanitize_text_field( wp_unslash( $_POST['creator'] ?? '' ) ),
+			'credit'    => sanitize_text_field( wp_unslash( $_POST['credit'] ?? '' ) ),
+			'copyright' => sanitize_text_field( wp_unslash( $_POST['copyright'] ?? '' ) ),
+			'license'   => esc_url_raw( wp_unslash( $_POST['license'] ?? '' ) ),
+			'acquire'   => esc_url_raw( wp_unslash( $_POST['acquire'] ?? '' ) ),
+		];
+		$result = MM_Media_Service::set_licensing( $ids, $fields, 'media_processing' );
+		if ( ! empty( $result['errors'] ) ) {
+			wp_send_json_error( implode( ' ', $result['errors'] ) );
+		}
+		wp_send_json_success( $result );
 	}
 
 	/**
@@ -2789,7 +2336,7 @@ class MM_Admin {
 				<?php foreach ( $all_fields as $key => $cfg ) :
 					// Build comma-separated list of write-cap levels that support this field.
 					$caps = [];
-					foreach ( self::FIELD_COMPAT as $level => $fields ) {
+					foreach ( MM_Metadata::FIELD_COMPAT as $level => $fields ) {
 						if ( in_array( $key, $fields, true ) ) {
 							$caps[] = $level;
 						}
@@ -2835,6 +2382,38 @@ class MM_Admin {
 
 				<div id="mm-apply-status" style="margin-top:8px;font-size:12px;min-height:18px;"></div>
 				<div id="mm-selection-count" style="margin-top:4px;font-size:11px;color:#50575e;"></div>
+
+				<hr style="margin:16px 0;border:none;border-top:1px solid #e0e0e0;">
+
+				<!-- ===== Operations ===== -->
+				<h3 style="margin:0 0 8px;font-size:14px;"><?php esc_html_e( 'Operations', 'metamanager' ); ?></h3>
+				<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+					<button id="mm-op-compress" class="button" style="width:100%;" disabled>
+						<?php esc_html_e( 'Compress Lossless', 'metamanager' ); ?>
+					</button>
+					<button id="mm-op-site-info" class="button" style="width:100%;" disabled>
+						<?php esc_html_e( 'Inject Site Info', 'metamanager' ); ?>
+					</button>
+					<button id="mm-op-geocode" class="button" style="width:100%;" disabled>
+						<?php esc_html_e( 'Geocode Addresses', 'metamanager' ); ?>
+					</button>
+				</div>
+				<div id="mm-op-status" style="margin-bottom:8px;font-size:12px;min-height:18px;"></div>
+
+				<!-- ===== Set Licensing (all-or-nothing) ===== -->
+				<h3 style="margin:0 0 4px;font-size:14px;"><?php esc_html_e( 'Set Licensing', 'metamanager' ); ?></h3>
+				<p style="margin:0 0 8px;font-size:11px;color:#50575e;"><?php esc_html_e( 'All five fields required together (Google Image Metadata). Blank fields clear existing values.', 'metamanager' ); ?></p>
+				<div id="mm-licensing-fields" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;">
+					<input type="text" id="mm-lic-creator" placeholder="<?php esc_attr_e( 'Creator / photographer', 'metamanager' ); ?>" style="width:100%;box-sizing:border-box;font-size:12px;">
+					<input type="text" id="mm-lic-credit" placeholder="<?php esc_attr_e( 'Credit text', 'metamanager' ); ?>" style="width:100%;box-sizing:border-box;font-size:12px;">
+					<input type="text" id="mm-lic-copyright" placeholder="<?php esc_attr_e( 'Copyright notice', 'metamanager' ); ?>" style="width:100%;box-sizing:border-box;font-size:12px;">
+					<input type="url" id="mm-lic-license" placeholder="<?php esc_attr_e( 'License URL', 'metamanager' ); ?>" style="width:100%;box-sizing:border-box;font-size:12px;">
+					<input type="url" id="mm-lic-acquire" placeholder="<?php esc_attr_e( 'Acquire license URL', 'metamanager' ); ?>" style="width:100%;box-sizing:border-box;font-size:12px;">
+				</div>
+				<button id="mm-op-licensing" class="button button-primary" style="width:100%;" disabled>
+					<?php esc_html_e( 'Apply Licensing', 'metamanager' ); ?>
+				</button>
+				<div id="mm-licensing-status" style="margin-top:8px;font-size:12px;min-height:18px;"></div>
 				</div>
 
 				<!-- ===== Right: Image Grid ===== -->
@@ -2974,6 +2553,7 @@ class MM_Admin {
 		<script>
 		jQuery(function($){
 			var nonce = '<?php echo esc_js( $nonce ); ?>';
+			var opNonce = '<?php echo esc_js( wp_create_nonce( 'mm_op' ) ); ?>';
 
 			function getSelectedWriteGroups() {
 				var groups = {};
@@ -3052,6 +2632,7 @@ class MM_Admin {
 				var n = $('.mm-cb:checked').length;
 				$('#mm-selection-count').text( n > 0 ? n + ' <?php echo esc_js( __( 'file(s) selected', 'metamanager' ) ); ?>' : '' );
 				$('#mm-apply-btn').prop( 'disabled', n === 0 );
+				$('#mm-op-compress, #mm-op-site-info, #mm-op-geocode, #mm-op-licensing').prop( 'disabled', n === 0 );
 				$('.mm-grid-item').each(function(){
 					$(this).toggleClass( 'mm-selected', $(this).find('.mm-cb').is(':checked') );
 				});
@@ -3121,6 +2702,69 @@ class MM_Admin {
 						$('#mm-apply-status').css('color','#d63638').text('✘ ' + ( resp.data || '<?php echo esc_js( __( 'Error', 'metamanager' ) ); ?>' ));
 					}
 				}, 'json');
+			});
+
+			// --- Media Processing page operations ---
+			function runOp(action, data, statusEl, btn, busyText, doneText) {
+				var ids = [];
+				$('.mm-cb:checked').each(function(){ ids.push( $(this).val() ); });
+				if ( ! ids.length ) { return; }
+
+				var $btn = $(btn).prop('disabled', true).text(busyText);
+				$(statusEl).css('color','#50575e').text('<?php echo esc_js( __( 'Working…', 'metamanager' ) ); ?>');
+
+				$.post(ajaxurl, $.extend({
+					action: action,
+					nonce:  opNonce,
+					ids:    ids,
+				}, data), function(resp){
+					$btn.prop('disabled', false).text(doneText);
+					if ( resp.success ) {
+						var d = resp.data || {};
+						var msg = (d.count || 0) + ' <?php echo esc_js( __( 'processed', 'metamanager' ) ); ?>';
+						if ( d.skipped ) { msg += ', ' + d.skipped + ' <?php echo esc_js( __( 'skipped', 'metamanager' ) ); ?>'; }
+						$(statusEl).css('color','#00a32a').text('✔ ' + msg);
+						setTimeout(function(){ $(statusEl).text(''); }, 6000);
+					} else {
+						$(statusEl).css('color','#d63638').text('✘ ' + ( resp.data || '<?php echo esc_js( __( 'Error', 'metamanager' ) ); ?>' ));
+					}
+				}, 'json');
+			}
+
+			$('#mm-op-compress').on('click', function(){
+				runOp('mm_op_compress', {}, '#mm-op-status', this,
+					'<?php echo esc_js( __( 'Queuing…', 'metamanager' ) ); ?>',
+					'<?php echo esc_js( __( 'Compress Lossless', 'metamanager' ) ); ?>');
+			});
+			$('#mm-op-site-info').on('click', function(){
+				runOp('mm_op_site_info', {}, '#mm-op-status', this,
+					'<?php echo esc_js( __( 'Queuing…', 'metamanager' ) ); ?>',
+					'<?php echo esc_js( __( 'Inject Site Info', 'metamanager' ) ); ?>');
+			});
+			$('#mm-op-geocode').on('click', function(){
+				runOp('mm_op_geocode', {}, '#mm-op-status', this,
+					'<?php echo esc_js( __( 'Geocoding…', 'metamanager' ) ); ?>',
+					'<?php echo esc_js( __( 'Geocode Addresses', 'metamanager' ) ); ?>');
+			});
+			$('#mm-op-licensing').on('click', function(){
+				var creator   = $.trim( $('#mm-lic-creator').val() );
+				var credit    = $.trim( $('#mm-lic-credit').val() );
+				var copyright = $.trim( $('#mm-lic-copyright').val() );
+				var license   = $.trim( $('#mm-lic-license').val() );
+				var acquire   = $.trim( $('#mm-lic-acquire').val() );
+
+				var filled = [creator, credit, copyright, license, acquire].filter(function(v){ return v !== ''; });
+				if ( filled.length !== 5 ) {
+					$('#mm-licensing-status').css('color','#d63638').text('<?php echo esc_js( __( 'All five fields are required (all-or-nothing attribution).', 'metamanager' ) ); ?>');
+					return;
+				}
+
+				runOp('mm_op_licensing', {
+					creator: creator, credit: credit, copyright: copyright,
+					license: license, acquire: acquire
+				}, '#mm-licensing-status', this,
+					'<?php echo esc_js( __( 'Applying…', 'metamanager' ) ); ?>',
+					'<?php echo esc_js( __( 'Apply Licensing', 'metamanager' ) ); ?>');
 			});
 
 			syncState();

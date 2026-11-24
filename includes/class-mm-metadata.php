@@ -166,6 +166,31 @@ class MM_Metadata {
 		'application/pdf'  => 'xmp_only',
 	];
 
+	/**
+	 * Metadata fields writable per capability level.
+	 *
+	 * Used to filter fields before writing — a field not in this map
+	 * for the attachment's capability level is silently dropped.
+	 */
+	public const FIELD_COMPAT = [
+		'full' => [
+			self::META_CREATOR, self::META_COPYRIGHT, self::META_OWNER,
+			self::META_HEADLINE, self::META_CREDIT, self::META_KEYWORDS,
+			self::META_DATE, self::META_CITY, self::META_STATE,
+			self::META_COUNTRY, self::META_RATING,
+		],
+		'xmp_only' => [
+			self::META_CREATOR, self::META_COPYRIGHT,
+			self::META_HEADLINE, self::META_CREDIT, self::META_KEYWORDS,
+			self::META_DATE, self::META_CITY, self::META_STATE,
+			self::META_COUNTRY, self::META_RATING,
+		],
+		'vorbis_only' => [
+			self::META_CREATOR, self::META_COPYRIGHT,
+			self::META_HEADLINE, self::META_KEYWORDS, self::META_DATE,
+		],
+	];
+
 	// -----------------------------------------------------------------------
 	// MIME type helpers
 	// -----------------------------------------------------------------------
