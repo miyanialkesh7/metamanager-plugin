@@ -38,16 +38,17 @@ defined( 'ABSPATH' ) || exit;
  */
 class MM_Settings {
 
-	const OPTION_COMPRESS_LEVEL      = 'mm_compress_level';
-	const OPTION_NOTIFY_ENABLED      = 'mm_notify_enabled';
-	const OPTION_NOTIFY_EMAIL        = 'mm_notify_email';
-	const OPTION_DELETE_DATA         = 'mm_delete_data_on_uninstall';
-	const OPTION_API_DISABLED        = 'mm_api_disabled';
-	const OPTION_API_ALLOWED_IPS     = 'mm_api_allowed_ips';
-	const OPTION_UPLOAD_NOTIFY_EXTRA = 'mm_upload_notify_extra_email';
-	const OPTION_AUTO_PROVENANCE     = 'mm_auto_provenance';
-	const OPTION_BATCH_SIZE          = 'mm_batch_size';
-	const OPTION_MAX_REVISIONS       = 'mm_max_revisions';
+	const OPTION_COMPRESS_LEVEL         = 'mm_compress_level';
+	const OPTION_NOTIFY_ENABLED         = 'mm_notify_enabled';
+	const OPTION_NOTIFY_EMAIL           = 'mm_notify_email';
+	const OPTION_DELETE_DATA            = 'mm_delete_data_on_uninstall';
+	const OPTION_API_DISABLED           = 'mm_api_disabled';
+	const OPTION_API_ALLOWED_IPS        = 'mm_api_allowed_ips';
+	const OPTION_UPLOAD_NOTIFY_EXTRA    = 'mm_upload_notify_extra_email';
+	const OPTION_AUTO_PROVENANCE        = 'mm_auto_provenance';
+	const OPTION_MAX_REVISIONS          = 'mm_max_revisions';
+	const OPTION_SHOW_PROVIDER_ARCHIVE  = 'mm_show_provider_archive';
+	const OPTION_SHOW_PROVIDER_SINGLE   = 'mm_show_provider_single';
 
 	// -----------------------------------------------------------------------
 	// Boot
@@ -57,8 +58,8 @@ class MM_Settings {
 		// Priority 50 ensures this submenu is registered after all other
 		// Metamanager submenus (which use default priority 10), so
 		// Preferences appears at the bottom of the sub-nav stack.
-		add_action( 'admin_menu', array( __CLASS__, 'add_menu' ), 50 );
-		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
+		add_action( 'admin_menu', [ __CLASS__, 'add_menu' ], 50 );
+		add_action( 'admin_init',  [ __CLASS__, 'register_settings' ] );
 	}
 
 	// -----------------------------------------------------------------------
@@ -72,7 +73,7 @@ class MM_Settings {
 			esc_html__( 'Preferences', 'metamanager' ),
 			'manage_options',
 			'metamanager-settings',
-			array( __CLASS__, 'render_page' )
+			[ __CLASS__, 'render_page' ]
 		);
 	}
 
@@ -84,41 +85,41 @@ class MM_Settings {
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_COMPRESS_LEVEL,
-			array(
+			[
 				'type'              => 'integer',
 				'sanitize_callback' => fn( $v ) => max( 1, min( 7, (int) $v ) ),
 				'default'           => 2,
-			)
+			]
 		);
 
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_NOTIFY_ENABLED,
-			array(
+			[
 				'type'              => 'boolean',
 				'sanitize_callback' => 'rest_sanitize_boolean',
 				'default'           => false,
-			)
+			]
 		);
 
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_NOTIFY_EMAIL,
-			array(
+			[
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_email',
 				'default'           => '',
-			)
+			]
 		);
 
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_DELETE_DATA,
-			array(
+			[
 				'type'              => 'boolean',
 				'sanitize_callback' => 'rest_sanitize_boolean',
 				'default'           => false,
-			)
+			]
 		);
 
 		// ---- Sections & fields ----
@@ -133,34 +134,9 @@ class MM_Settings {
 		add_settings_field(
 			'mm_compress_level',
 			esc_html__( 'Optimisation level', 'metamanager' ),
-			array( __CLASS__, 'field_compress_level' ),
+			[ __CLASS__, 'field_compress_level' ],
 			'metamanager-settings',
 			'mm_section_compression'
-		);
-
-		register_setting(
-			'mm_settings_group',
-			self::OPTION_BATCH_SIZE,
-			array(
-				'type'              => 'integer',
-				'sanitize_callback' => fn( $v ) => max( 10, min( 500, (int) $v ) ),
-				'default'           => 50,
-			)
-		);
-
-		add_settings_section(
-			'mm_section_memory',
-			esc_html__( 'Memory & Batch Processing', 'metamanager' ),
-			fn() => esc_html_e( 'Controls how many files are processed per batch cycle. The plugin checks available memory before each cycle and automatically reduces the batch size if memory is limited. If memory is critically low, processing pauses and resumes automatically when memory becomes available.', 'metamanager' ),
-			'metamanager-settings'
-		);
-
-		add_settings_field(
-			'mm_batch_size',
-			esc_html__( 'Max batch size', 'metamanager' ),
-			array( __CLASS__, 'field_batch_size' ),
-			'metamanager-settings',
-			'mm_section_memory'
 		);
 
 		// --- Revisions ---
@@ -168,11 +144,11 @@ class MM_Settings {
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_MAX_REVISIONS,
-			array(
+			[
 				'type'              => 'integer',
 				'sanitize_callback' => fn( $v ) => max( 0, (int) $v ),
 				'default'           => 36,
-			)
+			]
 		);
 
 		add_settings_section(
@@ -185,7 +161,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_max_revisions',
 			esc_html__( 'Max revisions', 'metamanager' ),
-			array( __CLASS__, 'field_max_revisions' ),
+			[ __CLASS__, 'field_max_revisions' ],
 			'metamanager-settings',
 			'mm_section_revisions'
 		);
@@ -200,7 +176,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_notify_enabled',
 			esc_html__( 'Enable notifications', 'metamanager' ),
-			array( __CLASS__, 'field_notify_enabled' ),
+			[ __CLASS__, 'field_notify_enabled' ],
 			'metamanager-settings',
 			'mm_section_notifications'
 		);
@@ -208,9 +184,54 @@ class MM_Settings {
 		add_settings_field(
 			'mm_notify_email',
 			esc_html__( 'Notification email', 'metamanager' ),
-			array( __CLASS__, 'field_notify_email' ),
+			[ __CLASS__, 'field_notify_email' ],
 			'metamanager-settings',
 			'mm_section_notifications'
+		);
+
+		// --- CPT Display ---
+
+		add_settings_section(
+			'mm_section_cpt_display',
+			esc_html__( 'CPT Display', 'metamanager' ),
+			fn() => esc_html_e( 'Control how provider information appears on CPT archive and single pages.', 'metamanager' ),
+			'metamanager-settings'
+		);
+
+		register_setting(
+			'mm_settings_group',
+			self::OPTION_SHOW_PROVIDER_ARCHIVE,
+			[
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => false,
+			]
+		);
+
+		add_settings_field(
+			'mm_show_provider_archive',
+			esc_html__( 'Show provider on archive pages', 'metamanager' ),
+			[ __CLASS__, 'field_show_provider_archive' ],
+			'metamanager-settings',
+			'mm_section_cpt_display'
+		);
+
+		register_setting(
+			'mm_settings_group',
+			self::OPTION_SHOW_PROVIDER_SINGLE,
+			[
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => false,
+			]
+		);
+
+		add_settings_field(
+			'mm_show_provider_single',
+			esc_html__( 'Show provider on individual CPT pages', 'metamanager' ),
+			[ __CLASS__, 'field_show_provider_single' ],
+			'metamanager-settings',
+			'mm_section_cpt_display'
 		);
 
 		// --- REST API ---
@@ -218,21 +239,21 @@ class MM_Settings {
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_API_DISABLED,
-			array(
+			[
 				'type'              => 'boolean',
 				'sanitize_callback' => 'rest_sanitize_boolean',
 				'default'           => false,
-			)
+			]
 		);
 
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_API_ALLOWED_IPS,
-			array(
+			[
 				'type'              => 'string',
 				'sanitize_callback' => fn( $v ) => sanitize_textarea_field( (string) $v ),
 				'default'           => '',
-			)
+			]
 		);
 
 		// --- Upload receipts ---
@@ -240,11 +261,11 @@ class MM_Settings {
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_UPLOAD_NOTIFY_EXTRA,
-			array(
+			[
 				'type'              => 'string',
 				'sanitize_callback' => 'sanitize_text_field',
 				'default'           => '',
-			)
+			]
 		);
 
 		// --- Metadata embedding ---
@@ -252,11 +273,11 @@ class MM_Settings {
 		register_setting(
 			'mm_settings_group',
 			self::OPTION_AUTO_PROVENANCE,
-			array(
+			[
 				'type'              => 'boolean',
 				'sanitize_callback' => 'rest_sanitize_boolean',
 				'default'           => true,
-			)
+			]
 		);
 
 		// --- Uninstall ---
@@ -271,7 +292,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_api_disabled',
 			esc_html__( 'Disable REST API', 'metamanager' ),
-			array( __CLASS__, 'field_api_disabled' ),
+			[ __CLASS__, 'field_api_disabled' ],
 			'metamanager-settings',
 			'mm_section_api'
 		);
@@ -279,7 +300,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_api_allowed_ips',
 			esc_html__( 'IP allowlist', 'metamanager' ),
-			array( __CLASS__, 'field_api_allowed_ips' ),
+			[ __CLASS__, 'field_api_allowed_ips' ],
 			'metamanager-settings',
 			'mm_section_api'
 		);
@@ -294,7 +315,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_upload_notify_extra_email',
 			esc_html__( 'Additional recipients', 'metamanager' ),
-			array( __CLASS__, 'field_upload_notify_extra' ),
+			[ __CLASS__, 'field_upload_notify_extra' ],
 			'metamanager-settings',
 			'mm_section_upload_notify'
 		);
@@ -309,7 +330,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_auto_provenance',
 			esc_html__( 'Auto-embed site provenance', 'metamanager' ),
-			array( __CLASS__, 'field_auto_provenance' ),
+			[ __CLASS__, 'field_auto_provenance' ],
 			'metamanager-settings',
 			'mm_section_metadata'
 		);
@@ -324,7 +345,7 @@ class MM_Settings {
 		add_settings_field(
 			'mm_delete_data_on_uninstall',
 			esc_html__( 'Remove all data on uninstall', 'metamanager' ),
-			array( __CLASS__, 'field_delete_data' ),
+			[ __CLASS__, 'field_delete_data' ],
 			'metamanager-settings',
 			'mm_section_uninstall'
 		);
@@ -355,16 +376,6 @@ class MM_Settings {
 		}
 		echo '</select>';
 		echo '<p class="description">' . esc_html__( 'All compression is lossless — this controls optimisation effort for PNG (optipng) and WebP (cwebp). JPEG is always compressed at maximum lossless quality. Higher effort produces slightly smaller files but takes longer.', 'metamanager' ) . '</p>';
-	}
-
-	public static function field_batch_size(): void {
-		$value = self::get_batch_size();
-		printf(
-			'<input type="number" id="mm_batch_size" name="%s" value="%d" min="10" max="500" step="10" class="small-text">',
-			esc_attr( self::OPTION_BATCH_SIZE ),
-			absint( $value )
-		);
-		echo '<p class="description">' . esc_html__( 'Maximum number of files processed per batch cycle (upload scan, cron tick, or WP-CLI batch). The plugin checks available memory before each cycle and automatically reduces this number if memory is limited. If memory is critically low, processing pauses and resumes on the next cycle.', 'metamanager' ) . '</p>';
 	}
 
 	public static function field_max_revisions(): void {
@@ -448,6 +459,28 @@ class MM_Settings {
 		echo '<p class="description">' . esc_html__( 'When enabled (default), the Publisher (site name) and Website (site URL) fields are embedded as neutral provenance in every metadata job and on upload. This is not an authorship or copyright claim &mdash; it simply marks where the file was published. Disable if you want Metamanager to leave those fields untouched.', 'metamanager' ) . '</p>';
 	}
 
+	public static function field_show_provider_archive(): void {
+		$checked = (bool) get_option( self::OPTION_SHOW_PROVIDER_ARCHIVE, false );
+		printf(
+			'<input type="checkbox" id="mm_show_provider_archive" name="%s" value="1"%s>',
+			esc_attr( self::OPTION_SHOW_PROVIDER_ARCHIVE ),
+			checked( $checked, true, false )
+		);
+		echo ' <label for="mm_show_provider_archive">' . esc_html__( 'Show provider name on CPT archive pages', 'metamanager' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'When enabled, the Provider Name field appears in the detail rows on archive listing cards. Off by default.', 'metamanager' ) . '</p>';
+	}
+
+	public static function field_show_provider_single(): void {
+		$checked = (bool) get_option( self::OPTION_SHOW_PROVIDER_SINGLE, false );
+		printf(
+			'<input type="checkbox" id="mm_show_provider_single" name="%s" value="1"%s>',
+			esc_attr( self::OPTION_SHOW_PROVIDER_SINGLE ),
+			checked( $checked, true, false )
+		);
+		echo ' <label for="mm_show_provider_single">' . esc_html__( 'Show provider name on individual CPT pages', 'metamanager' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'When enabled, the Provider Name field appears in the detail table on single CPT pages. Off by default.', 'metamanager' ) . '</p>';
+	}
+
 	public static function field_delete_data(): void {
 		$checked = self::get_delete_data();
 		printf(
@@ -490,13 +523,6 @@ class MM_Settings {
 	 */
 	public static function get_compress_level(): int {
 		return max( 1, min( 7, (int) get_option( self::OPTION_COMPRESS_LEVEL, 2 ) ) );
-	}
-
-	/**
-	 * Get the configured max batch size (10–500).
-	 */
-	public static function get_batch_size(): int {
-		return max( 10, min( 500, (int) get_option( self::OPTION_BATCH_SIZE, 50 ) ) );
 	}
 
 	/**
@@ -544,11 +570,11 @@ class MM_Settings {
 	public static function get_api_allowed_ips(): array {
 		$raw = (string) get_option( self::OPTION_API_ALLOWED_IPS, '' );
 		if ( '' === trim( $raw ) ) {
-			return array();
+			return [];
 		}
 		// Split on newlines or commas, trim each entry.
 		$items = preg_split( '/[\r\n,]+/', $raw );
-		$items = array_map( 'trim', $items ?: array() );
+		$items = array_map( 'trim', $items ?: [] );
 		$items = array_filter( $items );
 		return array_values( $items );
 	}
@@ -561,7 +587,7 @@ class MM_Settings {
 	public static function get_upload_notify_extra_emails(): array {
 		$raw = (string) get_option( self::OPTION_UPLOAD_NOTIFY_EXTRA, '' );
 		if ( '' === trim( $raw ) ) {
-			return array();
+			return [];
 		}
 		$items = explode( ',', $raw );
 		$items = array_map( 'trim', $items );

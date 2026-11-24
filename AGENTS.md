@@ -65,7 +65,7 @@ The plugin's `MM_Daemon_Updater` reads the VERSION file for dashboard display on
 - Plugin repo: `richardkentgates/metamanager-plugin`
 - Server repo: `richardkentgates/metamanager`
 - Apt server: `34.136.87.92` (DNS: `apt.richardkentgates.com`)
-- Production: `34.10.253.160` (Debian 13 trixie, WordPress at `/srv/www/wordpress/`)
+- Fleet (production + test hosts): see the workspace `AGENTS.md` fleet table
 
 ## Cross-Repo Scope
 
@@ -99,8 +99,7 @@ The plugin's `MM_Daemon_Updater` reads the VERSION file for dashboard display on
 
 ## Conventions
 
-- Branch protection on `test` and `main`: PRs required, no direct pushes
-- Promotion = workflow_dispatch triggers direct git merge (no PRs)
+- Promotion = workflow_dispatch triggers direct git merge (no PRs; no manual merges to `test`/`main`)
 - Shell scripts/daemons update via apt; plugin updates via WordPress native update
 - Daemon updates are handled by OS apt (gcm-maintenance timer), not the plugin.
 - PHP 8.4 for WP-CLI (`php8.4 /usr/local/bin/wp --path=/srv/www/wordpress`)

@@ -10,12 +10,6 @@ defined( 'ABSPATH' ) || exit;
 
 abstract class MM_Mod_Base {
 
-	/**
-	 * Track which nav menus were rendered during this request.
-	 * Populated by MM_Metadata_Loader::track_rendered_menu().
-	 */
-	public static array $rendered_menus = array();
-
 	protected MM_Site_Settings $settings;
 
 	public function __construct( MM_Site_Settings $settings ) {
@@ -26,7 +20,7 @@ abstract class MM_Mod_Base {
 	 * Populate the shared document data array.
 	 *
 	 * @param array            $data     Passed by reference.
-	 * @param MM_Page_Context  $context  Current page context.
+	 * @param MM_Page_Context $context  Current page context.
 	 * @param MM_Site_Settings $settings Plugin settings.
 	 */
 	abstract public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void;
@@ -36,98 +30,49 @@ abstract class MM_Mod_Base {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Get the primary navigation menu from WordPress theme locations.
+	 * Get the primary navigation menu from the WordPress theme's `primary` location.
 	 *
-	 * Returns the first assigned menu, or null if no menus are assigned.
+	 * No custom checkbox — the native Menu Settings "Primary Menu" location
+	 * assignment determines the schema menu. If no menu is assigned to
+	 * `primary`, returns null and no nav schema is emitted.
 	 *
 	 * @return array{id: int, name: string, items: array}|null
 	 */
 	public static function get_primary_menu(): ?array {
-		// First: check if a menu is designated for schema via the nav menu checkbox
-		// (stored as _mm_nav_menu_primary term meta on the nav_menu term).
-		static $designated = null;
-		if ( null === $designated ) {
-			$designated = get_terms(
-				array(
-					'taxonomy'   => 'nav_menu',
-					'meta_query' => array(
-						array(
-							'key'   => '_mm_nav_menu_primary',
-							'value' => '1',
-						),
-					),
-					'number'     => 1,
-					'hide_empty' => false,
-				)
-			);
-		}
-		if ( ! is_wp_error( $designated ) && ! empty( $designated ) ) {
-			$schema_menu_id = (int) $designated[0]->term_id;
-			$menu_items     = wp_get_nav_menu_items( $schema_menu_id );
-			if ( ! empty( $menu_items ) ) {
-				$items    = array();
-				$position = 1;
-				foreach ( $menu_items as $item ) {
-					if ( $item->url && $item->title ) {
-						$items[] = array(
-							'name'     => $item->title,
-							'url'      => $item->url,
-							'position' => $position++,
-						);
-					}
-				}
-				return array(
-					'id'    => $schema_menu_id,
-					'name'  => $designated[0]->name,
-					'items' => $items,
-				);
-			}
-		}
-
-		// Fallback: first assigned theme menu location (WordPress core).
-		if ( ! function_exists( 'wp_get_nav_menu_locations' ) ) {
+		if ( ! function_exists( 'get_nav_menu_locations' ) ) {
 			return null;
 		}
-		$locations = wp_get_nav_menu_locations();
-		if ( empty( $locations ) ) {
+		$locations = get_nav_menu_locations();
+		if ( empty( $locations['primary'] ) ) {
 			return null;
 		}
 
-		$menu_id = 0;
-		foreach ( $locations as $assigned ) {
-			if ( $assigned ) {
-				$menu_id = $assigned;
-				break;
-			}
-		}
-
-		if ( ! $menu_id ) {
+		$menu_id   = (int) $locations['primary'];
+		$menu_obj  = get_term( $menu_id, 'nav_menu' );
+		if ( ! $menu_obj || is_wp_error( $menu_obj ) ) {
 			return null;
 		}
 
 		$menu_items = wp_get_nav_menu_items( $menu_id );
-		$menu_obj   = get_term( $menu_id, 'nav_menu' );
-		$menu_name  = ( $menu_obj && ! is_wp_error( $menu_obj ) ) ? $menu_obj->name : 'Navigation';
-
-		$items = array();
+		$items = [];
 		if ( is_array( $menu_items ) ) {
 			$position = 1;
 			foreach ( $menu_items as $item ) {
 				if ( $item->url && $item->title ) {
-					$items[] = array(
+					$items[] = [
 						'name'     => $item->title,
 						'url'      => $item->url,
 						'position' => $position++,
-					);
+					];
 				}
 			}
 		}
 
-		return array(
+		return [
 			'id'    => $menu_id,
-			'name'  => $menu_name,
+			'name'  => $menu_obj->name,
 			'items' => $items,
-		);
+		];
 	}
 
 	/**
@@ -137,17 +82,17 @@ abstract class MM_Mod_Base {
 	 * @return array<string, mixed> PostalAddress node as associative array, or empty array if no street.
 	 */
 	public static function postal_address_node( array $addr ): array {
-		if ( empty( $addr['street'] ) ) {
-			return array();
+		$has_any = ! empty( $addr['street'] ) || ! empty( $addr['city'] ) || ! empty( $addr['state'] ) || ! empty( $addr['zip'] );
+		if ( ! $has_any ) {
+			return [];
 		}
-		return array(
-			'@type'           => 'PostalAddress',
-			'streetAddress'   => sanitize_text_field( $addr['street'] ?? '' ),
-			'addressLocality' => sanitize_text_field( $addr['city'] ?? '' ),
-			'addressRegion'   => sanitize_text_field( $addr['state'] ?? '' ),
-			'postalCode'      => sanitize_text_field( $addr['zip'] ?? '' ),
-			'addressCountry'  => sanitize_text_field( $addr['country'] ?? 'US' ),
-		);
+		$node = [ '@type' => 'PostalAddress' ];
+		if ( ! empty( $addr['street'] ) )   { $node['streetAddress']   = sanitize_text_field( $addr['street'] ); }
+		if ( ! empty( $addr['city'] ) )     { $node['addressLocality']  = sanitize_text_field( $addr['city'] ); }
+		if ( ! empty( $addr['state'] ) )    { $node['addressRegion']    = sanitize_text_field( $addr['state'] ); }
+		if ( ! empty( $addr['zip'] ) )      { $node['postalCode']       = sanitize_text_field( $addr['zip'] ); }
+		if ( ! empty( $addr['country'] ) )  { $node['addressCountry']   = sanitize_text_field( $addr['country'] ); }
+		return $node;
 	}
 
 	/** Add a meta tag to the data array, preventing duplicates by name/property. */
@@ -155,14 +100,9 @@ abstract class MM_Mod_Base {
 		$key = $attrs['name'] ?? $attrs['property'] ?? null;
 		if ( $key ) {
 			// Remove existing with same identifier.
-			$data['meta'] = array_values(
-				array_filter(
-					$data['meta'],
-					function ( $m ) use ( $key ) {
-						return ( $m['name'] ?? $m['property'] ?? null ) !== $key;
-					}
-				)
-			);
+			$data['meta'] = array_values( array_filter( $data['meta'], function ( $m ) use ( $key ) {
+				return ( $m['name'] ?? $m['property'] ?? null ) !== $key;
+			} ) );
 		}
 		$data['meta'][] = $attrs;
 	}
@@ -224,11 +164,11 @@ abstract class MM_Mod_Base {
 		if ( $attachment_id ) {
 			$meta = wp_get_attachment_metadata( $attachment_id );
 			$src  = wp_get_attachment_image_src( $attachment_id, 'full' );
-			return array(
+			return [
 				'url'    => $src ? $src[0] : '',
-				'width'  => $meta['width'] ?? ( $src[1] ?? 0 ),
+				'width'  => $meta['width']  ?? ( $src[1] ?? 0 ),
 				'height' => $meta['height'] ?? ( $src[2] ?? 0 ),
-			);
+			];
 		}
 		if ( $url ) {
 			// Try to find the attachment by URL.
@@ -236,16 +176,8 @@ abstract class MM_Mod_Base {
 			if ( $id ) {
 				return $this->image_data( $id );
 			}
-			return array(
-				'url'    => $url,
-				'width'  => 0,
-				'height' => 0,
-			);
+			return [ 'url' => $url, 'width' => 0, 'height' => 0 ];
 		}
-		return array(
-			'url'    => '',
-			'width'  => 0,
-			'height' => 0,
-		);
+		return [ 'url' => '', 'width' => 0, 'height' => 0 ];
 	}
 }

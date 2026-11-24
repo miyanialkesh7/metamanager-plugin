@@ -106,17 +106,6 @@ defined( 'ABSPATH' ) || exit;
 				var $result = $btn.next('.gcm-tool-result').show();
 				if (res.success) {
 					var msg = typeof res.data === 'string' ? res.data : 'Done.';
-					if ( action === 'import_dry_run' || action === 'import_write' ) {
-						if (res.data && res.data.actions) {
-							msg = '<strong>' + res.data.total + ' record(s)</strong><br>';
-							var rows = res.data.actions.slice(0,50);
-							msg += '<table class="wp-list-table widefat striped" style="margin-top:8px"><thead><tr><th>Type</th><th>ID</th><th>Key</th></tr></thead><tbody>';
-							rows.forEach(function(r) {
-								msg += '<tr><td>' + r.type + '</td><td>' + (r.post_id||r.term_id||r.user_id||'—') + '</td><td>' + r.key + '</td></tr>';
-							});
-							msg += '</tbody></table>';
-						}
-					}
 					$result.html('<div class="notice notice-success inline" style="margin:8px 0"><p>' + msg + '</p></div>');
 				} else {
 					$result.html('<div class="notice notice-error inline" style="margin:8px 0"><p>' + (res.data||'Error') + '</p></div>');

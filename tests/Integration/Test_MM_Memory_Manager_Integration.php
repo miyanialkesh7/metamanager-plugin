@@ -130,22 +130,22 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 	// ------------------------------------------------------------------
 
 	public function test_calculate_batch_size_empty_jobs(): void {
-		$result = MM_Memory_Manager::calculate_batch_size( [], 50 );
+		$result = MM_Memory_Manager::calculate_batch_size( [] );
 		$this->assertSame( 0, $result );
 	}
 
-	public function test_calculate_batch_size_returns_up_to_max_configured(): void {
-		// Create 100 tiny jobs.
+	public function test_calculate_batch_size_memory_defined(): void {
+		// Create 100 tiny jobs. Batch size is memory-defined, no upper bound.
 		$jobs = array_fill( 0, 100, [ 'mime_type' => 'image/jpeg', 'size' => 'thumbnail' ] );
-		$result = MM_Memory_Manager::calculate_batch_size( $jobs, 25 );
-		$this->assertLessThanOrEqual( 25, $result );
+		$result = MM_Memory_Manager::calculate_batch_size( $jobs );
 		$this->assertGreaterThan( 0, $result );
+		$this->assertLessThanOrEqual( 100, $result );
 	}
 
 	public function test_calculate_batch_size_respects_available_memory(): void {
 		// Create jobs that each cost BASE_COST (2MB).
 		$jobs = array_fill( 0, 200, [ 'mime_type' => 'image/jpeg', 'size' => 'thumbnail' ] );
-		$result = MM_Memory_Manager::calculate_batch_size( $jobs, 200 );
+		$result = MM_Memory_Manager::calculate_batch_size( $jobs );
 		// Should return some positive number (memory is available in test env).
 		$this->assertGreaterThan( 0, $result );
 		$this->assertLessThanOrEqual( 200, $result );
@@ -218,133 +218,6 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 	public function test_should_pause_false_under_normal_conditions(): void {
 		// In test environment with default memory limit, should not pause.
 		$this->assertFalse( MM_Memory_Manager::should_pause() );
-	}
-
-	// ------------------------------------------------------------------
-	// mm_import_completed_jobs() — memory gate integration
-	// ------------------------------------------------------------------
-
-	public function test_import_processes_jobs_when_memory_available(): void {
-		$job_dir = MM_JOB_DONE;
-		wp_mkdir_p( $job_dir );
-
-		$job = [
-			'id'            => 'mem-test-001',
-			'job_type'      => 'import',
-			'attachment_id' => 0,
-			'status'        => 'completed',
-			'embedded_tags' => [],
-		];
-
-		$file = $job_dir . '/mem-test-001.json';
-		file_put_contents( $file, wp_json_encode( $job ) );
-
-		ob_start();
-		mm_import_completed_jobs();
-		ob_get_clean();
-
-		// File should be processed and deleted.
-		$this->assertFileDoesNotExist( $file );
-	}
-
-	public function test_import_clears_notice_when_memory_available(): void {
-		// Pre-set the notice.
-		MM_Memory_Manager::set_notice();
-		$this->assertTrue( MM_Memory_Manager::has_notice() );
-
-		ob_start();
-		mm_import_completed_jobs();
-		ob_get_clean();
-
-		// Notice should be cleared since memory is available.
-		$this->assertFalse( MM_Memory_Manager::has_notice() );
-	}
-
-	// ------------------------------------------------------------------
-	// Batch size settings integration
-	// ------------------------------------------------------------------
-
-	public function test_batch_size_setting_default(): void {
-		delete_option( MM_Settings::OPTION_BATCH_SIZE );
-		$this->assertSame( 50, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_stored_value(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 100 );
-		$this->assertSame( 100, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_clamped_below_minimum(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 5 );
-		$this->assertSame( 10, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_clamped_above_maximum(): void {
-		update_option( MM_Settings::OPTION_BATCH_SIZE, 999 );
-		$this->assertSame( 500, MM_Settings::get_batch_size() );
-	}
-
-	public function test_batch_size_setting_sanitize_callback(): void {
-		// The sanitize callback is registered via register_settings.
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 25 );
-		$this->assertSame( 25, (int) $sanitized );
-	}
-
-	public function test_batch_size_setting_sanitize_clamps_low(): void {
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 3 );
-		$this->assertSame( 10, (int) $sanitized );
-	}
-
-	public function test_batch_size_setting_sanitize_clamps_high(): void {
-		MM_Settings::register_settings();
-		$sanitized = apply_filters( 'sanitize_option_mm_batch_size', 600 );
-		$this->assertSame( 500, (int) $sanitized );
-	}
-
-	// ------------------------------------------------------------------
-	// End-to-end: multiple jobs with unique DB keys
-	// ------------------------------------------------------------------
-
-	public function test_import_processes_multiple_jobs(): void {
-		$job_dir = MM_JOB_DONE;
-		wp_mkdir_p( $job_dir );
-
-		// Use distinct attachment_ids to avoid REPLACE INTO unique key collision
-		// (UNIQUE KEY on attachment_id, job_type, size).
-		for ( $i = 0; $i < 5; $i++ ) {
-			$att_id = $this->factory->attachment->create( [
-				'post_mime_type' => 'image/jpeg',
-				'post_title'     => "Multi Test {$i}",
-			] );
-
-			$job = [
-				'id'            => "multi-{$i}",
-				'job_type'      => 'import',
-				'attachment_id' => $att_id,
-				'status'        => 'completed',
-				'embedded_tags' => [],
-			];
-			$file = $job_dir . "/multi-{$i}.json";
-			file_put_contents( $file, wp_json_encode( $job ) );
-		}
-
-		ob_start();
-		mm_import_completed_jobs();
-		ob_get_clean();
-
-		// All 5 files should be processed and deleted.
-		for ( $i = 0; $i < 5; $i++ ) {
-			$this->assertFileDoesNotExist( $job_dir . "/multi-{$i}.json" );
-		}
-
-		// All 5 should be logged in DB.
-		global $wpdb;
-		$logged = (int) $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$wpdb->prefix}" . MM_JOB_TABLE . " WHERE job_type = 'import' AND status = 'completed'"
-		);
-		$this->assertGreaterThanOrEqual( 5, $logged );
 	}
 
 	// ------------------------------------------------------------------

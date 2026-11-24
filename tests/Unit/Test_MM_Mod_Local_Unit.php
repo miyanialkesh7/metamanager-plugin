@@ -353,6 +353,114 @@ class Test_MM_Mod_Local_Unit extends WP_UnitTestCase {
 	}
 
 	// ------------------------------------------------------------------
+	// populate() — makesOffer from published service CPTs
+	// ------------------------------------------------------------------
+
+	public function test_populate_includes_makes_offer_from_service_posts(): void {
+		$this->settings->save_business( [
+			'name' => 'Offer Business',
+			'type' => 'MovingCompany',
+		] );
+
+		// Create two published mm_service posts.
+		$svc1 = $this->factory->post->create( [
+			'post_type'   => 'mm_service',
+			'post_status' => 'publish',
+			'post_title'  => 'Residential Moving',
+		] );
+		update_post_meta( $svc1, 'mm_schema_fields', [
+			'service_type'  => 'Residential Moving',
+			'service_price' => '99',
+		] );
+
+		$svc2 = $this->factory->post->create( [
+			'post_type'   => 'mm_service',
+			'post_status' => 'publish',
+			'post_title'  => 'Commercial Moving',
+		] );
+		update_post_meta( $svc2, 'mm_schema_fields', [
+			'service_type' => 'Commercial Moving',
+		] );
+
+		$this->go_to( '/' );
+
+		$context = new MM_Page_Context();
+		$data    = $this->empty_data();
+
+		$this->local_module->populate( $data, $context, $this->settings );
+
+		$biz = $this->find_business_node( $data );
+		$this->assertNotNull( $biz );
+		$this->assertArrayHasKey( 'makesOffer', $biz );
+		$this->assertCount( 2, $biz['makesOffer'] );
+
+		// First offer.
+		$offer1 = $biz['makesOffer'][0];
+		$this->assertSame( 'Offer', $offer1['@type'] );
+		$this->assertSame( 'Service', $offer1['itemOffered']['@type'] );
+		$this->assertSame( 'Residential Moving', $offer1['itemOffered']['name'] );
+		$this->assertSame( 'Residential Moving', $offer1['itemOffered']['serviceType'] );
+		$this->assertSame( '99', $offer1['price'] );
+		$this->assertSame( 'USD', $offer1['priceCurrency'] );
+
+		// Second offer (no price).
+		$offer2 = $biz['makesOffer'][1];
+		$this->assertSame( 'Commercial Moving', $offer2['itemOffered']['name'] );
+		$this->assertSame( 'Commercial Moving', $offer2['itemOffered']['serviceType'] );
+		$this->assertArrayNotHasKey( 'price', $offer2 );
+	}
+
+	public function test_populate_no_makes_offer_when_no_service_posts(): void {
+		$this->settings->save_business( [
+			'name' => 'No Offer Business',
+		] );
+
+		$this->go_to( '/' );
+
+		$context = new MM_Page_Context();
+		$data    = $this->empty_data();
+
+		$this->local_module->populate( $data, $context, $this->settings );
+
+		$biz = $this->find_business_node( $data );
+		$this->assertNotNull( $biz );
+		$this->assertArrayNotHasKey( 'makesOffer', $biz );
+	}
+
+	public function test_populate_makes_offer_skips_draft_posts(): void {
+		$this->settings->save_business( [
+			'name' => 'Draft Business',
+		] );
+
+		// Draft service — should NOT appear.
+		$this->factory->post->create( [
+			'post_type'   => 'mm_service',
+			'post_status' => 'draft',
+			'post_title'  => 'Draft Service',
+		] );
+
+		// Published service — should appear.
+		$this->factory->post->create( [
+			'post_type'   => 'mm_service',
+			'post_status' => 'publish',
+			'post_title'  => 'Live Service',
+		] );
+
+		$this->go_to( '/' );
+
+		$context = new MM_Page_Context();
+		$data    = $this->empty_data();
+
+		$this->local_module->populate( $data, $context, $this->settings );
+
+		$biz = $this->find_business_node( $data );
+		$this->assertNotNull( $biz );
+		$this->assertArrayHasKey( 'makesOffer', $biz );
+		$this->assertCount( 1, $biz['makesOffer'] );
+		$this->assertSame( 'Live Service', $biz['makesOffer'][0]['itemOffered']['name'] );
+	}
+
+	// ------------------------------------------------------------------
 	// get_business_types()
 	// ------------------------------------------------------------------
 
@@ -381,7 +489,7 @@ class Test_MM_Mod_Local_Unit extends WP_UnitTestCase {
 	private function find_business_node( array $data ): ?array {
 		foreach ( $data['schema'] as $node ) {
 			$type = $node['@type'] ?? '';
-			if ( in_array( $type, [ 'LocalBusiness', 'Organization', 'Restaurant', 'Hotel', 'Store' ], true ) ) {
+			if ( in_array( $type, [ 'LocalBusiness', 'Organization', 'Restaurant', 'Hotel', 'Store', 'MovingCompany', 'ProfessionalService' ], true ) ) {
 				return $node;
 			}
 		}

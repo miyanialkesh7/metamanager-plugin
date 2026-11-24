@@ -24,17 +24,17 @@ metamanager/
 ├── uninstall.php             Opt-in data removal on plugin deletion
 │
 ├── includes/
-│   ├── class-mm-db.php           Database table schema, query layer, deduplication migration
+│   ├── class-mm-db.php           Database layer: job log table schema, CRUD, stats, deduplication migration
 │   ├── class-mm-job-queue.php    Job file write/read/cleanup (filesystem only — no DB)
 │   ├── class-mm-metadata.php     Field constants, WP field sync, daemon job payload builder
 │   ├── class-mm-admin.php        All wp-admin integration: columns, panes, bulk, dashboard, help tabs
 │   ├── class-mm-settings.php     Media/compression Preferences page registration and rendering
 │   ├── class-mm-status.php       Dependency detection (ExifTool, jpegtran, optipng, cwebp, ffmpeg, daemons)
 │   ├── class-mm-upload-notify.php  Upload receipt emails with 60-second batching and retry
-│   ├── class-mm-updater.php      Native WordPress update pipeline integration (GitHub releases)
+│   ├── class-mm-updater.php      Native WordPress update pipeline integration (polls the apt server metadata.json feed)
 │   ├── class-mm-cli.php          WP-CLI command group: compress, embed, import, queue, scan, stats
-│   ├── class-mm-daemon-updater.php  Triggers apt upgrade after plugin update; reads VERSION for display
-│   ├── class-mm-db.php           Database layer: job log table, CRUD, stats, self-healing schema
+│   ├── class-mm-daemon-updater.php  Display-only: reads /usr/local/lib/metamanager/VERSION for the dashboard;
+│   │                              daemon updates happen via OS apt, never the plugin
 │   │
 │   └── metadata/                 Web-layer metadata subsystem (integrated from gcm-seo-core)
 │       ├── class-mm-metadata-loader.php   Bootstraps all metadata modules
@@ -59,7 +59,7 @@ metamanager/
 │           ├── class-mm-mod-base.php          Abstract base class for all modules
 │           ├── class-mm-mod-head-meta.php     Title, description, canonical, robots per-page meta
 │           ├── class-mm-mod-social.php        Open Graph and Twitter/X Card tags
-│           ├── class-mm-mod-schema.php        Schema.org JSON-LD (11 selectable types)
+│           ├── class-mm-mod-schema.php        Schema.org JSON-LD (see docs/schema-types.md)
 │           ├── class-mm-mod-sitemap.php       XML sitemap index + per-type sub-sitemaps
 │           ├── class-mm-mod-robots.php        Dynamic robots.txt generation
 │           ├── class-mm-mod-html-sitemap.php  [mm_sitemap] shortcode
@@ -120,51 +120,51 @@ metamanager/
 ### Upload path
 
 ```
-add_attachment (WP hook)
+add_attachment / wp_generate_attachment_metadata (WP hooks)
         │
         ├─ MM_Upload_Notify::on_attachment_added()  ── appends to 60-second batch transient
         │
-        └─ MM_Metadata::on_attachment_upload()
+        └─ MM_Job_Queue::on_upload()
                 │
-                ├─ MM_Job_Queue::enqueue_import_job()
-                │       └─ writes  meta/{uuid}.json  { job_type: "import", ... }
+                ├─ MM_Metadata::enqueue_import_job()
+                │       └─ writes  meta/<attachment_id>-<size>-<time>-<uid>.json  { job_type: "import", ... }
                 │
-                └─ MM_Job_Queue::enqueue_compress_job()
-                        └─ writes  compress/{uuid}.json  { job_type: "compression", ... }
+                └─ MM_Job_Queue::enqueue_all_sizes(..., 'compression', ...)
+                        └─ writes  compress/<attachment_id>-<size>-<time>-<uid>.json  { job_type: "compression", ... }
 ```
 
 ### Daemon processing (compress path)
 
 ```
-compress/{uuid}.json  written
+compress/<job-name>.json  written
         │
         inotifywait (IN_CLOSE_WRITE)
         │
-        mv → compress/{uuid}.json.processing
+        mv → compress/<job-name>.json.processing
         │
-        jpegtran / optipng / cwebp / ffmpeg
+        jpegtran / optipng / cwebp / avifenc / ffmpeg
         │
-        write  completed/{uuid}.json  { status, bytes_before, bytes_after, ... }
-   OR   write  failed/{uuid}.json
+        write  completed/<job-name>.json-result.json  { status, bytes_before, bytes_after, ... }
+   OR   write  failed/<job-name>.json-result.json
         │
-        rm compress/{uuid}.json.processing
+        rm compress/<job-name>.json.processing
 ```
 
 ### Daemon processing (meta path)
 
 ```
-meta/{uuid}.json  written
+meta/<job-name>.json  written
         │
         inotifywait (IN_CLOSE_WRITE)
         │
-        mv → meta/{uuid}.json.processing
+        mv → meta/<job-name>.json.processing
         │
         job_type == "import":
-            ExifTool reads embedded tags → JSON stdout → write to completed/
+            ExifTool reads embedded tags → JSON stdout → write to completed/<job-name>.json-result.json
         job_type == "metadata":
-            ExifTool writes WP field values back to the file → write to completed/
+            ExifTool writes WP field values back to the file → write to completed/<job-name>.json-result.json
         │
-        rm meta/{uuid}.json.processing
+        rm meta/<job-name>.json.processing
 ```
 
 ### WP-Cron result import (runs every 60 seconds)
@@ -202,7 +202,7 @@ CREATE TABLE wp_metamanager_jobs (
     attachment_id  BIGINT(20) UNSIGNED NOT NULL,
     image_name     VARCHAR(255) NOT NULL DEFAULT '',
     job_type       VARCHAR(32)  NOT NULL DEFAULT '',       -- 'import', 'compression', 'metadata'
-    job_trigger    VARCHAR(64)  NOT NULL DEFAULT '',       -- 'upload', 'edit', 'scan', 'batch', 'cli'
+    job_trigger    VARCHAR(64)  NOT NULL DEFAULT '',       -- the job file's `trigger` value (see JOB_QUEUE_SPEC.md)
     file_path      TEXT         NOT NULL,
     size           VARCHAR(64)  NOT NULL DEFAULT '',       -- WP size slug ('full', 'thumbnail', …)
     dimensions     VARCHAR(32)  NOT NULL DEFAULT '',
@@ -247,48 +247,16 @@ Job files are plain JSON written to subdirectories of `wp-content/metamanager-jo
 
 ### Job file format
 
-**Compression job** (`compress/{uuid}.json`):
-```json
-{
-  "attachment_id": 42,
-  "image_name": "photo.jpg",
-  "job_type": "compression",
-  "job_trigger": "upload",
-  "file_path": "/srv/www/wordpress/wp-content/uploads/2026/03/photo.jpg",
-  "size": "full",
-  "dimensions": "3000x2000"
-}
-```
+**The contract is `JOB_QUEUE_SPEC.md`** (repo root; an identical copy lives in
+the daemon repo) — exact key names (`metadata`, `trigger`, `optimize_level`, …),
+filenames (`<attachment_id>-<size>-<time>-<uid>.json`, results
+`<job-name>.json-result.json`), result format, and trigger vocabulary. This
+file is the design reference and does not duplicate payload examples.
 
-**Metadata import job** (`meta/{uuid}.json`):
-```json
-{
-  "attachment_id": 42,
-  "image_name": "photo.jpg",
-  "job_type": "import",
-  "job_trigger": "upload",
-  "file_path": "/srv/www/wordpress/wp-content/uploads/2026/03/photo.jpg",
-  "size": "full"
-}
-```
-
-**Metadata write-back job** (`meta/{uuid}.json`):
-```json
-{
-  "attachment_id": 42,
-  "image_name": "photo.jpg",
-  "job_type": "metadata",
-  "job_trigger": "edit",
-  "file_path": "/srv/www/wordpress/wp-content/uploads/2026/03/photo.jpg",
-  "size": "full",
-  "fields": {
-    "title": "Sunrise over the ridge",
-    "creator": "Jane Doe",
-    "copyright": "© 2026 Jane Doe",
-    "keywords": "landscape; sunrise; nature"
-  }
-}
-```
+Summary: one JSON object per file, keys `attachment_id`, `image_name`,
+`job_type` (`compression` | `metadata` | `import`), `file_path`, `size`,
+`dimensions`, `submitted_at`, `optimize_level`, `metadata` (PascalCase field
+map), `trigger`.
 
 ### Deduplication
 
@@ -372,24 +340,14 @@ The column cell also carries `data-attachment-id` so `mm-status.js` can poll the
 
 ---
 
-## Frontend (`MM_Frontend`)
+## Frontend media output (formerly `MM_Frontend` — DELETED 2026-08-04)
 
-Fires on `wp_head` for:
-- Attachment pages (`is_attachment()`)
-- Single posts/pages that have a featured image (`is_singular() && has_post_thumbnail()`)
-
-### Output per media type
-
-| MIME family | Schema.org type | Open Graph |
-|-------------|-----------------|------------|
-| Image (JPEG/PNG/WebP/GIF/TIFF) | `ImageObject` with optional `GeoCoordinates` | `og:image` + width/height/type/alt |
-| Video | `VideoObject` | `og:video` + type |
-| Audio | `AudioObject` | `og:audio` + type |
-| PDF | `DigitalDocument` | `og:type=article` |
-
-All types also emit one of:
-- `<link rel="license" href="…">` when the copyright field is a URL
-- `<meta name="copyright" content="…">` for plain-text notices
+The `MM_Frontend` class no longer exists. Its attachment/featured-media output
+lives in the metadata modules: `class-mm-mod-schema.php` (JSON-LD) and
+`class-mm-mod-social.php` (Open Graph). Per-MIME behavior: images emit
+`ImageObject` (+ `GeoCoordinates` when GPS is present), video `VideoObject`,
+audio `AudioObject`, PDF `DigitalDocument`; OG emits `og:image` /
+`og:video` / `og:audio` as appropriate.
 
 ---
 
@@ -482,15 +440,21 @@ Business profile key settings:
 
 ---
 
-## Sitemaps (`MM_Sitemap`)
+## Sitemaps (formerly `MM_Sitemap` — DELETED 2026-08-04)
 
-Two rewrite rules are registered on activation:
-- `sitemap-media\.xml$` → `index.php?mm_sitemap=media`
-- `sitemap-video\.xml$` → `index.php?mm_sitemap=video`
+The `MM_Sitemap` class no longer exists. All sitemap behavior lives in
+`class-mm-mod-sitemap.php` (`MM_Mod_Sitemap`), which registers rewrite rules
+on `init` (not activation) under the `mm_meta_sitemap` query var:
 
-`template_redirect` intercepts these query vars and outputs XML directly, suppressing the theme template. Both sitemaps are generated fresh on every request (no static caching).
+- `sitemap\.xml` / `wp-sitemap\.xml` → sitemap index with per-post-type,
+  per-taxonomy, and video sub-sitemaps
+- `sitemap-post-*.xml` / `sitemap-tax-*.xml` → sub-sitemaps
+- `sitemap-video\.xml` → Google Video Sitemap (self-hosted + video attachments)
+- `sitemap-media\.xml` → media attachment pages with `image:image`/`video:video`
 
-The web-layer XML sitemaps module (`MM_Mod_Sitemap`) generates the SEO sitemap index at `/sitemap.xml` with per-post-type, per-taxonomy, and video sub-sitemaps. Generated XML is cached in a WordPress transient (1-hour TTL, option key `mm_sitemap_cache_v{version}`) and flushed automatically on `save_post`, `deleted_post`, and `added_term`/`edited_term`/`delete_term` hooks.
+Generated XML is cached in a WordPress transient (1-hour TTL, versioned via the
+`mm_sitemap_cache_ver` option) and flushed automatically on `save_post`,
+`deleted_post`, and `added_term`/`edited_term`/`delete_term` hooks.
 
 ---
 
@@ -523,9 +487,13 @@ Logged-in requests (valid nonce or cookie) bypass the IP allowlist entirely.
 ## Auto-Updater (`MM_Updater`)
 
 Fetches `https://apt.richardkentgates.com/metamanager/metadata.json` (production) or
-`https://apt.richardkentgates.com/metamanager-test/metadata.json` (test channel), cached 12 hours.
+`https://apt.richardkentgates.com/metamanager-test/metadata.json` (test channel).
+The fetch happens fresh on every WordPress update check (the plugin keeps no
+transient cache of its own; WordPress rebuilds the `update_plugins` site
+transient on its own ~twice-daily cadence) and the result is injected into that
+transient via `pre_set_site_transient_update_plugins`.
 
-A "Check for Updates" inline action on the Plugins page forces an immediate cache flush.
+A "Check for Updates" inline action on the Plugins page forces an immediate re-check.
 
 ---
 
@@ -568,7 +536,10 @@ Both service units include:
 
 ## Shell-Plugin Connection Points
 
-> **This section is the single source of truth for all interfaces between the PHP plugin and the bash daemons.** Both repos (`metamanager-plugin` and `metamanager`) must stay in sync at these contract points.
+> **`JOB_QUEUE_SPEC.md` (repo root, identical copy in the daemon repo) is the
+> contract for all interfaces between the PHP plugin and the bash daemons.**
+> This section is a design-oriented cross-reference — when the two disagree,
+> the spec wins. Both repos must stay in sync at these contract points.
 
 ### Job Queue Filesystem Contract
 
@@ -578,7 +549,7 @@ Both service units include:
 | Result directories | `MM_JOB_DONE`, `MM_JOB_FAILED` constants (`metamanager.php:50-51`) | `JOB_DONE="${JOB_ROOT}/completed"` and `failed` |
 | PID files | `MM_PID_COMPRESS`, `MM_PID_META` constants (`metamanager.php:61-62`) | `PID_FILE="${JOB_ROOT}/compress-daemon.pid"` and `meta-daemon.pid` |
 | Job file format | `MM_Job_Queue::write_job()` — JSON via `wp_json_encode()` | `jq -r '.file_path'` etc. to parse |
-| Atomic claim | PHP writes `{uuid}.json` | Daemon `mv` to `{uuid}.json.processing` |
+| Atomic claim | PHP writes `<attachment_id>-<size>-<time>-<uid>.json` | Daemon `mv` to `*.json.processing` |
 | Result format | `mm_import_completed_jobs()` reads `*.json` from completed/failed | `write_result()` writes JSON with status, completed_at, details |
 
 ### Field Map (Metadata Embedding)
@@ -721,6 +692,12 @@ Registers dedicated custom post types for specific Schema.org types:
 | `mm_service` | Service | Type, area, price, currency, booking URL, duration, includes, provider name |
 | `mm_how_to` | HowTo | Total time, cost, up to 20 supply items, up to 20 tools, up to 20 steps |
 | `mm_faq_page` | FAQPage | Up to 20 dynamic Question/Answer pairs |
+| `mm_trip` | TouristTrip | Trip details, linked vessel, departure info |
+| `mm_destination` | TouristDestination | Destination details |
+| `mm_vessel` | Vehicle | Vessel/vehicle details |
+| `mm_course` | Course | Course details, provider |
+| `mm_business` | LocalBusiness | Business listing fields |
+| `mm_organization` | Organization | Organization fields |
 
 ---
 
@@ -732,7 +709,7 @@ Auto-generated pages from business profile and events:
 |----------|-------------|---------|
 | `mm-about` | AboutPage | Auto-generated from business profile |
 | `mm-contact` | ContactPage | Auto-generated from business profile |
-| `mm-calendar` | Calendar | Event calendar with month-by-month navigation |
+| `mm-calendar` | CollectionPage | Event calendar with month-by-month navigation |
 
 Pages regenerate automatically when business profile is saved or events are created/updated/deleted.
 

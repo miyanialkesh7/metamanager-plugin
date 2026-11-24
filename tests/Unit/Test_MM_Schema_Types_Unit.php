@@ -465,8 +465,9 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$fields = MM_Schema_Types::get_fields_by_type();
 		$this->assertArrayHasKey( 'LocalBusiness', $fields );
 		$keys = array_column( $fields['LocalBusiness'], 'key' );
-		foreach ( [ 'business_type', 'business_address', 'business_lat', 'business_lng',
-			'business_telephone', 'business_url', 'business_price_range', 'business_hours' ] as $key ) {
+		foreach ( [ 'business_type', 'business_street', 'business_city', 'business_state', 'business_zip', 'business_country',
+			'business_lat', 'business_lng', 'business_telephone', 'business_email', 'business_url',
+			'business_price_range', 'business_hours', 'business_service_areas', 'business_payment_accepted' ] as $key ) {
 			$this->assertContains( $key, $keys, "LocalBusiness should have {$key}" );
 		}
 	}
@@ -489,8 +490,13 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 	public function test_build_node_additions_localbusiness(): void {
 		$fields = [
 			'business_type'      => 'BeautySalon',
-			'business_address'   => '123 Main St, Monroe, LA 71201',
+			'business_street'    => '123 Main St',
+			'business_city'      => 'Monroe',
+			'business_state'     => 'LA',
+			'business_zip'       => '71201',
+			'business_country'   => 'US',
 			'business_telephone' => '318-555-0100',
+			'business_email'     => 'info@example.com',
 			'business_url'       => 'https://example.com',
 			'business_price_range' => '$$',
 			'business_hours'     => 'Mo-Fr 09:00-17:00',
@@ -500,8 +506,14 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 		$result = MM_Schema_Types::build_node_additions( $fields, 'LocalBusiness' );
 
 		$this->assertSame( 'BeautySalon', $result['@type'] );
-		$this->assertSame( '123 Main St, Monroe, LA 71201', $result['address'] );
+		$this->assertSame( 'PostalAddress', $result['address']['@type'] );
+		$this->assertSame( '123 Main St', $result['address']['streetAddress'] );
+		$this->assertSame( 'Monroe', $result['address']['addressLocality'] );
+		$this->assertSame( 'LA', $result['address']['addressRegion'] );
+		$this->assertSame( '71201', $result['address']['postalCode'] );
+		$this->assertSame( 'US', $result['address']['addressCountry'] );
 		$this->assertSame( '318-555-0100', $result['telephone'] );
+		$this->assertSame( 'info@example.com', $result['email'] );
 		$this->assertSame( 'https://example.com', $result['url'] );
 		$this->assertSame( '$$', $result['priceRange'] );
 		$this->assertSame( 'Mo-Fr 09:00-17:00', $result['openingHours'] );
@@ -563,5 +575,83 @@ class Test_MM_Schema_Types_Unit extends WP_UnitTestCase {
 	public function test_build_node_additions_organization_default_type(): void {
 		$result = MM_Schema_Types::build_node_additions( [], 'Organization' );
 		$this->assertArrayNotHasKey( '@type', $result );
+	}
+
+	// ------------------------------------------------------------------
+	// Person (captains, professionals, team members)
+	// ------------------------------------------------------------------
+
+	public function test_person_type_has_directory_fields(): void {
+		$fields = MM_Schema_Types::get_fields_by_type();
+		$this->assertArrayHasKey( 'Person', $fields );
+		$keys = array_column( $fields['Person'], 'key' );
+		foreach ( [ 'person_job_title', 'person_works_for', 'person_credentials', 'person_knows_about', 'person_email', 'person_phone' ] as $key ) {
+			$this->assertContains( $key, $keys, "Person should have {$key}" );
+		}
+	}
+
+	public function test_build_node_additions_person(): void {
+		$result = MM_Schema_Types::build_node_additions( [
+			'person_job_title'    => 'Licensed Boat Captain',
+			'person_works_for'    => 'Prime Time Charters',
+			'person_credentials'  => "USCG Licensed Master Captain\nCommercial Endorsement",
+			'person_knows_about'  => 'Offshore Navigation, Deep Sea Fishing',
+			'person_email'        => 'captain@example.com',
+			'person_phone'        => '555-123-4567',
+		], 'Person' );
+
+		$this->assertSame( 'Licensed Boat Captain', $result['jobTitle'] );
+		$this->assertSame( 'Prime Time Charters', $result['worksFor']['name'] );
+		$this->assertCount( 2, $result['hasCredential'] );
+		$this->assertCount( 2, $result['knowsAbout'] );
+		$this->assertSame( 'captain@example.com', $result['email'] );
+		$this->assertSame( '555-123-4567', $result['telephone'] );
+	}
+
+	public function test_build_node_additions_person_default_type(): void {
+		$result = MM_Schema_Types::build_node_additions( [], 'Person' );
+		$this->assertSame( [], $result );
+	}
+
+	// ------------------------------------------------------------------
+	// postal_address_node — no longer requires street (Marker 28)
+	// ------------------------------------------------------------------
+
+	public function test_postal_address_with_street_only(): void {
+		$result = MM_Mod_Base::postal_address_node( [ 'street' => '123 Main St' ] );
+		$this->assertSame( 'PostalAddress', $result['@type'] );
+		$this->assertSame( '123 Main St', $result['streetAddress'] );
+	}
+
+	public function test_postal_address_without_street(): void {
+		$result = MM_Mod_Base::postal_address_node( [
+			'city'  => 'Monroe',
+			'state' => 'LA',
+			'zip'   => '71201',
+		] );
+		$this->assertSame( 'PostalAddress', $result['@type'] );
+		$this->assertSame( 'Monroe', $result['addressLocality'] );
+		$this->assertSame( 'LA', $result['addressRegion'] );
+		$this->assertSame( '71201', $result['postalCode'] );
+		$this->assertArrayNotHasKey( 'streetAddress', $result );
+	}
+
+	public function test_postal_address_empty_returns_empty(): void {
+		$result = MM_Mod_Base::postal_address_node( [] );
+		$this->assertSame( [], $result );
+	}
+
+	// ------------------------------------------------------------------
+	// areaServed — City objects everywhere (Marker 9/26)
+	// ------------------------------------------------------------------
+
+	public function test_service_area_served_uses_city_objects(): void {
+		$result = MM_Schema_Types::build_node_additions( [
+			'business_service_areas' => 'Monroe, LA; West Monroe, LA',
+		], 'LocalBusiness' );
+		$this->assertArrayHasKey( 'areaServed', $result );
+		$this->assertIsArray( $result['areaServed'] );
+		$this->assertSame( 'City', $result['areaServed'][0]['@type'] );
+		$this->assertSame( 'Monroe', $result['areaServed'][0]['name'] );
 	}
 }

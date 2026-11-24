@@ -308,7 +308,9 @@ class Test_MM_Site_Settings_Save_Full_Chain extends WP_UnitTestCase {
 				'authors' => [
 					'enabled'              => '1',
 					'noindex_default'      => '1',
-					'person_schema'        => '1',
+					'person_schema_posts'  => '1',
+					'person_schema_pages'  => '1',
+					'person_schema_archives' => '1',
 					'profile_social_fields' => '1',
 				],
 			],
@@ -319,7 +321,9 @@ class Test_MM_Site_Settings_Save_Full_Chain extends WP_UnitTestCase {
 		MM_Site_Settings::reset_instance();
 		$s = MM_Site_Settings::get_instance();
 		$this->assertTrue( $s->get( 'authors.enabled' ), 'authors.enabled should be true after routing' );
-		$this->assertTrue( $s->get( 'authors.person_schema' ), 'authors.person_schema should be true after routing' );
+		$this->assertTrue( $s->get( 'authors.person_schema_posts' ), 'authors.person_schema_posts should be true after routing' );
+		$this->assertTrue( $s->get( 'authors.person_schema_pages' ), 'authors.person_schema_pages should be true after routing' );
+		$this->assertTrue( $s->get( 'authors.person_schema_archives' ), 'authors.person_schema_archives should be true after routing' );
 	}
 
 	/**
