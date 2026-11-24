@@ -376,7 +376,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '1', // checked
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1', // checked
+				'person_schema_posts'  => '1', // checked
+				'person_schema_pages'  => '1', // checked
+				'person_schema_archives' => '1', // checked
 				'profile_social_fields'=> '1', // checked
 			],
 		] );
@@ -385,7 +387,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 
 		$this->assertFalse( $s->get( 'authors.enabled' ) );
 		$this->assertTrue( $s->get( 'authors.noindex_default' ) );
-		$this->assertTrue( $s->get( 'authors.person_schema' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertTrue( $s->get( 'authors.person_schema_archives' ) );
 		$this->assertTrue( $s->get( 'authors.profile_social_fields' ) );
 
 		// Other sections preserved.
@@ -404,7 +408,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '',
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1',
+				'person_schema_posts'  => '1',
+				'person_schema_pages'  => '',
+				'person_schema_archives' => '1',
 				'profile_social_fields'=> '1',
 			],
 		] );
@@ -421,8 +427,16 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 		$this->assertEmpty( ob_get_clean(), 'noindex_default unchecked → checked() empty' );
 
 		ob_start();
-		checked( $s->get( 'authors.person_schema', true ) );
-		$this->assertNotEmpty( ob_get_clean(), 'person_schema checked → checked() not empty' );
+		checked( $s->get( 'authors.person_schema_posts', true ) );
+		$this->assertNotEmpty( ob_get_clean(), 'person_schema_posts checked → checked() not empty' );
+
+		ob_start();
+		checked( $s->get( 'authors.person_schema_pages', true ) );
+		$this->assertEmpty( ob_get_clean(), 'person_schema_pages unchecked → checked() empty' );
+
+		ob_start();
+		checked( $s->get( 'authors.person_schema_archives', true ) );
+		$this->assertNotEmpty( ob_get_clean(), 'person_schema_archives checked → checked() not empty' );
 
 		ob_start();
 		checked( $s->get( 'authors.profile_social_fields', true ) );
@@ -587,7 +601,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 			'noindex_default'       => '',
 			'title_template'        => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 			'description_template'  => '%%author_bio%%',
-			'person_schema'         => '1',
+			'person_schema_posts'   => '1',
+			'person_schema_pages'   => '1',
+			'person_schema_archives' => '1',
 			'profile_social_fields' => '1',
 		];
 
@@ -619,7 +635,9 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 				'noindex_default'      => '',
 				'title_template'       => 'Articles by %%author_name%% %%sep%% %%sitetitle%%',
 				'description_template' => '%%author_bio%%',
-				'person_schema'        => '1',
+				'person_schema_posts'  => '1',
+				'person_schema_pages'  => '1',
+				'person_schema_archives' => '1',
 				'profile_social_fields'=> '1',
 			],
 		] );
@@ -651,8 +669,12 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 		$this->assertFalse( $s->get( 'authors.enabled' ) );
 		$this->assertIsBool( $s->get( 'authors.noindex_default' ) );
 		$this->assertFalse( $s->get( 'authors.noindex_default' ) );
-		$this->assertIsBool( $s->get( 'authors.person_schema' ) );
-		$this->assertFalse( $s->get( 'authors.person_schema' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_posts' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_pages' ) );
+		$this->assertIsBool( $s->get( 'authors.person_schema_archives' ) );
+		$this->assertFalse( $s->get( 'authors.person_schema_archives' ) );
 		$this->assertIsBool( $s->get( 'authors.profile_social_fields' ) );
 		$this->assertFalse( $s->get( 'authors.profile_social_fields' ) );
 	}
@@ -710,6 +732,101 @@ class Test_MM_Site_Settings_Save extends WP_UnitTestCase {
 		$this->assertSame( 1000, $s->get( 'sitemap.records_per_file' ) );
 		$this->assertFalse( $s->get( 'sitemap.ping_google' ) );
 		$this->assertFalse( $s->get( 'sitemap.ping_bing' ) );
+	}
+
+	// -----------------------------------------------------------------------
+	// Schema tab save must not reset Customizer-edited archive_layouts
+	// -----------------------------------------------------------------------
+
+	public function test_schema_tab_save_preserves_customizer_archive_layouts(): void {
+		$this->seed_full_option();
+
+		// Simulate a prior Customizer save: mm_service switched to grid.
+		$opt                              = get_option( MM_META_OPT_SETTINGS );
+		$opt['schema']['archive_layouts'] = [
+			'mm_service'      => 'grid',
+			'mm_event'        => 'menu',
+			'mm_trip'         => 'menu',
+			'mm_destination'  => 'menu',
+			'mm_vessel'       => 'menu',
+			'mm_course'       => 'menu',
+			'mm_how_to'       => 'menu',
+			'mm_faq_page'     => 'menu',
+			'mm_business'     => 'menu',
+			'mm_organization' => 'menu',
+		];
+		$opt['schema']['post_type_types'] = [
+			'post' => 'BlogPosting',
+			'page' => 'WebPage',
+		];
+		update_option( MM_META_OPT_SETTINGS, $opt );
+		MM_Site_Settings::reset_instance();
+
+		// Simulate the Schema admin tab save — exactly the fields
+		// templates/admin/page-schema.php submits (archive_layouts is NOT
+		// among them; it is edited only in the Customizer).
+		$this->simulate_options_php_save( [
+			'schema' => [
+				'knowledge_entity'     => 'Organization',
+				'website_searchaction' => '1',
+				'breadcrumbs'          => '', // unchecked
+				'archive_itemlist'     => '1',
+				'post_type_types'      => [
+					'post' => 'BlogPosting',
+					'page' => 'WebPage',
+				],
+				'custom_json_ld'       => '',
+			],
+		] );
+
+		MM_Site_Settings::reset_instance();
+		$s = MM_Site_Settings::get_instance();
+
+		// The Customizer choice must survive the Schema tab save.
+		$this->assertSame( 'grid', $s->get( 'schema.archive_layouts.mm_service' ),
+			'Schema tab save must not reset archive_layouts edited in the Customizer' );
+		$this->assertSame( 'menu', $s->get( 'schema.archive_layouts.mm_event' ) );
+
+		// Form fields still apply: checkbox semantics + posted values.
+		$this->assertSame( 'Organization', $s->get( 'schema.knowledge_entity' ) );
+		$this->assertTrue( $s->get( 'schema.website_searchaction' ) );
+		$this->assertFalse( $s->get( 'schema.breadcrumbs' ), 'Unchecked checkbox → false' );
+		$this->assertTrue( $s->get( 'schema.archive_itemlist' ) );
+		$this->assertSame( 'BlogPosting', $s->get( 'schema.post_type_types.post' ) );
+
+		// Other sections untouched.
+		$this->assertSame( '|', $s->get( 'titles.separator' ) );
+		$this->assertTrue( $s->get( 'sitemap.enabled' ) );
+	}
+
+	// -----------------------------------------------------------------------
+	// Missing non-bool key: keep stored value, not the default
+	// -----------------------------------------------------------------------
+
+	public function test_partial_save_preserves_stored_non_bool_missing_from_form(): void {
+		$this->seed_full_option();
+
+		// Stored value differs from the default (default is 1000).
+		$opt = get_option( MM_META_OPT_SETTINGS );
+		$opt['sitemap']['records_per_file'] = 500;
+		update_option( MM_META_OPT_SETTINGS, $opt );
+		MM_Site_Settings::reset_instance();
+
+		// Form submits only the checkbox the form renders.
+		$this->simulate_options_php_save( [
+			'sitemap' => [
+				'enabled' => '1',
+			],
+		] );
+
+		MM_Site_Settings::reset_instance();
+		$s = MM_Site_Settings::get_instance();
+
+		$this->assertTrue( $s->get( 'sitemap.enabled' ) );
+		$this->assertSame( 500, $s->get( 'sitemap.records_per_file' ),
+			'Missing non-bool key must keep the stored value, not reset to default' );
+		// Missing bool key (unchecked checkbox) still becomes false.
+		$this->assertFalse( $s->get( 'sitemap.images' ) );
 	}
 
 	// -----------------------------------------------------------------------

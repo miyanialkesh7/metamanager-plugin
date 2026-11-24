@@ -2,9 +2,9 @@
 
 **Metamanager** is a WordPress plugin for complete metadata management at both layers of the stack — the files themselves and your web presence.
 
-**Media layer** — lossless compression for images, video, and audio; bidirectional metadata sync between WordPress fields and embedded file tags (EXIF/IPTC/XMP, ID3, QuickTime atoms, Vorbis comments, and XMP); PDF metadata import and write-back; GPS coordinate import; write-back verification — all via OS-level daemons using ExifTool and ffmpeg.
+**Media layer** — lossless image compression and lossless video container remux; bidirectional metadata sync between WordPress fields and embedded file tags (EXIF/IPTC/XMP, ID3, QuickTime atoms, Vorbis comments, and XMP); PDF metadata import and write-back; GPS coordinate import; write-back verification — all via OS-level daemons using ExifTool and ffmpeg.
 
-**Web layer** — per-post/page/term/user title and description control; Open Graph and Twitter/X card output for all content types; Schema.org JSON-LD (11 selectable types — WebPage, AboutPage, ContactPage, ProfilePage, Calendar, FAQPage, BlogPosting, HowTo, Event, Product, Service — plus automatic WebSite, BreadcrumbList, ImageObject/VideoObject nodes); XML sitemaps (pages, media, video); HTML sitemap shortcode; robots.txt management; async broken link checker; business profile with contact card block; author profiles with structured data.
+**Web layer** — per-post/page/term/user title and description control; Open Graph and Twitter/X card output for all content types; Schema.org JSON-LD (selectable per-content types — see [docs/schema-types.md](docs/schema-types.md) — plus automatic WebSite, BreadcrumbList, SearchResultsPage, and media nodes); XML sitemaps (pages, media, video); HTML sitemap shortcode; robots.txt management; async broken link checker; business profile with contact card block; author profiles with structured data.
 
 [![License: GPL 3.0+](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![WordPress](https://img.shields.io/badge/WordPress-6.2%2B-21759B?logo=wordpress&logoColor=white)](https://wordpress.org)
@@ -26,7 +26,7 @@ WordPress's built-in metadata handling is limited at both layers.
 
 **At the file level:** PHP cannot do lossless JPEG, PNG, or WebP compression, has no native video remux, and its metadata tools are limited to basic EXIF with no IPTC or XMP support. Metamanager offloads all media work to the OS where purpose-built tools — `jpegtran`, `optipng`, `cwebp`, `ffmpeg`, and `ExifTool` — do the job properly.
 
-**At the web level:** WordPress core has no built-in title/description control beyond the post title, no Open Graph output, no Schema.org structured data, no sitemap management, and no link health monitoring. Metamanager fills the entire gap — per-post metadata fields, 20+ Schema.org types, XML and HTML sitemaps, robots.txt control, a business profile powering both contact card output and LocalBusiness JSON-LD, author profiles with Person structured data, and an async link checker.
+**At the web level:** WordPress core has no built-in title/description control beyond the post title, no Open Graph output, no Schema.org structured data, no sitemap management, and no link health monitoring. Metamanager fills the entire gap — per-post metadata fields, Schema.org JSON-LD, XML and HTML sitemaps, robots.txt control, a business profile powering both contact card output and LocalBusiness JSON-LD, author profiles with Person structured data, and an async link checker.
 
 PHP's role throughout is coordinator only: write the instruction, let the daemon or WordPress hook execute it.
 
@@ -52,7 +52,7 @@ PHP's role throughout is coordinator only: write the instruction, let the daemon
 
 - **Title & description control**: per-post/page/term/user override with template tokens (`%%post_title%%`, `%%sitetitle%%`, `%%sep%%`, `%%search_query%%`, and more); configurable default template per post type and taxonomy; dedicated templates for search results and 404 pages
 - **Open Graph**: `og:title`, `og:description`, `og:image` for all content; `og:image:width/height/type/alt` for media; `og:video` and `og:audio` for media attachments; `article:published_time` and `article:modified_time` for posts; Twitter/X card output
-- **Schema.org JSON-LD**: 10 selectable types (`Article`, `BlogPosting`, `WebPage`, `AboutPage`, `ContactPage`, `ProfilePage`, `HowTo`, `Event`, `Product`, `Service`) plus automatic nodes (`WebSite`, `SearchResultsPage`, `BreadcrumbList`, `ImageObject`, `VideoObject`, `AudioObject`, `Organization`, `Person`)
+- **Schema.org JSON-LD**: selectable types (`WebPage`, `AboutPage`, `ContactPage`, `ProfilePage`, `CollectionPage`, `FAQPage`, `BlogPosting`, `HowTo`, `Event`, `Product`, `Service`, `TouristTrip`, `TouristDestination`, `Vehicle`, `Course`, `LocalBusiness`, `Organization`) plus automatic nodes (`WebSite`, `SearchResultsPage`, `BreadcrumbList`, `ImageObject`, `VideoObject`, `AudioObject`, `Person`) — full reference in [docs/schema-types.md](docs/schema-types.md)
 - **XML sitemaps**: `/sitemap.xml` (all public content), `/sitemap-media.xml` (images + video), `/sitemap-video.xml` (Google Video format); 1-hour transient caching; auto-flush on publish; configurable per post type and taxonomy; Google and Bing pinged on publish
 - **HTML sitemap**: `[mm_sitemap]` shortcode embeds a formatted sitemap on any page; supports `post_types`, `taxonomies`, and `depth` attributes
 - **Robots.txt**: active sitemaps appended as `Sitemap:` directives automatically; per-post-type global noindex; per-post noindex/nofollow/noarchive/nosnippet from the metadata panel
@@ -72,9 +72,9 @@ PHP's role throughout is coordinator only: write the instruction, let the daemon
 - **Upload receipt emails**: batched digest email (one per 60-second window); per-user opt-in; configurable CC address; failed sends surfaced as a dismissible notice with retry
 - **WP-Cron history tracking**: every cron event is wrapped with `MM_Cron_Tracker` which records last run, next scheduled, pass/fail counts, and last 20 runs per hook — visible in the dashboard widget and status JSON
 - **Dashboard widget**: real-time job queue, daemon health, and cron event history table with status icons and pass/fail counts — auto-refreshes every 5 seconds
-- **Auto-updates**: native WordPress update pipeline integration — updates appear in Dashboard → Updates; includes "Check for Updates" link; notice prompts daemon restart after updates
+- **Auto-updates**: native WordPress update pipeline integration — `MM_Updater` polls the apt server `metadata.json` feed (no caching) and updates appear in Dashboard → Updates; includes a "Check for Updates" link
 - **Multisite compatible**: network activation creates the DB table and schedules cron on every existing site; new blog creation handled via `wp_initialize_site`
-- **Clean uninstall**: opt-in "Remove all data on uninstall" setting wipes options, post meta (22 keys) and the mm_meta_history table, job log table, job queue directory, and updater transients — nothing removed by default
+- **Clean uninstall**: opt-in "Remove all data on uninstall" setting wipes options, post meta (22 keys), the mm_meta_history/mm_meta_links/job log tables, the job queue directory, and updater transients — nothing removed by default
 
 ---
 
@@ -148,9 +148,13 @@ sudo apt update && sudo apt upgrade metamanager
 ```
 
 **Via WordPress admin (plugin):**
-Metamanager integrates with the native WordPress update system. When a new GitHub release is tagged, it appears automatically in **Dashboard → Updates** within 12 hours. Click **Update now** exactly as you would for any plugin.
+Metamanager integrates with the native WordPress update system. `MM_Updater`
+polls the apt server's `metadata.json` feed directly (no caching) — when a new
+version is published there, it appears in **Dashboard → Updates**. Click
+**Update now** exactly as you would for any plugin.
 
-A **Check for Updates** action link on **Plugins → Installed Plugins** forces an immediate check without waiting.
+A **Check for Updates** action link on **Plugins → Installed Plugins** forces
+an immediate check.
 
 **Via command line (plugin only):**
 ```bash
@@ -515,7 +519,9 @@ Paginated, filterable job history. Pagination totals in `X-WP-Total` and `X-WP-T
 | `per_page` | integer | `20` | 1–100 |
 | `page` | integer | `1` | |
 
-Each job object includes a `job_trigger` field indicating what created it:
+Each job object includes a `job_trigger` field indicating what created it
+(this is the history-table column name; job files carry the same value under
+the `trigger` key — see `JOB_QUEUE_SPEC.md`):
 
 | `job_trigger` value | Meaning |
 |---------------------|----------|
@@ -525,10 +531,13 @@ Each job object includes a `job_trigger` field indicating what created it:
 | `manual` | Triggered by re-compressing a single image from its edit screen |
 | `requeue` | Triggered by clicking Re-queue on a failed job |
 | `thumbnail_regen` | Triggered by thumbnail regeneration (e.g. Regenerate Thumbnails plugin) |
-| `bulk` | Triggered by a WordPress Bulk Actions operation (Compress Lossless, Inject Site Info) |
+| `bulk` | Triggered by a WordPress Bulk Actions operation (Compress Lossless) |
+| `bulk_site_info` | Triggered by the Inject Site Info bulk action |
 | `batch_apply` | Triggered by the Batch Apply Metadata page |
 | `cli` | Triggered via WP-CLI (`wp metamanager compress`, `embed`, etc.) |
 | `rest_api` | Triggered via REST API (`POST /compress`, `POST /embed`) |
+| `import` | Metadata import job, or write-back queued after an import result |
+| `verify` | Post-write-back verification read |
 
 ---
 
@@ -742,8 +751,10 @@ rm -rf /path/to/wordpress/wp-content/plugins/metamanager
 If you deleted the plugin without enabling the data-removal setting, you can clean up manually:
 
 ```sql
--- Job log table
+-- Job/history tables
 DROP TABLE IF EXISTS wp_metamanager_jobs;
+DROP TABLE IF EXISTS wp_mm_meta_history;
+DROP TABLE IF EXISTS wp_mm_meta_links;
 
 -- Plugin options
 DELETE FROM wp_options WHERE option_name IN
@@ -751,18 +762,23 @@ DELETE FROM wp_options WHERE option_name IN
    'mm_api_disabled','mm_api_allowed_ips',
    'mm_upload_notify_enabled','mm_upload_notify_extra_email','mm_failed_upload_notices',
    'mm_sitemap_media','mm_sitemap_images','mm_sitemap_video','mm_sitemap_video_selfhosted',
-   'mm_auto_provenance');
+   'mm_auto_provenance','mm_meta_settings','mm_meta_business','mm_memory_limit_notice',
+   'mm_cron_history');
 
 -- Transients
 DELETE FROM wp_options WHERE option_name LIKE '_transient_mm_%' OR option_name LIKE '_transient_timeout_mm_%';
 
--- Attachment metadata (17 keys)
+-- Attachment metadata (22 keys — matches uninstall.php)
 DELETE FROM wp_postmeta WHERE meta_key IN
   ('mm_creator','mm_copyright','mm_owner','mm_headline','mm_credit','mm_keywords',
    'mm_date_created','mm_location_city','mm_location_state','mm_location_country',
    'mm_rating','mm_gps_lat','mm_gps_lon','mm_gps_alt',
-   'mm_duration','mm_verify_discrepancies','mm_verified_at');
-DELETE FROM wp_postmeta WHERE meta_key IN ('_mm_meta', 'mm_schema_fields', '_mm_wc_product_id');
+   'mm_duration','mm_verify_discrepancies','mm_verified_at','mm_meta_synced',
+   'mm_schema_fields','mm_breadcrumb_label','_mm_meta','_mm_wc_product_id');
+
+-- Metadata subsystem (term/user scopes)
+DELETE FROM wp_termmeta WHERE meta_key = '_mm_meta';
+DELETE FROM wp_usermeta WHERE meta_key = '_mm_meta';
 ```
 
 ---
@@ -905,7 +921,8 @@ the model proposes, humans approve, everything is audited.
 3. Check: the chat answers; `wp eval 'var_export(wp_supports_ai(), true);'`.
 
 **How a conversation works:**
-- Reads (reports/*, content/list-*, comments/list) execute immediately.
+- Reads (metamanager/get-*, gcm/*, content/list-*, comments/list) execute
+  immediately.
 - Writes (create-draft, update-post, publish, assign-term, …) come back
   as **approval cards**: Approve, Decline, or edit the input first.
 - Destructive actions (`content/trash`) additionally require typing
@@ -917,11 +934,17 @@ the model proposes, humans approve, everything is audited.
 
 **The ability surface** (registered on the WordPress Abilities API, so
 the MCP Adapter and external agents see the same contract):
-reports/get-status, get-os-update, get-security-scan,
-get-daemon-status, get-mail-status; mxroute/queue-status,
-requeue-failed, send-test; content list/get/create-draft/update/
-schedule-publish/publish/unpublish/trash/restore/list-media/upload-media/
-set-featured-image/list-terms/assign-term; comments list/moderate.
+
+- **This plugin** (`metamanager/*`): get-daemon-status, get-post-meta,
+  update-post-meta, get-schema, get-business-profile, get-navigation,
+  get-term-meta.
+- **GCM mu-plugin** (`gcm/*`, `content/*`, `comments/*`): get-status,
+  get-os-update, get-security-scan; content list/get/create-draft/update/
+  schedule-publish/publish/unpublish/trash/restore/list-media/upload-media/
+  set-featured-image/list-terms/assign-term; comments list/moderate.
+- **MXRoute Mailer** (`mxroute/*`): queue-status, requeue-failed, send-test.
+
+The old `reports/*` namespace was removed 2026-11-14.
 
 **Descriptions derive ONLY from the native excerpt field** (enabled for
 pages and posts by this plugin; `description_source => 'excerpt'` is

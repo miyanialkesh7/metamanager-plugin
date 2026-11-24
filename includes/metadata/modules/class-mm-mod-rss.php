@@ -1,12 +1,11 @@
 <?php
 /**
- * MM_Mod_Rss — RSS feed cleanup.
+ * MM_Mod_Rss — RSS feed cleanup and content formatting.
  *
  * WordPress's default RSS 2.0 output includes a number of elements that are
  * either outdated, expose server information, or add namespace clutter that
  * is irrelevant for feed readers.  This module strips those elements and
- * provides a handful of configuration options so site owners control exactly
- * what their feed contains.
+ * formats feed content as: featured image (if set) + excerpt.
  *
  * What is cleaned:
  *  - <generator> tag — reveals the WordPress version.
@@ -15,10 +14,14 @@
  *  - The xmlns:wfw and xmlns:slash namespace declarations on <rss> — become
  *    orphaned once the elements above are removed.
  *
+ * Feed content format:
+ *  - Featured image (if set) prepended to the excerpt.
+ *  - Excerpt only — full post content is never served (rss_use_excerpt filter).
+ *  - This eliminates page builder noise (widgets, shortcodes) from feeds.
+ *
  * What can be configured:
  *  - Disable cleanup entirely (feed.cleanup_enabled).
  *  - Toggle each cleanup individually.
- *  - Serve only the excerpt rather than full post content (feed.use_excerpt).
  *  - Override the feed channel title (feed.feed_title).
  *  - Add a copyright notice to the channel (feed.feed_copyright).
  *
@@ -61,10 +64,13 @@ class MM_Mod_Rss extends MM_Mod_Base {
 			add_action( 'template_redirect', array( $this, 'start_rss_buffer' ), 1 );
 		}
 
-		// Use excerpt only — suppress <content:encoded> full-content element.
-		if ( $this->settings->get( 'feed.use_excerpt', false ) ) {
-			add_filter( 'the_content_feed', '__return_empty_string' );
-		}
+		// Force excerpt mode — suppress full post content in feeds.
+		// rss_use_excerpt filter ensures WordPress never serves full content
+		// regardless of reading settings. This eliminates page builder noise.
+		add_filter( 'rss_use_excerpt', '__return_true' );
+
+		// Prepend featured image to the excerpt content.
+		add_filter( 'the_excerpt_rss', [ $this, 'prepend_featured_image' ], 10, 2 );
 
 		// Override the feed channel title.
 		$title = trim( (string) $this->settings->get( 'feed.feed_title', '' ) );
@@ -93,12 +99,38 @@ class MM_Mod_Rss extends MM_Mod_Base {
 	 * Suppress the generator tag in all feed contexts.
 	 *
 	 * @param string $gen  The generator XML/HTML string produced by WordPress.
-	 * @param string $type Feed type: 'rss2', 'atom', 'rss', 'rdf', 'comment', etc.
+	 * @param string $type Feed type: 'rss2', 'rss', 'atom', 'rdf', 'comment', etc.
 	 * @return string Empty string for feed types; unchanged for HTML <head>.
 	 */
 	public function filter_generator( string $gen, string $type ): string {
 		$feed_types = array( 'rss2', 'rss', 'atom', 'rdf', 'comment', 'export', 'opml' );
 		return in_array( $type, $feed_types, true ) ? '' : $gen;
+	}
+
+	// -------------------------------------------------------------------------
+	// Featured image + excerpt
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Prepend the featured image to the feed excerpt.
+	 *
+	 * @param string   $excerpt Feed excerpt text.
+	 * @param int|null $post_id Post ID (passed by the_excerpt_rss filter).
+	 * @return string Excerpt with featured image prepended.
+	 */
+	public function prepend_featured_image( string $excerpt, $post_id = null ): string {
+		if ( ! is_feed() ) {
+			return $excerpt;
+		}
+		$post_id = $post_id ?: get_the_ID();
+		if ( ! $post_id || ! has_post_thumbnail( $post_id ) ) {
+			return $excerpt;
+		}
+		$image = get_the_post_thumbnail( $post_id, 'large', [ 'alt' => '' ] );
+		if ( ! $image ) {
+			return $excerpt;
+		}
+		return '<p>' . $image . '</p>' . $excerpt;
 	}
 
 	// -------------------------------------------------------------------------

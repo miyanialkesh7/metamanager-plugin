@@ -45,34 +45,27 @@ class Test_MM_Uninstall extends WP_UnitTestCase {
 		global $wpdb;
 		$table = $wpdb->prefix . MM_JOB_TABLE;
 
-		// Create the table directly via SQL (dbDelta can be unreliable in test env).
-		$charset = $wpdb->get_charset_collate();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "CREATE TABLE IF NOT EXISTS {$table} (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			job_type VARCHAR(32) NOT NULL DEFAULT '',
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			PRIMARY KEY (id)
-		) {$charset};" );
+		// WP test suite rewrites DROP TABLE to DROP TEMPORARY TABLE via
+		// the _drop_temporary_tables query filter. Remove both filters so
+		// DDL operates on real tables (same as WordPress core's own dbDelta
+		// tests do). See: wordpress-develop tests/phpunit/tests/db/dbDelta.php
+		remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
+		remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
 
-		// Suppress DB errors so PHPUnit doesn't intercept them as Errors.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// Table should exist (created by admin_init or set_up_before_class).
 		$wpdb->suppress_errors( true );
-		$result = $wpdb->query( "SELECT 1 FROM {$table} LIMIT 0" );
+		$pre = $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" );
 		$wpdb->suppress_errors( false );
-		$this->assertNotFalse( $result, "Table {$table} should exist after CREATE TABLE." );
+		$this->assertNotEmpty( $pre, "Table {$table} should exist before test." );
 
-		// Drop it.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+		// Use the plugin's own drop method (the way uninstall.php does it).
+		MM_DB::drop_table();
 
-		// Verify table no longer exists.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
-		$this->assertNull( $exists, "Table {$table} should not exist after DROP TABLE." );
+		// Verify gone.
+		$wpdb->suppress_errors( true );
+		$check = $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" );
+		$wpdb->suppress_errors( false );
+		$this->assertEmpty( $check, "Table {$table} should not exist after drop_table()." );
 	}
 
 	// ------------------------------------------------------------------

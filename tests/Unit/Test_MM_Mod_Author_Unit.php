@@ -100,6 +100,38 @@ class Test_MM_Mod_Author_Unit extends WP_UnitTestCase {
 	}
 
 	// ------------------------------------------------------------------
+	// populate() — singular CPTs follow the posts setting (2026-11-17)
+	// ------------------------------------------------------------------
+
+	public function test_populate_person_node_on_cpt_respects_posts_setting(): void {
+		$user_id = $this->factory->user->create( [ 'display_name' => 'CPT Author' ] );
+		$post_id = $this->factory->post->create( [
+			'post_type'   => 'mm_service',
+			'post_title'  => 'A Service',
+			'post_author' => $user_id,
+		] );
+		$this->go_to( get_permalink( $post_id ) );
+
+		$context = new MM_Page_Context();
+		$data    = $this->empty_data();
+		$this->author_module->populate( $data, $context, $this->settings );
+		$person  = $this->find_person_node( $data );
+		$this->assertNotNull( $person, 'Person node expected on CPT singulars when the posts setting is on' );
+		$this->assertSame( 'CPT Author', $person['name'] );
+
+		// The author settings must gate CPTs too — they previously fell
+		// through unconditionally (the Hair Studio bug).
+		$this->settings->save_settings( [ 'authors' => [ 'person_schema_posts' => false ] ] );
+		$data    = $this->empty_data();
+		$context = new MM_Page_Context();
+		$this->author_module->populate( $data, $context, $this->settings );
+		$this->assertNull(
+			$this->find_person_node( $data ),
+			'Person node must be suppressed on CPT singulars when person_schema_posts is off'
+		);
+	}
+
+	// ------------------------------------------------------------------
 	// Helpers
 	// ------------------------------------------------------------------
 

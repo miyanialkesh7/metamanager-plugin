@@ -24,7 +24,8 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	public function test_activate_schedules_cron(): void {
 		mm_activate_single_site();
 
-		$timestamp = wp_next_scheduled( 'mm_import_completed_jobs' );
+		// Cron is status reporting only — daemons handle all processing.
+		$timestamp = wp_next_scheduled( 'mm_write_status_json' );
 		$this->assertNotFalse( $timestamp );
 	}
 
@@ -84,12 +85,12 @@ class Test_MM_Activation extends WP_UnitTestCase {
 
 	public function test_deactivate_clears_cron_hooks(): void {
 		// Schedule first.
-		wp_schedule_event( time(), 'twicedaily', 'mm_import_completed_jobs' );
+		wp_schedule_event( time(), 'twicedaily', 'mm_write_status_json' );
 		wp_schedule_event( time(), 'twicedaily', 'mm_send_upload_receipt' );
 
 		mm_deactivate( false );
 
-		$this->assertFalse( wp_next_scheduled( 'mm_import_completed_jobs' ) );
+		$this->assertFalse( wp_next_scheduled( 'mm_write_status_json' ) );
 		$this->assertFalse( wp_next_scheduled( 'mm_send_upload_receipt' ) );
 	}
 

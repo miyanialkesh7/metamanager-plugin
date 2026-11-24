@@ -19,10 +19,13 @@ class Test_MM_Mod_Business_Contact_Unit extends WP_UnitTestCase {
 
 	public function test_style_defaults_has_required_keys(): void {
 		$defaults = MM_Mod_Business_Contact::style_defaults();
-		$required_keys = [ 'show_phone', 'show_email', 'show_vcard', 'show_json', 'show_csv' ];
-		foreach ( $required_keys as $key ) {
-			$this->assertArrayHasKey( $key, $defaults, "Style default should have key: {$key}" );
+		// Visibility toggles live in business defaults (mm_meta_business), not style.
+		$style_keys = [ 'show_phone', 'show_email', 'show_vcard', 'show_json', 'show_csv' ];
+		foreach ( $style_keys as $key ) {
+			$this->assertArrayNotHasKey( $key, $defaults, "Style default should NOT have key: {$key} (it lives in business defaults)" );
 		}
+		// Appearance keys should be present.
+		$this->assertArrayHasKey( 'card_bg', $defaults );
 	}
 
 	// ------------------------------------------------------------------
@@ -47,14 +50,14 @@ class Test_MM_Mod_Business_Contact_Unit extends WP_UnitTestCase {
 	}
 
 	public function test_get_style_settings_saved_values_override_defaults(): void {
-		update_option( MM_Mod_Business_Contact::OPT_STYLE, [ 'show_phone' => false ] );
+		update_option( MM_Mod_Business_Contact::OPT_STYLE, [ 'card_bg' => '#000000' ] );
 		$settings = MM_Mod_Business_Contact::get_style_settings();
 
-		$this->assertFalse( $settings['show_phone'] );
+		$this->assertSame( '#000000', $settings['card_bg'] );
 
 		// Other defaults should still be present.
 		$defaults = MM_Mod_Business_Contact::style_defaults();
-		$this->assertSame( $defaults['show_email'], $settings['show_email'] );
+		$this->assertSame( $defaults['card_text'], $settings['card_text'] );
 
 		// Cleanup.
 		delete_option( MM_Mod_Business_Contact::OPT_STYLE );

@@ -12,7 +12,7 @@ MetaManager supports the following schema.org types. Each type can be assigned t
 | `AboutPage` | About page with business info | Page template `mm-about` |
 | `ContactPage` | Contact page with business contact data | Page template `mm-contact` |
 | `ProfilePage` | Author archive pages | Auto-assigned |
-| `Calendar` | Event calendar page | Page template `mm-calendar` |
+| `CollectionPage` | Event calendar page | Page template `mm-calendar` |
 | `FAQPage` | FAQ pages with Q&A pairs | CPT `mm_faq_page` |
 | `SearchResultsPage` | Search results | Auto-assigned |
 
@@ -44,6 +44,13 @@ MetaManager supports the following schema.org types. Each type can be assigned t
 | Type | Use For | CPT/Template |
 |------|---------|--------------|
 | `Course` | Educational courses, certifications | CPT `mm_course` |
+
+### Directory Types
+
+| Type | Use For | CPT/Template |
+|------|---------|--------------|
+| `LocalBusiness` | Business listings | CPT `mm_business` |
+| `Organization` | Nonprofit/public organizations | CPT `mm_organization` |
 
 ---
 
@@ -262,3 +269,17 @@ FAQ pages with question/answer pairs.
 Products with brand, price, availability. WooCommerce compatible (auto-populates from WC product data when available).
 
 **Fields:** Brand, Price, Currency, Availability.
+
+## Person schema emission controls (settled 2026-11-17)
+
+Person nodes come from four places, with two different enablement models:
+
+| Source | Enablement |
+|---|---|
+| Author node on singular **posts and CPTs** (`mm_service`, `mm_trip`, …) | MetaManager → Authors: `person_schema_posts` |
+| Author node on singular **pages** | `person_schema_pages` (template pages `mm-about`/`mm-contact`/`mm-calendar` always skipped) |
+| Author node on **author archives** | `person_schema_archives` |
+| **Widgets/blocks** (`MM_Mod_Person` — Person/Physician/Dentist/…) | **Placement is the enablement** — if the widget/block is placed, its schema shows. No control, by design. |
+| **Image metadata `Creator` attribution** (wrapped as Person on ImageObject) | **Placement is the enablement** — the field set per image; always emitted when populated. |
+
+Note: CPT singulars follow `person_schema_posts` (fixed 2026-11-17 — they previously fell through unconditionally, making the author settings appear to do nothing on CPT-driven sites). Validation is done through the schema.org validator API (`POST https://validator.schema.org/validate?url=…`).

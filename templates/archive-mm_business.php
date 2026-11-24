@@ -3,7 +3,7 @@
  * Template: Businesses Archive
  *
  * Theme-agnostic listing with selectable layout (Menu or Grid).
- * Layout is set per-CPT in Appearance > Customize > Schema.
+ * Layout is set per-CPT in Appearance > Customize > MM Archives.
  *
  * @package Metamanager
  */

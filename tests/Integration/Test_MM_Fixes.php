@@ -236,69 +236,7 @@ class Test_MM_Fixes extends WP_UnitTestCase {
 	// FIX-23: meta description fallback to site description
 	// ------------------------------------------------------------------
 
-	/** auto_description returns empty for page with no excerpt/content. */
-	public function test_auto_description_returns_empty_for_empty_page(): void {
-		$page = self::factory()->post->create_and_get( [
-			'post_title'   => 'Empty Page',
-			'post_status'  => 'publish',
-			'post_type'    => 'page',
-			'post_content' => '',
-			'post_excerpt' => '',
-		] );
-
-		$settings = MM_Site_Settings::get_instance();
-		$mod = new MM_Mod_Head_Meta( $settings );
-		$reflection = new ReflectionClass( $mod );
-
-		// Access the private auto_description method.
-		$method = $reflection->getMethod( 'auto_description' );
-		$method->setAccessible( true );
-
-		$result = $method->invoke( $mod, $page, 'excerpt' );
-		$this->assertSame( '', $result );
-	}
-
-	/** auto_description returns excerpt when available. */
-	public function test_auto_description_returns_excerpt(): void {
-		$post = self::factory()->post->create_and_get( [
-			'post_title'   => 'Post With Excerpt',
-			'post_status'  => 'publish',
-			'post_type'    => 'post',
-			'post_content' => 'Long content that should not be used.',
-			'post_excerpt' => 'This is the excerpt.',
-		] );
-
-		$settings = MM_Site_Settings::get_instance();
-		$mod = new MM_Mod_Head_Meta( $settings );
-		$reflection = new ReflectionClass( $mod );
-		$method = $reflection->getMethod( 'auto_description' );
-		$method->setAccessible( true );
-
-		$result = $method->invoke( $mod, $post, 'excerpt' );
-		$this->assertSame( 'This is the excerpt.', $result );
-	}
-
-	/** auto_description never uses post_content when source is excerpt. */
-	public function test_auto_description_excerpt_ignores_content(): void {
-		$post = self::factory()->post->create_and_get( [
-			'post_title'   => 'Post Content Only',
-			'post_status'  => 'publish',
-			'post_type'    => 'post',
-			'post_content' => 'Body text with [shortcode] that must not leak.',
-			'post_excerpt' => '',
-		] );
-
-		$settings = MM_Site_Settings::get_instance();
-		$mod = new MM_Mod_Head_Meta( $settings );
-		$reflection = new ReflectionClass( $mod );
-		$method = $reflection->getMethod( 'auto_description' );
-		$method->setAccessible( true );
-
-		$result = $method->invoke( $mod, $post, 'excerpt' );
-		$this->assertSame( '', $result );
-	}
-
-	/** resolve_description falls back to site description when auto_description returns empty. */
+	/** resolve_description falls back to site description when excerpt is empty. */
 	public function test_resolve_description_falls_back_to_site_description(): void {
 		update_option( 'blogdescription', 'Site Description Fallback' );
 

@@ -7,63 +7,44 @@
  * and records the HTTP status code.
  *
  * Admin AJAX endpoints expose table data and per-link re-check.
- *
- * @package Metamanager
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Mod links.
- *
- * @package Metamanager
- */
 class MM_Mod_Links extends MM_Mod_Base {
 
-	/**
-	 * Nothing to add to HTML head.
-	 *
-	 * @param array            $data Data.
-	 * @param MM_Page_Context  $context Context.
-	 * @param MM_Site_Settings $settings Settings.
-	 */
+	/** Nothing to add to HTML head. */
 	public function populate( array &$data, MM_Page_Context $context, MM_Site_Settings $settings ): void {}
 
-	/**
-	 * Register hooks.
-	 */
 	public function register_hooks(): void {
 		if ( ! $this->settings->get( 'links.enabled', true ) ) {
 			return;
 		}
 
 		// Register custom cron schedule.
-		add_filter( 'cron_schedules', array( $this, 'add_cron_schedule' ) );
+		add_filter( 'cron_schedules', [ $this, 'add_cron_schedule' ] );
 
-		// Schedule the recurring check if not yet set.
-		add_action( 'wp', array( $this, 'maybe_schedule_cron' ) );
-		add_action( 'mm_meta_check_links', MM_Cron_Tracker::wrap( 'mm_meta_check_links', array( $this, 'run_batch_check' ) ) );
+		// The recurring check is scheduled at activation / plugin update
+		// (mm_activate_single_site) — never on a request hook (rule 9).
+		add_action( 'mm_meta_check_links', MM_Cron_Tracker::wrap( 'mm_meta_check_links', [ $this, 'run_batch_check' ] ) );
 
 		// Extract links on post save.
-		add_action( 'save_post', array( $this, 'extract_from_post' ), 10, 2 );
+		add_action( 'save_post', [ $this, 'extract_from_post' ], 10, 2 );
 
 		// On post delete, purge link records.
-		add_action( 'before_delete_post', array( $this, 'purge_for_post' ) );
+		add_action( 'before_delete_post', [ $this, 'purge_for_post' ] );
 
 		// Admin AJAX.
-		add_action( 'wp_ajax_mm_meta_links_fetch', array( $this, 'ajax_fetch_links' ) );
-		add_action( 'wp_ajax_mm_meta_recheck_link', array( $this, 'ajax_recheck_link' ) );
-		add_action( 'wp_ajax_mm_meta_ignore_link', array( $this, 'ajax_ignore_link' ) );
-		add_action( 'wp_ajax_mm_meta_scan_all_posts', array( $this, 'ajax_scan_all_posts' ) );
+		add_action( 'wp_ajax_mm_meta_links_fetch',    [ $this, 'ajax_fetch_links' ] );
+		add_action( 'wp_ajax_mm_meta_recheck_link',   [ $this, 'ajax_recheck_link' ] );
+		add_action( 'wp_ajax_mm_meta_ignore_link',    [ $this, 'ajax_ignore_link' ] );
+		add_action( 'wp_ajax_mm_meta_scan_all_posts', [ $this, 'ajax_scan_all_posts' ] );
 	}
 
 	// -------------------------------------------------------------------------
 	// DB table
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Create table.
-	 */
 	public static function create_table(): void {
 		global $wpdb;
 		$table   = self::table_name();
@@ -88,40 +69,17 @@ class MM_Mod_Links extends MM_Mod_Base {
 		) {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		global $wpdb;
+		// CREATE TABLE IF NOT EXISTS is the reliable primary creation method.
+		// dbDelta after it handles schema upgrades (new columns) — it is not
+		// a fallback, it's the upgrade step. dbDelta alone silently fails to
+		// create tables on some MariaDB versions and in test environments.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL, table identifier is prefix-derived, prepare() is not applicable to CREATE TABLE.
+		$wpdb->query( $sql );
 		dbDelta( $sql );
-
-		// dbDelta silently fails on some MySQL/MariaDB versions. Always run a
-		// raw CREATE TABLE IF NOT EXISTS as a fallback — it's idempotent and
-		// avoids information_schema queries that can return stale results inside
-		// WP test suite transactions.
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL fallback; table identifier is prefix-derived, not user input.
-		$wpdb->query(
-			"CREATE TABLE IF NOT EXISTS {$table} (
-			id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			url         TEXT            NOT NULL,
-			url_hash    CHAR(32)        NOT NULL,
-			post_id     BIGINT UNSIGNED NOT NULL DEFAULT 0,
-			anchor_text VARCHAR(500)    NOT NULL DEFAULT '',
-			link_type   ENUM('internal','external') NOT NULL DEFAULT 'external',
-			http_code   SMALLINT UNSIGNED          NOT NULL DEFAULT 0,
-			is_broken   TINYINT(1)                 NOT NULL DEFAULT 0,
-			is_ignored  TINYINT(1)                 NOT NULL DEFAULT 0,
-			last_checked DATETIME                  NULL,
-			created     DATETIME                   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (id),
-			UNIQUE KEY url_post (url_hash, post_id),
-			KEY is_broken (is_broken),
-			KEY last_checked (last_checked)
-		) {$charset};"
-		);
 		// phpcs:enable
 	}
 
-	/**
-	 * Table name.
-	 *
-	 * @return string Resulting string.
-	 */
 	public static function table_name(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'mm_meta_links';
@@ -131,12 +89,6 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// Link extraction
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Extract from post.
-	 *
-	 * @param int      $post_id Post ID.
-	 * @param \WP_Post $post Post object.
-	 */
 	public function extract_from_post( int $post_id, \WP_Post $post ): void {
 		// Only public post types; skip auto-saves and revisions.
 		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
@@ -146,15 +98,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 			return;
 		}
 
-		$monitored_types = array_keys(
-			$this->settings->get(
-				'sitemap.post_types',
-				array(
-					'post' => true,
-					'page' => true,
-				)
-			)
-		);
+		$monitored_types = array_keys( $this->settings->get( 'sitemap.post_types', [ 'post' => true, 'page' => true ] ) );
 		if ( ! in_array( $post->post_type, $monitored_types, true ) ) {
 			return;
 		}
@@ -167,31 +111,22 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		foreach ( $links as $link ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-			$wpdb->query(
-				$wpdb->prepare(
-					'INSERT INTO %i (url, url_hash, post_id, anchor_text, link_type)
+			$wpdb->query( $wpdb->prepare(
+				'INSERT INTO %i (url, url_hash, post_id, anchor_text, link_type)
 				 VALUES (%s, %s, %d, %s, %s)
 				 ON DUPLICATE KEY UPDATE anchor_text = VALUES(anchor_text)',
-					$table,
-					$link['url'],
-					md5( $link['url'] ),
-					$post_id,
-					$link['anchor'],
-					$link['type']
-				)
-			);
+				$table,
+				$link['url'],
+				md5( $link['url'] ),
+				$post_id,
+				$link['anchor'],
+				$link['type']
+			) );
 		}
 	}
 
-	/**
-	 * Parse links.
-	 *
-	 * @param string $html HTML markup.
-	 * @param int    $post_id Post ID.
-	 * @return array Resulting array.
-	 */
 	private function parse_links( string $html, int $post_id ): array {
-		$links = array();
+		$links = [];
 		$home  = home_url();
 
 		// Extract <a href="...">anchor</a>.
@@ -211,60 +146,36 @@ class MM_Mod_Links extends MM_Mod_Base {
 				if ( ! str_starts_with( $url, 'http' ) ) {
 					$url = trailingslashit( $home ) . ltrim( $url, '/' );
 				}
-				$links[] = array(
+				$links[] = [
 					'url'    => $url,
 					'anchor' => substr( $anchor, 0, 500 ),
 					'type'   => ( str_starts_with( $url, $home ) ) ? 'internal' : 'external',
-				);
+				];
 			}
 		}
 
 		return $links;
 	}
 
-	/**
-	 * Purge for post.
-	 *
-	 * @param int $post_id Post ID.
-	 */
 	public function purge_for_post( int $post_id ): void {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->delete( $table, array( 'post_id' => $post_id ), array( '%d' ) );
+		$wpdb->delete( $table, [ 'post_id' => $post_id ], [ '%d' ] );
 	}
 
 	// -------------------------------------------------------------------------
 	// Batch checker (WP-Cron)
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Add cron schedule.
-	 *
-	 * @param array $schedules Schedules.
-	 * @return array Resulting array.
-	 */
 	public function add_cron_schedule( array $schedules ): array {
-		$schedules['mm_meta_6h'] = array(
+		$schedules['mm_meta_6h'] = [
 			'interval' => 6 * HOUR_IN_SECONDS,
 			'display'  => 'Every 6 Hours',
-		);
+		];
 		return $schedules;
 	}
 
-	/**
-	 * Maybe run schedule cron.
-	 */
-	public function maybe_schedule_cron(): void {
-		$freq = $this->settings->get( 'links.cron_frequency', 'twicedaily' );
-		if ( ! wp_next_scheduled( 'mm_meta_check_links' ) ) {
-			wp_schedule_event( time(), $freq, 'mm_meta_check_links' );
-		}
-	}
-
-	/**
-	 * Run batch check.
-	 */
 	public function run_batch_check(): void {
 		global $wpdb;
 		$table      = self::table_name();
@@ -273,23 +184,20 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		// Pick the $batch_size links least-recently checked (NULL first).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT id, url FROM %i
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			'SELECT id, url FROM %i
 			 WHERE is_ignored = 0
 			 ORDER BY last_checked ASC, id ASC
 			 LIMIT %d',
-				$table,
-				$batch_size
-			),
-			ARRAY_A
-		);
+			$table,
+			$batch_size
+		), ARRAY_A );
 
 		if ( ! $rows ) {
 			return;
 		}
 
-		$ignore_domains = array_filter( (array) $this->settings->get( 'links.ignore_domains', array() ) );
+		$ignore_domains = array_filter( (array) $this->settings->get( 'links.ignore_domains', [] ) );
 
 		foreach ( $rows as $row ) {
 			$url = $row['url'];
@@ -300,20 +208,20 @@ class MM_Mod_Links extends MM_Mod_Base {
 				continue;
 			}
 
-			$code   = $this->head_request( $url, $timeout );
-			$broken = ( 0 === $code || ( $code >= 400 && 429 !== $code ) ) ? 1 : 0;
+			$code = $this->head_request( $url, $timeout );
+			$broken = ( $code === 0 || ( $code >= 400 && $code !== 429 ) ) ? 1 : 0;
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 			$wpdb->update(
 				$table,
-				array(
+				[
 					'http_code'    => $code,
 					'is_broken'    => $broken,
 					'last_checked' => current_time( 'mysql', true ),
-				),
-				array( 'id' => (int) $row['id'] ),
-				array( '%d', '%d', '%s' ),
-				array( '%d' )
+				],
+				[ 'id' => (int) $row['id'] ],
+				[ '%d', '%d', '%s' ],
+				[ '%d' ]
 			);
 		}
 
@@ -323,13 +231,6 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 	}
 
-	/**
-	 * Head request.
-	 *
-	 * @param string $url URL.
-	 * @param int    $timeout Timeout.
-	 * @return int Resulting integer.
-	 */
 	private function head_request( string $url, int $timeout ): int {
 		$host = wp_parse_url( $url, PHP_URL_HOST );
 		if ( $host ) {
@@ -339,27 +240,21 @@ class MM_Mod_Links extends MM_Mod_Base {
 			}
 		}
 
-		$response = wp_remote_head(
-			$url,
-			array(
-				'timeout'     => $timeout,
-				'redirection' => 3,
-				'user-agent'  => 'GCM-SEO-LinkChecker/1.0',
-			)
-		);
+		$response = wp_remote_head( $url, [
+			'timeout'     => $timeout,
+			'redirection' => 3,
+			'user-agent'  => 'GCM-SEO-LinkChecker/1.0',
+		] );
 		if ( is_wp_error( $response ) ) {
 			return 0;
 		}
 		return (int) wp_remote_retrieve_response_code( $response );
 	}
 
-	/**
-	 * Maybe run send alert.
-	 */
 	private function maybe_send_alert(): void {
 		global $wpdb;
-		$table     = self::table_name();
-		$interval  = HOUR_IN_SECONDS * 24;
+		$table    = self::table_name();
+		$interval = HOUR_IN_SECONDS * 24;
 		$cache_key = 'mm_meta_link_alert_sent';
 
 		if ( get_transient( $cache_key ) ) {
@@ -367,11 +262,9 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.NotPrepared
-		$count = (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE is_broken = 1 AND is_ignored = 0" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			)
-		);
+		$count = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table} WHERE is_broken = 1 AND is_ignored = 0" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		) );
 
 		if ( $count > 0 ) {
 			$email   = sanitize_email( $this->settings->get( 'links.email_address', get_option( 'admin_email' ) ) );
@@ -382,7 +275,7 @@ class MM_Mod_Links extends MM_Mod_Base {
 				home_url(),
 				admin_url( 'admin.php?page=mm-meta-links' )
 			);
-			wp_mail( $email, $subject, $body, array( 'Content-Type: text/plain; charset=UTF-8' ) ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wpmail_wp_mail
+			wp_mail( $email, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wpmail_wp_mail
 			set_transient( $cache_key, 1, $interval );
 		}
 	}
@@ -391,9 +284,6 @@ class MM_Mod_Links extends MM_Mod_Base {
 	// Admin AJAX
 	// -------------------------------------------------------------------------
 
-	/**
-	 * AJAX handler: fetch links.
-	 */
 	public function ajax_fetch_links(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -401,11 +291,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		global $wpdb;
-		$table    = self::table_name();
-		$filter   = sanitize_text_field( wp_unslash( $_POST['filter'] ?? 'broken' ) );
-		$paged    = max( 1, absint( wp_unslash( $_POST['paged'] ?? 1 ) ) );
-		$per_page = 50;
-		$offset   = ( $paged - 1 ) * $per_page;
+		$table      = self::table_name();
+		$filter     = sanitize_text_field( wp_unslash( $_POST['filter'] ?? 'broken' ) );
+		$paged      = max( 1, absint( wp_unslash( $_POST['paged'] ?? 1 ) ) );
+		$per_page   = 50;
+		$offset     = ( $paged - 1 ) * $per_page;
 
 		// $where is built from a controlled match() on a sanitized $filter — not user input.
 		$where = match ( $filter ) {
@@ -416,18 +306,15 @@ class MM_Mod_Links extends MM_Mod_Base {
 		};
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is a plugin-owned table name; $where is a static controlled fragment from match()
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT l.*, p.post_title FROM {$table} l
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT l.*, p.post_title FROM {$table} l
 			 LEFT JOIN {$wpdb->posts} p ON p.ID = l.post_id
 			 {$where}
 			 ORDER BY l.is_broken DESC, l.last_checked ASC
 			 LIMIT %d OFFSET %d",
-				$per_page,
-				$offset
-			),
-			ARRAY_A
-		);
+			$per_page,
+			$offset
+		), ARRAY_A );
 
 		$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} {$where}" ) );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter
@@ -440,19 +327,14 @@ class MM_Mod_Links extends MM_Mod_Base {
 			unset( $row );
 		}
 
-		wp_send_json_success(
-			array(
-				'rows'     => $rows,
-				'total'    => $total,
-				'paged'    => $paged,
-				'per_page' => $per_page,
-			)
-		);
+		wp_send_json_success( [
+			'rows'       => $rows,
+			'total'      => $total,
+			'paged'      => $paged,
+			'per_page'   => $per_page,
+		] );
 	}
 
-	/**
-	 * AJAX handler: recheck link.
-	 */
 	public function ajax_recheck_link(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -474,32 +356,24 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		$code   = $this->head_request( $row['url'], 10 );
-		$broken = ( 0 === $code || ( $code >= 400 && 429 !== $code ) ) ? 1 : 0;
+		$broken = ( $code === 0 || ( $code >= 400 && $code !== 429 ) ) ? 1 : 0;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->update(
 			$table,
-			array(
+			[
 				'http_code'    => $code,
 				'is_broken'    => $broken,
 				'last_checked' => current_time( 'mysql', true ),
-			),
-			array( 'id' => $id ),
-			array( '%d', '%d', '%s' ),
-			array( '%d' )
+			],
+			[ 'id' => $id ],
+			[ '%d', '%d', '%s' ],
+			[ '%d' ]
 		);
 
-		wp_send_json_success(
-			array(
-				'http_code' => $code,
-				'is_broken' => $broken,
-			)
-		);
+		wp_send_json_success( [ 'http_code' => $code, 'is_broken' => $broken ] );
 	}
 
-	/**
-	 * AJAX handler: ignore link.
-	 */
 	public function ajax_ignore_link(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -516,14 +390,11 @@ class MM_Mod_Links extends MM_Mod_Base {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->update( $table, array( 'is_ignored' => $ignored ), array( 'id' => $id ), array( '%d' ), array( '%d' ) );
+		$wpdb->update( $table, [ 'is_ignored' => $ignored ], [ 'id' => $id ], [ '%d' ], [ '%d' ] );
 
 		wp_send_json_success();
 	}
 
-	/**
-	 * AJAX handler: scan all posts.
-	 */
 	public function ajax_scan_all_posts(): void {
 		check_ajax_referer( 'mm_meta_links_nonce', '_nonce' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -545,22 +416,15 @@ class MM_Mod_Links extends MM_Mod_Base {
 	 * Uses a stable ORDER BY ID ASC offset so progress is predictable across
 	 * multiple AJAX or CLI calls.
 	 *
-	 * @param int $offset Offset.
-	 * @param int $batch_size Batch size.
+	 * @param int  $offset     Offset into the stable ID ordering.
+	 * @param int  $batch_size Posts per batch.
+	 * @param bool $force      Re-extract from posts already in the link table.
 	 * @return array{ total: int, scanned: int, skipped: int, new_offset: int, done: bool }
 	 */
-	public function backfill_posts( int $offset = 0, int $batch_size = 20 ): array {
+	public function backfill_posts( int $offset = 0, int $batch_size = 20, bool $force = false ): array {
 		global $wpdb;
 		$table           = self::table_name();
-		$monitored_types = array_keys(
-			$this->settings->get(
-				'sitemap.post_types',
-				array(
-					'post' => true,
-					'page' => true,
-				)
-			)
-		);
+		$monitored_types = array_keys( $this->settings->get( 'sitemap.post_types', [ 'post' => true, 'page' => true ] ) );
 		$types_ph        = implode( ',', array_fill( 0, count( $monitored_types ), '%s' ) );
 
 		// Total qualifying posts — stable across the whole scan session.
@@ -575,52 +439,37 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		if ( 0 === $total ) {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
-			return array(
-				'total'      => 0,
-				'scanned'    => 0,
-				'skipped'    => 0,
-				'new_offset' => 0,
-				'done'       => true,
-			);
+			return [ 'total' => 0, 'scanned' => 0, 'skipped' => 0, 'new_offset' => 0, 'done' => true ];
 		}
 
 		// Fetch next batch in stable ID order.
-		$post_ids = array_map(
-			'intval',
-			(array) $wpdb->get_col(
-				$wpdb->prepare(
+		$post_ids = array_map( 'intval', (array) $wpdb->get_col(
+			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->posts is the core table property; the IN list is built %s placeholders and all values pass through prepare().
-					"SELECT ID FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ({$types_ph}) ORDER BY ID ASC LIMIT %d OFFSET %d",
-					...array( ...$monitored_types, $batch_size, $offset )
-				)
+				"SELECT ID FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ({$types_ph}) ORDER BY ID ASC LIMIT %d OFFSET %d",
+				...[...$monitored_types, $batch_size, $offset]
 			)
-		);
+		) );
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		if ( ! $post_ids ) {
-			return array(
-				'total'      => $total,
-				'scanned'    => 0,
-				'skipped'    => 0,
-				'new_offset' => $offset,
-				'done'       => true,
-			);
+			return [ 'total' => $total, 'scanned' => 0, 'skipped' => 0, 'new_offset' => $offset, 'done' => true ];
 		}
 
-		// Batch-check which post IDs already have entries — skip those.
+		// Batch-check which post IDs already have entries — skip those unless forced.
 		// $id_ph is a dynamically-built list of %d placeholders for safe use in prepare().
-		$id_ph = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-		$already = array_map(
-			'intval',
-			(array) $wpdb->get_col(
+		$already = [];
+		if ( ! $force ) {
+			$id_ph = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			$already = array_map( 'intval', (array) $wpdb->get_col(
 				$wpdb->prepare(
 					"SELECT DISTINCT post_id FROM {$table} WHERE post_id IN ({$id_ph})",
 					...$post_ids
 				)
-			)
-		);
-		// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+			) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		}
 
 		foreach ( $post_ids as $post_id ) {
 			if ( in_array( $post_id, $already, true ) ) {
@@ -634,12 +483,12 @@ class MM_Mod_Links extends MM_Mod_Base {
 
 		$new_offset = $offset + count( $post_ids );
 
-		return array(
+		return [
 			'total'      => $total,
 			'scanned'    => count( $post_ids ),
 			'skipped'    => count( $already ),
 			'new_offset' => $new_offset,
 			'done'       => $new_offset >= $total,
-		);
+		];
 	}
 }
