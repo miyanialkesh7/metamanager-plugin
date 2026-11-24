@@ -44,7 +44,6 @@ class MM_DB {
 	 */
 	public static function create_or_update_table(): void {
 		global $wpdb;
-
 		$table          = self::table_name();
 		$charset_collate = $wpdb->get_charset_collate();
 

@@ -77,7 +77,6 @@ require_once MM_PLUGIN_DIR . 'includes/class-mm-media-detector.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-upload-notify.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-admin.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-updater.php';
-require_once MM_PLUGIN_DIR . 'includes/class-mm-daemon-updater.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-cli.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-memory-manager.php';
 require_once MM_PLUGIN_DIR . 'includes/class-mm-cron-tracker.php';
@@ -365,31 +364,14 @@ add_filter( 'cron_schedules', function ( array $schedules ): array {
 } );
 
 // ---------------------------------------------------------------------------
-// Cron handler: import daemon-completed jobs into DB
+// Cron handler: status reporting only.
 //
-// Philosophy: PHP never touches the image files. The daemons do all heavy
-// lifting (compression, metadata embedding). When a daemon finishes a job it
-// drops a small result JSON into MM_JOB_DONE or MM_JOB_FAILED. This cron
-// runs every minute, reads those files, records them in the DB for the
-// history dashboard, then deletes the result files.
+// Daemons handle all processing and call process-result.php directly via
+// wp eval-file after each job — no import cron. The only cron is
+// mm_write_status_json for status reporting.
 // ---------------------------------------------------------------------------
 
 add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json', [ 'MM_Status', 'write_status_json' ] ) );
-
-/**
- * Scan completed/failed result directories and persist to DB.
- * Sends a failure notification email if notifications are enabled.
- *
- * Shell cross-reference: This function reads result JSON files written by
- * the daemon scripts (metamanager-meta-daemon.sh and metamanager-compress-daemon.sh).
- * The daemons write result files to MM_JOB_DONE or MM_JOB_FAILED after processing
- * each job. This function runs every 60 seconds via WP-Cron and:
- *   1. Reads each result JSON
- *   2. Logs the result to the DB via MM_DB::log_job()
- *   3. For import jobs: applies embedded tags to WP fields and queues write-back
- *   4. For metadata write-back: queues a verification read-back
- *   5. Deletes the result file
- */
 
 /**
  * Register a daemon-generated WebP as a WordPress attachment.
@@ -402,13 +384,11 @@ add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json
  * @param string $webp_path   Absolute path to the generated .webp file.
  */
 function mm_register_webp_attachment( int $original_id, string $webp_path ): void {
-	error_log( "[mm_register_webp] START: original_id={$original_id} webp_path={$webp_path}" );
 	global $wpdb;
 	$existing = $wpdb->get_var( $wpdb->prepare(
 		"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
 		$original_id
 	) );
-	error_log( "[mm_register_webp] existing_check: " . var_export( $existing, true ) );
 
 	$att_id = 0;
 	if ( $existing ) {
@@ -418,10 +398,8 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 
 	$original = get_post( $original_id );
 	if ( ! $original ) {
-		error_log( "[mm_register_webp] SKIP: original {$original_id} not found" );
 		return;
 	}
-	error_log( "[mm_register_webp] original found: {$original->post_title}" );
 
 	if ( ! $att_id ) {
 		require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -441,15 +419,11 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 			'guid'           => $webp_url,
 		];
 
-		error_log( "[mm_register_webp] calling wp_insert_attachment for {$webp_path}" );
 		$att_id = wp_insert_attachment( $attachment, $webp_path, $original_id );
 		if ( ! $att_id ) {
-			error_log( '[mm_register_webp] FAIL: wp_insert_attachment returned 0 for: ' . $webp_path );
+			error_log( '[Metamanager] Failed to register WebP attachment: ' . $webp_path );
 			return;
 		}
-		error_log( "[mm_register_webp] wp_insert_attachment returned: {$att_id}" );
-	} else {
-		error_log( "[mm_register_webp] using existing attachment: {$att_id}" );
 	}
 
 	// Copy schema/meta fields from the original BEFORE wp_generate_attachment_metadata.
@@ -485,17 +459,13 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 	// Generate WP metadata (sizes, etc.) only when freshly created.
 	// Reusing an existing attachment means metadata was already generated.
 	if ( ! $existing ) {
-		error_log( "[mm_register_webp] generating WP metadata for attachment {$att_id}" );
 		$webp_meta = wp_generate_attachment_metadata( $att_id, $webp_path );
 		if ( is_array( $webp_meta ) ) {
 			wp_update_attachment_metadata( $att_id, $webp_meta );
-			error_log( "[mm_register_webp] WP metadata generated: " . count( $webp_meta['sizes'] ?? [] ) . " sizes" );
-		} else {
-			error_log( "[mm_register_webp] WARNING: wp_generate_attachment_metadata returned non-array" );
 		}
 	}
 
-	error_log( sprintf( '[mm_register_webp] DONE: attachment %d registered for %s', $att_id, $webp_path ) );
+	error_log( sprintf( '[Metamanager] WebP registered as attachment %d: %s', $att_id, $webp_path ) );
 }
 
 

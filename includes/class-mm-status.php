@@ -386,7 +386,9 @@ class MM_Status {
 		}
 
 		// Version info.
-		$installed_ver = MM_Daemon_Updater::get_daemon_version();
+		$daemon_ver_file = '/usr/local/lib/metamanager/VERSION';
+		$installed_ver = ( file_exists( $daemon_ver_file ) ) ? trim( (string) file_get_contents( $daemon_ver_file ) ) : null;
+		if ( '' === $installed_ver ) { $installed_ver = null; }
 		$plugin_ver    = defined( 'MM_VERSION' ) ? MM_VERSION : 'unknown';
 
 		$data = array(
