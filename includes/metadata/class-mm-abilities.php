@@ -1090,7 +1090,6 @@ class MM_Abilities {
 				return [ 'success' => true, 'message' => "Job {$job_id} requeued.", 'count' => 1 ];
 
 			case 'scan':
-				// Delegate to the same logic as `wp metamanager scan`.
 				$ids = get_posts( [
 					'post_type'      => 'attachment',
 					'posts_per_page' => -1,
@@ -1101,73 +1100,41 @@ class MM_Abilities {
 						[ 'key' => '_mm_imported', 'value' => '1', 'compare' => '!=' ],
 					],
 				] );
-				$count = 0;
-				foreach ( $ids as $id ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'ability_scan' ] );
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'ability_scan' ] );
-					++$count;
-				}
-				return [ 'success' => true, 'message' => "Library scan queued for {$count} attachments.", 'count' => $count ];
+				$result = MM_Media_Service::scan( $ids, 'ability_scan' );
+				return [ 'success' => true, 'message' => "Library scan queued for {$result['count']} attachments.", 'count' => $result['count'] ];
 
 			case 'compress':
 				$ids = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
 				if ( empty( $ids ) ) {
 					return new WP_Error( 'missing_ids', 'attachment_ids is required for compress.' );
 				}
-				$count = 0;
-				foreach ( $ids as $id ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'ability_compress' ] );
-					++$count;
-				}
-				return [ 'success' => true, 'message' => "Compression queued for {$count} attachments.", 'count' => $count ];
+				$result = MM_Media_Service::compress( $ids, 'ability_compress' );
+				return [ 'success' => true, 'message' => "Compression queued for {$result['count']} attachments.", 'count' => $result['count'] ];
 
 			case 'embed':
 				$ids = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
 				if ( empty( $ids ) ) {
 					return new WP_Error( 'missing_ids', 'attachment_ids is required for embed.' );
 				}
-				$count = 0;
-				foreach ( $ids as $id ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'ability_embed' ] );
-					++$count;
-				}
-				return [ 'success' => true, 'message' => "Metadata embed queued for {$count} attachments.", 'count' => $count ];
+				$result = MM_Media_Service::embed_metadata( $ids, 'ability_embed' );
+				return [ 'success' => true, 'message' => "Metadata embed queued for {$result['count']} attachments.", 'count' => $result['count'] ];
 
 			case 'set-licensing':
-				$ids      = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
-				$license  = (string) ( $input['license'] ?? '' );
-				$credit   = (string) ( $input['credit'] ?? '' );
-				$acquire  = (string) ( $input['acquire'] ?? '' );
-				$creator  = (string) ( $input['creator'] ?? '' );
-				$copyright = (string) ( $input['copyright'] ?? '' );
+				$ids = array_filter( array_map( 'absint', (array) ( $input['attachment_ids'] ?? [] ) ) );
 				if ( empty( $ids ) ) {
 					return new WP_Error( 'missing_ids', 'attachment_ids is required for set-licensing.' );
 				}
-				$count = 0;
-				foreach ( $ids as $id ) {
-					if ( ! wp_attachment_is_image( $id ) ) {
-						continue;
-					}
-					if ( '' !== $license ) {
-						update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
-					}
-					if ( '' !== $credit ) {
-						update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
-					}
-					if ( '' !== $acquire ) {
-						update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
-					}
-					if ( '' !== $creator ) {
-						update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
-					}
-					if ( '' !== $copyright ) {
-						update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
-					}
-					// Queue daemon job to write synced fields to file metadata.
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'rest_api' ] );
-					++$count;
+				$result = MM_Media_Service::set_licensing( $ids, [
+					'creator'   => (string) ( $input['creator'] ?? '' ),
+					'credit'    => (string) ( $input['credit'] ?? '' ),
+					'copyright' => (string) ( $input['copyright'] ?? '' ),
+					'license'   => (string) ( $input['license'] ?? '' ),
+					'acquire'   => (string) ( $input['acquire'] ?? '' ),
+				], 'ability_licensing' );
+				if ( ! empty( $result['errors'] ) ) {
+					return new WP_Error( 'licensing_error', implode( ' ', $result['errors'] ) );
 				}
-				return [ 'success' => true, 'message' => "Attribution applied to {$count} images. Metadata sync jobs queued.", 'count' => $count ];
+				return [ 'success' => true, 'message' => "Attribution applied to {$result['count']} images. Metadata sync jobs queued.", 'count' => $result['count'] ];
 
 			default:
 				return new WP_Error( 'invalid_action', 'Valid actions: requeue, scan, compress, embed, set-licensing' );
@@ -1207,12 +1174,6 @@ class MM_Abilities {
 	}
 
 	public function ability_geocode_images( array $input ) {
-		$biz = MM_Site_Settings::get_instance()->all_business();
-		$key = (string) ( $biz['google_maps_api_key'] ?? '' );
-		if ( '' === $key ) {
-			return new WP_Error( 'no_api_key', 'No Google Maps API key set in business profile.' );
-		}
-
 		$ids = $input['attachment_ids'] ?? [];
 		if ( empty( $ids ) ) {
 			$ids = get_posts( [
@@ -1223,51 +1184,11 @@ class MM_Abilities {
 			] );
 		}
 
-		$count = 0;
-		foreach ( $ids as $id ) {
-			$id = (int) $id;
-			if ( ! wp_attachment_is_image( $id ) ) {
-				continue;
-			}
-
-			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
-			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
-			if ( 0.0 === $lat && 0.0 === $lng ) {
-				continue;
-			}
-
-			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
-			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
-			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
-
-			if ( '' !== $city && '' !== $state && '' !== $country ) {
-				continue;
-			}
-
-			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
-			if ( ! $geo ) {
-				continue;
-			}
-
-			$updated = false;
-			if ( '' === $city && '' !== $geo['city'] ) {
-				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
-				$updated = true;
-			}
-			if ( '' === $state && '' !== $geo['state'] ) {
-				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
-				$updated = true;
-			}
-			if ( '' === $country && '' !== $geo['country'] ) {
-				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
-				$updated = true;
-			}
-			if ( $updated ) {
-				++$count;
-			}
+		$result = MM_Media_Service::geocode( array_map( 'absint', (array) $ids ), 'ability_geocode' );
+		if ( ! empty( $result['errors'] ) ) {
+			return new WP_Error( 'geocode_error', implode( ' ', $result['errors'] ) );
 		}
-
-		return [ 'success' => true, 'message' => "Geocoded {$count} images.", 'count' => $count ];
+		return [ 'success' => true, 'message' => "Geocoded {$result['count']} images ({$result['skipped']} skipped).", 'count' => $result['count'] ];
 	}
 
 	// -------------------------------------------------------------------------

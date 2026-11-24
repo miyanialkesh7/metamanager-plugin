@@ -107,7 +107,7 @@ class Test_MM_Geocode_Unit extends WP_UnitTestCase {
 		$abilities = new MM_Abilities();
 		$result = $abilities->ability_geocode_images( [] );
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertEquals( 'no_api_key', $result->get_error_code() );
+		$this->assertEquals( 'geocode_error', $result->get_error_code() );
 	}
 
 	public function test_ability_geocode_returns_count(): void {

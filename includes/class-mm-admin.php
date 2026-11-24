@@ -1367,22 +1367,21 @@ class MM_Admin {
 			return new \WP_Error( 'not_compressible', $detail, [ 'status' => 422 ] );
 		}
 
-		if ( $is_video ) {
-			$file = get_attached_file( $id );
-			if ( ! $file || ! file_exists( $file ) ) {
-				return new \WP_Error( 'file_not_found', __( 'Video file not found on disk.', 'metamanager' ), [ 'status' => 404 ] );
-			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
-		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'rest_api' ] );
+		$result = MM_Media_Service::compress( [ $id ], 'rest_api', $force );
+		if ( $result['count'] > 0 ) {
+			return rest_ensure_response( [
+				'id'      => $id,
+				'queued'  => true,
+				'message' => $is_video
+					? __( 'Video remux job queued.', 'metamanager' )
+					: __( 'Compression jobs queued.', 'metamanager' ),
+			] );
 		}
 
 		return rest_ensure_response( [
 			'id'      => $id,
-			'queued'  => true,
-			'message' => $is_video
-				? __( 'Video remux job queued.', 'metamanager' )
-				: __( 'Compression jobs queued.', 'metamanager' ),
+			'queued'  => false,
+			'message' => __( 'Already compressed or not compressible.', 'metamanager' ),
 		] );
 	}
 
@@ -1459,26 +1458,29 @@ class MM_Admin {
 			);
 		}
 
-		if ( $is_image ) {
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'rest_api' ] );
-		} else {
-			if ( ! MM_Metadata::can_write_meta( $mime ) ) {
-				return new \WP_Error(
-					'not_embeddable',
-					__( 'This file type does not support metadata writing.', 'metamanager' ),
-					[ 'status' => 422 ]
-				);
-			}
-			$file = get_attached_file( $id );
-			MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'rest_api' ] );
+		if ( ! $is_image && ! MM_Metadata::can_write_meta( $mime ) ) {
+			return new \WP_Error(
+				'not_embeddable',
+				__( 'This file type does not support metadata writing.', 'metamanager' ),
+				[ 'status' => 422 ]
+			);
+		}
+
+		$result = MM_Media_Service::embed_metadata( [ $id ], 'rest_api' );
+		if ( $result['count'] > 0 ) {
+			return rest_ensure_response( [
+				'id'      => $id,
+				'queued'  => true,
+				'message' => $is_image
+					? __( 'Metadata embedding jobs queued for all image sizes.', 'metamanager' )
+					: __( 'Metadata embedding job queued.', 'metamanager' ),
+			] );
 		}
 
 		return rest_ensure_response( [
 			'id'      => $id,
-			'queued'  => true,
-			'message' => $is_image
-				? __( 'Metadata embedding jobs queued for all image sizes.', 'metamanager' )
-				: __( 'Metadata embedding job queued.', 'metamanager' ),
+			'queued'  => false,
+			'message' => __( 'Not embeddable or file missing.', 'metamanager' ),
 		] );
 	}
 
@@ -1739,9 +1741,8 @@ class MM_Admin {
 		}
 		MM_Memory_Manager::clear_notice();
 
-		$offset     = max( 0, (int) wp_unslash( $_POST['offset']     ?? 0 ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- (int) cast is sanitization
+		$offset = max( 0, (int) wp_unslash( $_POST['offset'] ?? 0 ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- (int) cast is sanitization
 
-		// Include images plus all supported video and audio MIME types.
 		$all_mime_types = array_merge(
 			[ 'image' ],
 			MM_Metadata::VIDEO_MIME_TYPES,
@@ -1749,8 +1750,6 @@ class MM_Admin {
 			MM_Metadata::PDF_MIME_TYPES
 		);
 
-		// Build the list of IDs that have no completed metadata job — history table
-		// is the single source of truth; no post_meta queries needed.
 		$all_ids     = get_posts( [
 			'post_type'      => 'attachment',
 			'post_mime_type' => $all_mime_types,
@@ -1765,15 +1764,11 @@ class MM_Admin {
 
 		$total = count( $pending_ids );
 
-		// Build candidate job data for memory-aware batch sizing.
-		// Batch size is defined by memory calculation each pass — fluid, no fixed limit.
+		// Memory-aware batch sizing.
 		$candidate_jobs = [];
 		foreach ( $pending_ids as $id ) {
 			$mime = (string) get_post_mime_type( $id );
-			$job  = [
-				'mime_type' => $mime,
-				'size'      => 'full',
-			];
+			$job  = [ 'mime_type' => $mime, 'size' => 'full' ];
 			if ( wp_attachment_is_image( $id ) ) {
 				$meta = wp_get_attachment_metadata( $id );
 				if ( $meta ) {
@@ -1786,34 +1781,10 @@ class MM_Admin {
 		$batch_size = MM_Memory_Manager::calculate_batch_size( $candidate_jobs );
 		$batch      = array_slice( $pending_ids, $offset, $batch_size );
 
-		$count = 0;
-		foreach ( $batch as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-
-			// Queue daemon jobs — mirrors the on_upload() path for unsynced attachments.
-			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'scan' ] );
-			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
-				$file = get_attached_file( $id );
-				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-				}
-			} elseif ( MM_Metadata::is_audio_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime ) ) {
-				if ( MM_Metadata::can_write_meta( $mime ) ) {
-					$file = get_attached_file( $id );
-					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-					}
-				}
-			}
-
-			++$count;
-		}
-
+		$result    = MM_Media_Service::scan( $batch, 'scan' );
+		$count     = $result['count'];
 		$new_offset = $offset + $count;
-		$done       = empty( $batch ) || $new_offset >= $total;
+		$done      = empty( $batch ) || $new_offset >= $total;
 
 		wp_send_json_success( [
 			'count'  => $count,
@@ -1830,30 +1801,16 @@ class MM_Admin {
 		check_ajax_referer( 'mm_recompress', 'nonce' );
 
 		$id   = absint( $_POST['id'] ?? 0 );
-		$mime = $id ? (string) get_post_mime_type( $id ) : '';
-
 		if ( ! $id || ! current_user_can( 'edit_post', $id ) ) {
 			wp_send_json_error( 'Permission denied.' );
 		}
 
-		if ( ! wp_attachment_is_image( $id ) && ! MM_Metadata::is_video_mime( $mime ) ) {
-			wp_send_json_error( __( 'Invalid or unsupported attachment.', 'metamanager' ) );
+		$result = MM_Media_Service::compress( [ $id ], 'manual', true );
+		if ( $result['count'] > 0 ) {
+			$notices = self::get_and_clear_queue_notices();
+			wp_send_json_success( [ 'notices' => self::format_notices_for_ajax( $notices ) ] );
 		}
-
-		$meta = wp_get_attachment_metadata( $id ) ?: [];
-
-		if ( MM_Metadata::is_video_mime( $mime ) ) {
-			$file = get_attached_file( $id );
-			if ( ! $file || ! file_exists( $file ) ) {
-				wp_send_json_error( __( 'File not found.', 'metamanager' ) );
-			}
-			MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'manual' ] );
-		} else {
-			MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', [ 'trigger' => 'manual' ] );
-		}
-
-		$notices = self::get_and_clear_queue_notices();
-		wp_send_json_success( [ 'notices' => self::format_notices_for_ajax( $notices ) ] );
+		wp_send_json_error( __( 'Not compressible.', 'metamanager' ) );
 	}
 
 	/**
@@ -1870,9 +1827,10 @@ class MM_Admin {
 		}
 
 		$raw_ids      = array_map( 'absint', (array) ( $_POST['ids'] ?? [] ) );
-		$raw_fields   = (array) wp_unslash( $_POST['fields'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated against $allowed_fields allowlist below
+		$raw_fields   = (array) wp_unslash( $_POST['fields'] ?? [] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- fields are validated by MM_Media_Service
 		$also_compress = ! empty( $_POST['also_compress'] );
 
+		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$allowed_fields = [
 			MM_Metadata::META_CREATOR,
 			MM_Metadata::META_COPYRIGHT,
@@ -1886,61 +1844,31 @@ class MM_Admin {
 			MM_Metadata::META_COUNTRY,
 			MM_Metadata::META_RATING,
 		];
-
-		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$fields = [];
 		foreach ( $allowed_fields as $key ) {
-			if ( isset( $raw_fields[ $key ] ) && $raw_fields[ $key ] !== '' ) {
-				if ( MM_Metadata::META_RATING === $key ) {
-					$fields[ $key ] = min( 5, max( 0, (int) $raw_fields[ $key ] ) );
-				} else {
-					$fields[ $key ] = sanitize_text_field( (string) $raw_fields[ $key ] );
-				}
+			if ( isset( $raw_fields[ $key ] ) && '' !== $raw_fields[ $key ] ) {
+				$fields[ $key ] = $raw_fields[ $key ];
+			}
+		}
+
+		// Filter by per-attachment edit capability.
+		$ids = [];
+		foreach ( $raw_ids as $id ) {
+			if ( $id && get_post( $id ) && current_user_can( 'edit_post', $id ) ) {
+				$ids[] = $id;
 			}
 		}
 
 		$count = 0;
-		foreach ( $raw_ids as $raw_id ) {
-			$id = absint( $raw_id );
-			if ( ! $id || ! get_post( $id ) ) {
-				continue;
+		if ( ! empty( $fields ) ) {
+			$result = MM_Media_Service::embed_metadata( $ids, 'batch_apply', $fields );
+			$count  = $result['count'];
+		}
+		if ( $also_compress ) {
+			$c_result = MM_Media_Service::compress( $ids, 'batch_apply', true );
+			if ( empty( $fields ) ) {
+				$count = $c_result['count'];
 			}
-			if ( ! current_user_can( 'edit_post', $id ) ) {
-				continue;
-			}
-
-			// Server-side MIME-type validation — skip fields not writable for this format.
-			$mime     = (string) get_post_mime_type( $id );
-			$write_cap = MM_Metadata::write_capability( $mime );
-
-			if ( 'read_only' === $write_cap ) {
-				// Read-only formats: no metadata fields can be written.
-				if ( $also_compress ) {
-					MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
-				}
-				++$count;
-				continue;
-			}
-
-			$permitted = $fields;
-			if ( isset( MM_Metadata::FIELD_COMPAT[ $write_cap ] ) ) {
-				// Restrict to fields writable for this capability level.
-				$permitted = array_intersect_key( $permitted, array_flip( MM_Metadata::FIELD_COMPAT[ $write_cap ] ) );
-			}
-
-			foreach ( $permitted as $key => $val ) {
-				update_post_meta( $id, $key, $val );
-			}
-
-			if ( ! empty( $permitted ) && $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'both', [ 'trigger' => 'batch_apply' ] );
-			} elseif ( ! empty( $permitted ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'batch_apply' ] );
-			} elseif ( $also_compress ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'batch_apply' ] );
-			}
-
-			++$count;
 		}
 
 		wp_send_json_success( [ 'count' => $count ] );

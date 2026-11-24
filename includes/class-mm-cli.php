@@ -58,7 +58,6 @@ class MM_CLI extends \WP_CLI_Command {
 		$target = $args[0] ?? 'all';
 
 		if ( 'all' === strtolower( $target ) ) {
-			// Images + video are compressible; audio and PDF have no compression step.
 			$compressible_mimes = array_merge(
 				[ 'image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'image/tiff' ],
 				MM_Metadata::VIDEO_MIME_TYPES
@@ -85,42 +84,12 @@ class MM_CLI extends \WP_CLI_Command {
 			}
 		}
 
-		$count    = 0;
-		$skipped  = 0;
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Queuing compression', count( $ids ) );
-
-		foreach ( $ids as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-			$file = get_attached_file( $id );
-
-			if ( ! $file || ! file_exists( $file ) ) {
-				++$skipped;
-				$progress->tick();
-				continue;
-			}
-
-			if ( ! $force && MM_Status::is_compressed( $id, 'full' ) ) {
-				++$skipped;
-				$progress->tick();
-				continue;
-			}
-
-			if ( MM_Metadata::is_video_mime( $mime ) ) {
-				// Video: single lossless remux job.
-				MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'cli' ] );
-			} else {
-				// Image: queue all registered sizes.
-				$meta = wp_get_attachment_metadata( $id ) ?: [];
-				MM_Job_Queue::enqueue_all_sizes( $id, $meta, 'compression', [ 'trigger' => 'cli' ] );
-			}
-
-			++$count;
-			$progress->tick();
-		}
-
-		$progress->finish();
-		\WP_CLI::success( "Queued compression for {$count} file(s). Skipped: {$skipped}." );
+		$result = MM_Media_Service::compress( $ids, 'cli', $force );
+		\WP_CLI::success( sprintf(
+			'Queued compression for %d file(s). Skipped: %d.',
+			$result['count'],
+			$result['skipped']
+		) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -455,33 +424,12 @@ class MM_CLI extends \WP_CLI_Command {
 			return;
 		}
 
-		$count    = 0;
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Scanning library', count( $ids ) );
-
-		foreach ( $ids as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-
-			// Queue an import job so the daemon reads embedded tags and reports
-			// back. The metadata write-back job is triggered by the result handler.
-			MM_Metadata::enqueue_import_job( $id );
-
-			// Queue compression separately — does not depend on metadata import.
-			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'compression', [ 'trigger' => 'scan' ] );
-			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
-				$file = get_attached_file( $id );
-				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => 'scan' ] );
-				}
-			}
-
-			++$count;
-			$progress->tick();
-		}
-
-		$progress->finish();
-		\WP_CLI::success( "Scanned {$count} file(s): queued daemon import jobs. WordPress fields will be populated once the daemon processes each file." );
+		$result = MM_Media_Service::scan( $ids, 'cli' );
+		\WP_CLI::success( sprintf(
+			'Scanned %d file(s): queued daemon import jobs. Skipped: %d. WordPress fields will be populated once the daemon processes each file.',
+			$result['count'],
+			$result['skipped']
+		) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -546,46 +494,18 @@ class MM_CLI extends \WP_CLI_Command {
 			}
 		}
 
-		$done_ids = $force ? [] : MM_DB::get_ids_with_completed_job( 'metadata' );
-
-		$count    = 0;
-		$skipped  = 0;
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Queuing embed jobs', count( $ids ) );
-
-		foreach ( $ids as $id ) {
-			$id   = (int) $id;
-			$mime = (string) get_post_mime_type( $id );
-
-			if ( ! $force && in_array( $id, $done_ids, true ) ) {
-				++$skipped;
-				$progress->tick();
-				continue;
-			}
-
-			if ( wp_attachment_is_image( $id ) ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'cli' ] );
-				++$count;
-			} elseif ( MM_Metadata::is_av_mime( $mime ) || MM_Metadata::is_pdf_mime( $mime ) ) {
-				if ( MM_Metadata::can_write_meta( $mime ) ) {
-					$file = get_attached_file( $id );
-					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => 'cli' ] );
-						++$count;
-					} else {
-						++$skipped;
-					}
-				} else {
-					++$skipped;
-				}
-			} else {
-				++$skipped;
-			}
-
-			$progress->tick();
+		// Skip already-embedded unless --force.
+		if ( ! $force ) {
+			$done_ids = MM_DB::get_ids_with_completed_job( 'metadata' );
+			$ids      = array_values( array_diff( array_map( 'intval', $ids ), $done_ids ) );
 		}
 
-		$progress->finish();
-		\WP_CLI::success( "Queued embed jobs for {$count} file(s). Skipped: {$skipped}." );
+		$result = MM_Media_Service::embed_metadata( $ids, 'cli' );
+		\WP_CLI::success( sprintf(
+			'Queued embed jobs for %d file(s). Skipped: %d.',
+			$result['count'],
+			$result['skipped']
+		) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -670,10 +590,6 @@ class MM_CLI extends \WP_CLI_Command {
 		$creator   = (string) ( $assoc_args['creator'] ?? '' );
 		$copyright = (string) ( $assoc_args['copyright'] ?? '' );
 
-		if ( '' === $license && '' === $credit && '' === $acquire && '' === $creator && '' === $copyright ) {
-			\WP_CLI::error( 'Provide at least one of --license, --credit, --acquire, --creator, or --copyright.' );
-		}
-
 		$target = $args[0] ?? '';
 		if ( 'all' === strtolower( $target ) ) {
 			$ids = get_posts( [
@@ -690,32 +606,19 @@ class MM_CLI extends \WP_CLI_Command {
 			\WP_CLI::error( 'No matching images found.' );
 		}
 
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( ! wp_attachment_is_image( $id ) ) {
-				continue;
-			}
-			if ( '' !== $license ) {
-				update_post_meta( $id, MM_Metadata::META_LICENSE, $license );
-			}
-			if ( '' !== $credit ) {
-				update_post_meta( $id, MM_Metadata::META_CREDIT, $credit );
-			}
-			if ( '' !== $acquire ) {
-				update_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, $acquire );
-			}
-			if ( '' !== $creator ) {
-				update_post_meta( $id, MM_Metadata::META_CREATOR, $creator );
-			}
-			if ( '' !== $copyright ) {
-				update_post_meta( $id, MM_Metadata::META_COPYRIGHT, $copyright );
-			}
-			// Queue daemon job to write synced fields to file metadata.
-			MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'cli' ] );
-			++$count;
+		$result = MM_Media_Service::set_licensing( $ids, [
+			'creator'   => $creator,
+			'credit'    => $credit,
+			'copyright' => $copyright,
+			'license'   => $license,
+			'acquire'   => $acquire,
+		], 'cli' );
+
+		if ( ! empty( $result['errors'] ) ) {
+			\WP_CLI::error( implode( ' ', $result['errors'] ) );
 		}
 
-		\WP_CLI::success( sprintf( 'Attribution applied to %d images. Metadata sync jobs queued.', $count ) );
+		\WP_CLI::success( sprintf( 'Attribution applied to %d images. Metadata sync jobs queued.', $result['count'] ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -764,56 +667,11 @@ class MM_CLI extends \WP_CLI_Command {
 			\WP_CLI::error( 'No matching images found.' );
 		}
 
-		$count = 0;
-		$skipped = 0;
-		foreach ( $ids as $id ) {
-			if ( ! wp_attachment_is_image( $id ) ) {
-				continue;
-			}
-
-			$lat = (float) get_post_meta( $id, MM_Metadata::META_GPS_LAT, true );
-			$lng = (float) get_post_meta( $id, MM_Metadata::META_GPS_LON, true );
-			if ( 0.0 === $lat && 0.0 === $lng ) {
-				++$skipped;
-				continue;
-			}
-
-			$city    = trim( (string) get_post_meta( $id, MM_Metadata::META_CITY, true ) );
-			$state   = trim( (string) get_post_meta( $id, MM_Metadata::META_STATE, true ) );
-			$country = trim( (string) get_post_meta( $id, MM_Metadata::META_COUNTRY, true ) );
-
-			if ( '' !== $city && '' !== $state && '' !== $country ) {
-				++$skipped;
-				continue;
-			}
-
-			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
-			if ( ! $geo ) {
-				++$skipped;
-				continue;
-			}
-
-			$updated = false;
-			if ( '' === $city && '' !== $geo['city'] ) {
-				update_post_meta( $id, MM_Metadata::META_CITY, $geo['city'] );
-				$updated = true;
-			}
-			if ( '' === $state && '' !== $geo['state'] ) {
-				update_post_meta( $id, MM_Metadata::META_STATE, $geo['state'] );
-				$updated = true;
-			}
-			if ( '' === $country && '' !== $geo['country'] ) {
-				update_post_meta( $id, MM_Metadata::META_COUNTRY, $geo['country'] );
-				$updated = true;
-			}
-			if ( $updated ) {
-				++$count;
-			} else {
-				++$skipped;
-			}
+		$result = MM_Media_Service::geocode( $ids, 'cli' );
+		if ( ! empty( $result['errors'] ) ) {
+			\WP_CLI::warning( implode( ' ', $result['errors'] ) );
 		}
-
-		\WP_CLI::success( sprintf( 'Geocoded %d images (%d skipped).', $count, $skipped ) );
+		\WP_CLI::success( sprintf( 'Geocoded %d images (%d skipped).', $result['count'], $result['skipped'] ) );
 	}
 
 	// -----------------------------------------------------------------------
