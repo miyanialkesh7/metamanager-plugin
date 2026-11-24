@@ -266,7 +266,9 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
 		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
 			'Scan must queue WebP generation for JPEG.' );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		if ( MM_Status::exiftool_available() ) {
+			$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		}
 	}
 
 	// -----------------------------------------------------------------------

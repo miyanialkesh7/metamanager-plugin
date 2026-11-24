@@ -358,8 +358,8 @@ class MM_Media_Service {
 			}
 
 			$geo = MM_Site_Settings::reverse_geocode( $key, $lat, $lng );
-			if ( is_wp_error( $geo ) ) {
-				$errors[] = "Geocode failed for {$id}: " . $geo->get_error_message();
+			if ( ! is_array( $geo ) ) {
+				$errors[] = "Geocode failed for {$id} (no result).";
 				++$skipped;
 				continue;
 			}
