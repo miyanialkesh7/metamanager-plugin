@@ -402,11 +402,13 @@ add_action( 'mm_write_status_json', MM_Cron_Tracker::wrap( 'mm_write_status_json
  * @param string $webp_path   Absolute path to the generated .webp file.
  */
 function mm_register_webp_attachment( int $original_id, string $webp_path ): void {
+	error_log( "[mm_register_webp] START: original_id={$original_id} webp_path={$webp_path}" );
 	global $wpdb;
 	$existing = $wpdb->get_var( $wpdb->prepare(
 		"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp' AND post_parent = %d",
 		$original_id
 	) );
+	error_log( "[mm_register_webp] existing_check: " . var_export( $existing, true ) );
 
 	$att_id = 0;
 	if ( $existing ) {
@@ -416,8 +418,10 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 
 	$original = get_post( $original_id );
 	if ( ! $original ) {
+		error_log( "[mm_register_webp] SKIP: original {$original_id} not found" );
 		return;
 	}
+	error_log( "[mm_register_webp] original found: {$original->post_title}" );
 
 	if ( ! $att_id ) {
 		require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -437,11 +441,15 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 			'guid'           => $webp_url,
 		];
 
+		error_log( "[mm_register_webp] calling wp_insert_attachment for {$webp_path}" );
 		$att_id = wp_insert_attachment( $attachment, $webp_path, $original_id );
 		if ( ! $att_id ) {
-			error_log( '[Metamanager] Failed to register WebP attachment: ' . $webp_path );
+			error_log( '[mm_register_webp] FAIL: wp_insert_attachment returned 0 for: ' . $webp_path );
 			return;
 		}
+		error_log( "[mm_register_webp] wp_insert_attachment returned: {$att_id}" );
+	} else {
+		error_log( "[mm_register_webp] using existing attachment: {$att_id}" );
 	}
 
 	// Copy schema/meta fields from the original BEFORE wp_generate_attachment_metadata.
@@ -477,13 +485,17 @@ function mm_register_webp_attachment( int $original_id, string $webp_path ): voi
 	// Generate WP metadata (sizes, etc.) only when freshly created.
 	// Reusing an existing attachment means metadata was already generated.
 	if ( ! $existing ) {
+		error_log( "[mm_register_webp] generating WP metadata for attachment {$att_id}" );
 		$webp_meta = wp_generate_attachment_metadata( $att_id, $webp_path );
 		if ( is_array( $webp_meta ) ) {
 			wp_update_attachment_metadata( $att_id, $webp_meta );
+			error_log( "[mm_register_webp] WP metadata generated: " . count( $webp_meta['sizes'] ?? [] ) . " sizes" );
+		} else {
+			error_log( "[mm_register_webp] WARNING: wp_generate_attachment_metadata returned non-array" );
 		}
 	}
 
-	error_log( sprintf( '[Metamanager] WebP registered as attachment %d: %s', $att_id, $webp_path ) );
+	error_log( sprintf( '[mm_register_webp] DONE: attachment %d registered for %s', $att_id, $webp_path ) );
 }
 
 
