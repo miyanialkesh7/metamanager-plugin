@@ -209,8 +209,8 @@ class MM_Job_Queue {
 			self::write_job( $type, $attachment_id, $file, 'full', $extra );
 		}
 
-		// All generated sizes.
-		if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+		// All generated sizes (skip for webp — WordPress generates sizes on registration).
+		if ( $types !== 'webp' && ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
 			$dir = trailingslashit( pathinfo( $file, PATHINFO_DIRNAME ) );
 			foreach ( $meta['sizes'] as $size => $info ) {
 				if ( empty( $info['file'] ) ) {
