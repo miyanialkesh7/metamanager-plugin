@@ -90,6 +90,7 @@ class MM_DB {
 			attachment_id BIGINT(20) UNSIGNED NOT NULL,
 			image_name VARCHAR(255) NOT NULL DEFAULT '',
 			job_type VARCHAR(32) NOT NULL DEFAULT 'metadata',
+			job_subtype VARCHAR(32) NOT NULL DEFAULT '',
 			job_trigger VARCHAR(64) NOT NULL DEFAULT '',
 			file_path TEXT NOT NULL,
 			size VARCHAR(64) NOT NULL DEFAULT '',
@@ -136,6 +137,7 @@ class MM_DB {
 		}
 		if ( $type === 'metadata' || $type === 'import' ) {
 			$data['job_type']    = sanitize_key( $job['job_type'] ?? $type );
+			$data['job_subtype'] = sanitize_key( $job['job_subtype'] ?? '' );
 			$data['job_trigger'] = sanitize_key( $job['trigger'] ?? '' );
 			$data['metadata']    = wp_json_encode( $job['metadata'] ?? [] );
 		}
@@ -195,6 +197,7 @@ class MM_DB {
 		}
 		if ( $type === 'metadata' || $type === 'import' ) {
 			$data['job_type']    = sanitize_key( $job['job_type'] ?? $type );
+			$data['job_subtype'] = sanitize_key( $job['job_subtype'] ?? '' );
 			$data['job_trigger'] = sanitize_key( $job['trigger'] ?? '' );
 			$data['metadata']    = wp_json_encode( $job['metadata'] ?? [] );
 		}

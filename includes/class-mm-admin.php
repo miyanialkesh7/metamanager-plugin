@@ -2322,6 +2322,18 @@ class MM_Admin {
 
 		$nonce = wp_create_nonce( 'mm_bulk_meta_apply' );
 
+		// Fetch pending job subtypes per attachment for the grid badges.
+		$pending_subtypes = [];
+		foreach ( [ 'webp', 'compression', 'metadata' ] as $qtype ) {
+			$pending_rows = MM_DB::get_jobs( [ 'job_type' => $qtype, 'status' => 'pending', 'per_page' => 1000 ] );
+			foreach ( ( $pending_rows['jobs'] ?? [] ) as $prow ) {
+				$aid = (int) ( $prow->attachment_id ?? 0 );
+				if ( $aid ) {
+					$pending_subtypes[ $aid ][] = $prow->job_subtype ?: $qtype;
+				}
+			}
+		}
+
 		// Compressible MIME types (must match CLI compressible_mimes).
 		$compressible = array_merge(
 			[ 'image/jpeg', 'image/png', 'image/webp', 'image/avif' ],
@@ -2537,6 +2549,27 @@ class MM_Admin {
 									<?php if ( $rating > 0 ) : ?>
 										<div style="font-size:10px;color:#dba617;letter-spacing:1px;">
 											<?php echo esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) ); ?>
+										</div>
+									<?php endif; ?>
+									<?php
+									// Two-way sync status: WP ↔ file.
+									$synced   = get_post_meta( $id, MM_Metadata::META_SYNCED, true );
+									$verified = get_post_meta( $id, MM_Metadata::META_VERIFIED_AT, true );
+									$discrep  = get_post_meta( $id, MM_Metadata::META_VERIFY_DISCREPANCIES, true );
+									$discrep_count = $discrep ? count( (array) json_decode( (string) $discrep, true ) ) : 0;
+									if ( $discrep_count > 0 ) {
+										echo '<div style="font-size:10px;color:#d63638;margin-top:2px;" title="' . esc_attr__( 'File and WordPress metadata differ', 'metamanager' ) . '">&#9888; ' . esc_html( sprintf( _n( '%d discrepancy', '%d discrepancies', $discrep_count, 'metamanager' ), $discrep_count ) ) . '</div>';
+									} elseif ( $synced && $verified ) {
+										echo '<div style="font-size:10px;color:#00a32a;margin-top:2px;" title="' . esc_attr__( 'File and WordPress are in sync', 'metamanager' ) . '">&#10003; ' . esc_html__( 'Synced', 'metamanager' ) . '</div>';
+									} elseif ( $synced ) {
+										echo '<div style="font-size:10px;color:#0073aa;margin-top:2px;" title="' . esc_attr__( 'Metadata written to file, not yet verified', 'metamanager' ) . '">&#8635; ' . esc_html__( 'Written', 'metamanager' ) . '</div>';
+									} else {
+										echo '<div style="font-size:10px;color:#dba617;margin-top:2px;" title="' . esc_attr__( 'File metadata not yet synced from WordPress', 'metamanager' ) . '">&#9675; ' . esc_html__( 'Not synced', 'metamanager' ) . '</div>';
+									}
+									?>
+									<?php if ( ! empty( $pending_subtypes[ $id ] ) ) : ?>
+										<div style="font-size:9px;color:#dba617;margin-top:2px;" title="<?php echo esc_attr( implode( ', ', array_unique( $pending_subtypes[ $id ] ) ) ); ?>">
+											&#8987; <?php echo esc_html( implode( ', ', array_unique( $pending_subtypes[ $id ] ) ) ); ?>
 										</div>
 									<?php endif; ?>
 									<div style="font-size:9px;color:#a7aaad;margin-top:2px;"><?php echo esc_html( strtoupper( pathinfo( $mime, PATHINFO_EXTENSION ) ) ); ?></div>

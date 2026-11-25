@@ -109,8 +109,12 @@ class MM_Media_Service {
 	 * @param array  $fields  Optional field map (meta_key => value).
 	 * @return array{count: int, skipped: int, errors: string[]}
 	 */
-	public static function embed_metadata( array $ids, string $trigger = 'service', array $fields = [] ): array {
+	public static function embed_metadata( array $ids, string $trigger = 'service', array $fields = [], string $subtype = '' ): array {
 		$count   = 0;
+		// Derive subtype from fields if not explicitly set.
+		if ( ! $subtype ) {
+			$subtype = ( ! empty( $fields[ MM_Metadata::META_COPYRIGHT ] ) || ! empty( $fields[ MM_Metadata::META_LICENSE ] ) || ! empty( $fields[ MM_Metadata::META_ACQUIRE_LICENSE_PAGE ] ) ) ? 'copyright' : 'edit';
+		}
 		$skipped = 0;
 		$errors  = [];
 
@@ -173,7 +177,7 @@ class MM_Media_Service {
 			} else {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) && MM_Metadata::can_write_meta( $mime ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger ] );
+					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger, 'job_subtype' => 'import' ] );
 				} else {
 					++$skipped;
 					continue;
@@ -288,11 +292,11 @@ class MM_Media_Service {
 			}
 
 			if ( $is_image ) {
-				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => $trigger ] );
+				MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => $trigger, 'job_subtype' => 'provenance' ] );
 			} else {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) && MM_Metadata::can_write_meta( $mime ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger ] );
+					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger, 'job_subtype' => 'provenance' ] );
 				} else {
 					++$skipped;
 					continue;
@@ -420,7 +424,7 @@ class MM_Media_Service {
 			} elseif ( MM_Metadata::is_video_mime( $mime ) ) {
 				$file = get_attached_file( $id );
 				if ( $file && file_exists( $file ) ) {
-					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger ] );
+					MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger, 'job_subtype' => 'import' ] );
 					MM_Job_Queue::write_job( 'compression', $id, $file, 'full', [ 'trigger' => $trigger ] );
 					++$count;
 				} else {
@@ -430,7 +434,7 @@ class MM_Media_Service {
 				if ( MM_Metadata::can_write_meta( $mime ) ) {
 					$file = get_attached_file( $id );
 					if ( $file && file_exists( $file ) ) {
-						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger ] );
+						MM_Job_Queue::write_job( 'metadata', $id, $file, 'full', [ 'trigger' => $trigger, 'job_subtype' => 'import' ] );
 						++$count;
 					} else {
 						++$skipped;

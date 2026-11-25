@@ -235,10 +235,10 @@ class MM_Job_Queue {
 			//   losslessly re-encode a lossy file (wasteful, potentially larger).
 			$job_types = ( 'image/webp' === $mime ) ? 'metadata' : 'compress+webp';
 			if ( $is_regeneration ) {
-				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'thumbnail_regen' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'thumbnail_regen', 'job_subtype' => 'edit' ] );
 			} else {
 				MM_Metadata::enqueue_import_job( $attachment_id );
-				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'upload' ] );
+				self::enqueue_all_sizes( $attachment_id, $metadata, $job_types, [ 'trigger' => 'upload', 'job_subtype' => 'provenance' ] );
 			}
 			return $metadata;
 		}
@@ -255,7 +255,7 @@ class MM_Job_Queue {
 		} else {
 			// Re-upload of an existing file: write current WP fields back.
 			if ( MM_Metadata::can_write_meta( $mime ) ) {
-				self::write_job( 'metadata', $attachment_id, $file, 'full', [ 'trigger' => 'upload' ] );
+				self::write_job( 'metadata', $attachment_id, $file, 'full', [ 'trigger' => 'upload', 'job_subtype' => 'provenance' ] );
 			}
 		}
 
@@ -339,7 +339,7 @@ class MM_Job_Queue {
 			(int) $row->attachment_id,
 			$row->file_path,
 			$row->size,
-			[ 'trigger' => 'requeue', 'requeue_source_id' => $job_id ]
+			[ 'trigger' => 'requeue', 'job_subtype' => 'requeue', 'requeue_source_id' => $job_id ]
 		);
 
 		return true;
