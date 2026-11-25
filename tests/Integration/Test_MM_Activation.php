@@ -14,20 +14,22 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	public function test_activate_creates_job_tables(): void {
 		global $wpdb;
 
-		// The WP test suite wraps tests in a transaction (autocommit=0).
-		// DDL auto-commits in MySQL, but SHOW TABLES may not see it until
-		// we explicitly commit.
 		MM_DB::create_or_update_tables();
-		$wpdb->query( 'COMMIT' );
 
+		// Use information_schema instead of SHOW TABLES — the WP test
+		// transaction can make SHOW TABLES miss freshly created tables.
+		$db_name = $wpdb->dbname;
 		$expected = [
 			$wpdb->prefix . 'mm_webp_queue',
 			$wpdb->prefix . 'mm_compress_queue',
 			$wpdb->prefix . 'mm_meta_queue',
 		];
-		$all_tables = $wpdb->get_col( 'SHOW TABLES' );
 		foreach ( $expected as $table ) {
-			$this->assertContains( $table, $all_tables, "Table {$table} should exist. Got: " . implode( ', ', $all_tables ) );
+			$found = $wpdb->get_var( $wpdb->prepare(
+				'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s AND table_name = %s',
+				$db_name, $table
+			) );
+			$this->assertSame( 1, (int) $found, "Table {$table} should exist in {$db_name}." );
 		}
 	}
 
