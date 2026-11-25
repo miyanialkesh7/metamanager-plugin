@@ -42,72 +42,69 @@ class MM_DB {
 	public static function create_or_update_tables(): void {
 		global $wpdb;
 		$charset = $wpdb->get_charset_collate();
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		// WebP queue — minimal: daemon generates webp from source file.
-		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_webp() . " (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			file_path TEXT NOT NULL,
-			size VARCHAR(64) NOT NULL DEFAULT '',
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			completed_at DATETIME DEFAULT NULL,
-			details LONGTEXT DEFAULT NULL,
-			PRIMARY KEY (id),
-			KEY idx_status (status),
-			KEY idx_submitted (submitted_at)
-		) {$charset};";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$wpdb->query( $sql );
-		if ( $wpdb->last_error ) { error_log( '[MM_DB] webp table error: ' . $wpdb->last_error ); }
+		// dbDelta requires exact formatting: no IF NOT EXISTS, two spaces
+		// before PRIMARY KEY / KEY / UNIQUE KEY.
+		$tables = [];
 
-		// Compression queue — needs dimensions, optimize level, byte counts.
-		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_compress() . " (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			file_path TEXT NOT NULL,
-			size VARCHAR(64) NOT NULL DEFAULT '',
-			dimensions VARCHAR(32) NOT NULL DEFAULT '',
-			optimize_level TINYINT NOT NULL DEFAULT 2,
-			bytes_before BIGINT(20) UNSIGNED DEFAULT NULL,
-			bytes_after BIGINT(20) UNSIGNED DEFAULT NULL,
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			completed_at DATETIME DEFAULT NULL,
-			details LONGTEXT DEFAULT NULL,
-			PRIMARY KEY (id),
-			KEY idx_status (status),
-			KEY idx_submitted (submitted_at)
-		) {$charset};";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$wpdb->query( $sql );
-		if ( $wpdb->last_error ) { error_log( '[MM_DB] compress table error: ' . $wpdb->last_error ); }
+		$tables[] = "CREATE TABLE " . self::table_webp() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
 
-		// Metadata queue — needs the metadata payload to embed.
-		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_meta() . " (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			job_type VARCHAR(32) NOT NULL DEFAULT 'metadata',
-			job_subtype VARCHAR(32) NOT NULL DEFAULT '',
-			job_trigger VARCHAR(64) NOT NULL DEFAULT '',
-			file_path TEXT NOT NULL,
-			size VARCHAR(64) NOT NULL DEFAULT '',
-			metadata LONGTEXT DEFAULT NULL,
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			completed_at DATETIME DEFAULT NULL,
-			details LONGTEXT DEFAULT NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY uniq_job (attachment_id, job_type, size),
-			KEY idx_status (status),
-			KEY idx_submitted (submitted_at)
-		) {$charset};";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$wpdb->query( $sql );
-		if ( $wpdb->last_error ) { error_log( '[MM_DB] meta table error: ' . $wpdb->last_error ); }
+		$tables[] = "CREATE TABLE " . self::table_compress() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  dimensions varchar(32) NOT NULL DEFAULT '',
+  optimize_level tinyint NOT NULL DEFAULT 2,
+  bytes_before bigint(20) unsigned DEFAULT NULL,
+  bytes_after bigint(20) unsigned DEFAULT NULL,
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
+
+		$tables[] = "CREATE TABLE " . self::table_meta() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  job_type varchar(32) NOT NULL DEFAULT 'metadata',
+  job_subtype varchar(32) NOT NULL DEFAULT '',
+  job_trigger varchar(64) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  metadata longtext DEFAULT NULL,
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY uniq_job (attachment_id, job_type, size),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
+
+		foreach ( $tables as $sql ) {
+			dbDelta( $sql );
+		}
 	}
 
 	// ── Write: queue a job ──────────────────────────────────────────
