@@ -12,17 +12,22 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	// ------------------------------------------------------------------
 
 	public function test_activate_creates_job_tables(): void {
+		global $wpdb;
+		$wpdb->show_errors( true );
+		$wpdb->suppress_errors( false );
+
 		MM_DB::create_or_update_tables();
 
-		global $wpdb;
+		$last_error = $wpdb->last_error;
 		$expected = [
 			$wpdb->prefix . 'mm_webp_queue',
 			$wpdb->prefix . 'mm_compress_queue',
 			$wpdb->prefix . 'mm_meta_queue',
 		];
 		$all_tables = $wpdb->get_col( 'SHOW TABLES' );
+		$this->assertEmpty( $last_error, "DB error after create_or_update_tables: {$last_error}" );
 		foreach ( $expected as $table ) {
-			$this->assertContains( $table, $all_tables, "Table {$table} should exist after create_or_update_tables(). Got: " . implode( ', ', $all_tables ) );
+			$this->assertContains( $table, $all_tables, "Table {$table} should exist. Got: " . implode( ', ', $all_tables ) );
 		}
 	}
 

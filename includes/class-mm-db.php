@@ -60,6 +60,7 @@ class MM_DB {
 		) {$charset};";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
+		if ( $wpdb->last_error ) { error_log( '[MM_DB] webp table error: ' . $wpdb->last_error ); }
 
 		// Compression queue — needs dimensions, optimize level, byte counts.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_compress() . " (
@@ -82,6 +83,7 @@ class MM_DB {
 		) {$charset};";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
+		if ( $wpdb->last_error ) { error_log( '[MM_DB] compress table error: ' . $wpdb->last_error ); }
 
 		// Metadata queue — needs the metadata payload to embed.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_meta() . " (
@@ -105,6 +107,7 @@ class MM_DB {
 		) {$charset};";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
+		if ( $wpdb->last_error ) { error_log( '[MM_DB] meta table error: ' . $wpdb->last_error ); }
 	}
 
 	// ── Write: queue a job ──────────────────────────────────────────
