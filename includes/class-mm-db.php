@@ -59,7 +59,7 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( implode("\n", array_map('ltrim', explode("\n", $sql))) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
 
 		// Compression queue — needs dimensions, optimize level, byte counts.
@@ -81,7 +81,7 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( implode("\n", array_map('ltrim', explode("\n", $sql))) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
 
 		// Metadata queue — needs the metadata payload to embed.
@@ -104,7 +104,7 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( implode("\n", array_map('ltrim', explode("\n", $sql))) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$wpdb->query( $sql );
 	}
 
