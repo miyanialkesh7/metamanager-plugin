@@ -156,6 +156,7 @@ class MM_DB {
 		}
 
 		// Explicit upsert: same (attachment_id, size) replaces existing row.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 		$existing = $wpdb->get_var( $wpdb->prepare(
 			"SELECT id FROM {$table} WHERE attachment_id = %d AND size = %s LIMIT 1",
 			$data['attachment_id'], $data['size']
@@ -305,6 +306,7 @@ class MM_DB {
 		global $wpdb;
 		foreach ( [ self::table_webp(), self::table_compress(), self::table_meta() ] as $table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
 		}
 	}
@@ -365,11 +367,13 @@ class MM_DB {
 			}
 
 			$count_params = $params;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where built from sanitized conditions
 			$count_row = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE ' . $where, array_merge( [ $table ], $count_params ) ) );
 			$total += (int) $count_row;
 
 			$params[] = $per_page;
 			$params[] = $offset;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $orderby/$order from whitelist, $where from sanitized conditions
 			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE ' . $where . " ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d", array_merge( [ $table ], $params ) ), OBJECT );
 			$results = array_merge( $results, $rows );
 		}
@@ -433,11 +437,13 @@ class MM_DB {
 				'failed'    => $failed,
 			);
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 			$ids = $wpdb->get_col( "SELECT DISTINCT attachment_id FROM {$table}" );
 			$all_ids = array_merge( $all_ids, array_map( 'intval', $ids ) );
 			// Byte counts (compression table only has these columns).
 			if ( $type === 'compression' ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 				$row = $wpdb->get_row( "SELECT COALESCE(SUM(bytes_before),0) AS ob, COALESCE(SUM(bytes_after),0) AS oa FROM {$table} WHERE bytes_before IS NOT NULL" );
 				if ( $row ) {
 					$stats['bytes_original'] += (int) $row->ob;
