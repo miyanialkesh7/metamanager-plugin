@@ -42,7 +42,6 @@ class MM_DB {
 	public static function create_or_update_tables(): void {
 		global $wpdb;
 		$charset = $wpdb->get_charset_collate();
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		// WebP queue — minimal: daemon generates webp from source file.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_webp() . " (
