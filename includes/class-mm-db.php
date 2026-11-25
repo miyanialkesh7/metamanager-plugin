@@ -156,8 +156,8 @@ class MM_DB {
 		}
 
 		// Explicit upsert: same (attachment_id, size) replaces existing row.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 		$existing = $wpdb->get_var( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
 			"SELECT id FROM {$table} WHERE attachment_id = %d AND size = %s LIMIT 1",
 			$data['attachment_id'], $data['size']
 		) );
