@@ -14,17 +14,12 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	public function test_activate_creates_job_tables(): void {
 		global $wpdb;
 
-		// Probe: raw CREATE TABLE works in this environment.
-		$test_table = $wpdb->prefix . 'mm_test_probe';
-		$probe_result = $wpdb->query( "CREATE TABLE IF NOT EXISTS {$test_table} (id INT)" );
-		$all_tables = $wpdb->get_col( 'SHOW TABLES' );
-		$this->assertContains( $test_table, $all_tables, "Raw CREATE TABLE failed (result: " . var_export( $probe_result, true ) . ", error: {$wpdb->last_error}). Got: " . implode( ', ', $all_tables ) );
-		$wpdb->query( "DROP TABLE IF EXISTS {$test_table}" );
-
-		// Now call the actual method.
+		// The WP test suite wraps tests in a transaction (autocommit=0).
+		// DDL auto-commits in MySQL, but SHOW TABLES may not see it until
+		// we explicitly commit.
 		MM_DB::create_or_update_tables();
+		$wpdb->query( 'COMMIT' );
 
-		$last_error = $wpdb->last_error;
 		$expected = [
 			$wpdb->prefix . 'mm_webp_queue',
 			$wpdb->prefix . 'mm_compress_queue',
@@ -32,7 +27,7 @@ class Test_MM_Activation extends WP_UnitTestCase {
 		];
 		$all_tables = $wpdb->get_col( 'SHOW TABLES' );
 		foreach ( $expected as $table ) {
-			$this->assertContains( $table, $all_tables, "Table {$table} should exist (error: {$last_error}). Got: " . implode( ', ', $all_tables ) );
+			$this->assertContains( $table, $all_tables, "Table {$table} should exist. Got: " . implode( ', ', $all_tables ) );
 		}
 	}
 
