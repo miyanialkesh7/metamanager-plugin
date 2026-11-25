@@ -252,6 +252,7 @@ if ( 'image' === $category ) {
 $cmd = array_merge( $cmd, $args_list, [ '--', $file_path ] );
 
 // Run exiftool.
+// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- required for exiftool
 $proc = proc_open( $cmd, [
 	0 => [ 'pipe', 'r' ],
 	1 => [ 'pipe', 'w' ],
@@ -280,7 +281,8 @@ if ( in_array( $ext, [ 'jpg', 'jpeg', 'png' ], true ) ) {
 	$webp_path = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $file_path );
 	if ( $webp_path !== $file_path && file_exists( $webp_path ) ) {
 		$webp_cmd = array_merge( [ $exiftool, '-overwrite_original' ], $args_list, [ '--', $webp_path ] );
-		$webp_proc = proc_open( $webp_cmd, [
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- required for exiftool
+$webp_proc = proc_open( $webp_cmd, [
 			0 => [ 'pipe', 'r' ],
 			1 => [ 'pipe', 'w' ],
 			2 => [ 'pipe', 'w' ],
@@ -296,5 +298,6 @@ if ( in_array( $ext, [ 'jpg', 'jpeg', 'png' ], true ) ) {
 	}
 }
 
-echo "Metadata written to {$file_path} (" . count( $args_list ) . " tags)\n";
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI output, not HTML
+	echo "Metadata written to {$file_path} (" . count( $args_list ) . " tags)\n";
 exit( 0 );

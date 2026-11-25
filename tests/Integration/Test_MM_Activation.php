@@ -17,9 +17,9 @@ class Test_MM_Activation extends WP_UnitTestCase {
 		global $wpdb;
 		$tables = $wpdb->get_col( "SHOW TABLES LIKE '%mm_%'" );
 		$this->assertNotEmpty( $tables );
-		$this->assertContains( 'wptests_mm_webp_queue', $tables );
-		$this->assertContains( 'wptests_mm_compress_queue', $tables );
-		$this->assertContains( 'wptests_mm_meta_queue', $tables );
+		$this->assertContains( $wpdb->prefix . 'mm_webp_queue', $tables );
+		$this->assertContains( $wpdb->prefix . 'mm_compress_queue', $tables );
+		$this->assertContains( $wpdb->prefix . 'mm_meta_queue', $tables );
 	}
 
 	public function test_activate_schedules_cron(): void {

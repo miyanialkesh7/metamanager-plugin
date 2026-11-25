@@ -53,6 +53,7 @@ if ( ! class_exists( 'MM_Metadata' ) ) {
 // Other triggers → fill empty fields only.
 if ( 'verify' === $trigger ) {
 	MM_Metadata::apply_verify_result( $attachment_id, $tags );
+	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI output, not HTML
 	echo "Verified {$attachment_id}\n";
 	exit( 0 );
 }
@@ -74,5 +75,6 @@ if ( wp_attachment_is_image( $attachment_id ) ) {
 	}
 }
 
-echo "Imported tags into WP meta for attachment {$attachment_id}\n";
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CLI output, not HTML
+	echo "Imported tags into WP meta for attachment {$attachment_id}\n";
 exit( 0 );
