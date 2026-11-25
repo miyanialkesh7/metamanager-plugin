@@ -13,9 +13,15 @@ class Test_MM_Activation extends WP_UnitTestCase {
 
 	public function test_activate_creates_job_tables(): void {
 		global $wpdb;
-		$wpdb->show_errors( true );
-		$wpdb->suppress_errors( false );
 
+		// First: prove raw CREATE TABLE works in this environment.
+		$test_table = $wpdb->prefix . 'mm_test_probe';
+		$wpdb->query( "CREATE TABLE IF NOT EXISTS {$test_table} (id INT)" );
+		$probe = $wpdb->get_var( "SHOW TABLES LIKE '{$test_table}'" );
+		$this->assertNotEmpty( $probe, 'Raw CREATE TABLE failed — DB permissions issue.' );
+		$wpdb->query( "DROP TABLE IF EXISTS {$test_table}" );
+
+		// Now call the actual method.
 		MM_DB::create_or_update_tables();
 
 		$last_error = $wpdb->last_error;
