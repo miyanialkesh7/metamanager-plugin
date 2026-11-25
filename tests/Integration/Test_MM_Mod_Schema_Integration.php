@@ -14,7 +14,7 @@ class Test_MM_Mod_Schema_Integration extends WP_UnitTestCase {
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 		if ( class_exists( 'MM_DB' ) ) {
-			MM_DB::create_or_update_table();
+			MM_DB::create_or_update_tables();
 		}
 	}
 

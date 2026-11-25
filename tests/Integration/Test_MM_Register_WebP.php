@@ -16,7 +16,7 @@ class Test_MM_Register_WebP extends WP_UnitTestCase {
 
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 	}
 
 	public function tear_down(): void {

@@ -43,7 +43,7 @@ class Test_MM_REST extends WP_Test_REST_TestCase {
 
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 		// The rest_api_init hook for register_rest_routes lives in metamanager.php
 		// which is not loaded in tests — register it here explicitly.
 		add_action( 'rest_api_init', [ 'MM_Admin', 'register_rest_routes' ] );
@@ -164,7 +164,7 @@ class Test_MM_REST extends WP_Test_REST_TestCase {
 		// Insert a job row directly.
 		global $wpdb;
 		$wpdb->insert(
-			$wpdb->prefix . MM_JOB_TABLE,
+			MM_DB::table_meta(),
 			[
 				'attachment_id' => 1,
 				'size'          => 'full',
@@ -297,7 +297,7 @@ class Test_MM_REST extends WP_Test_REST_TestCase {
 	public function test_job_trigger_field_present_in_jobs_response(): void {
 		global $wpdb;
 		$wpdb->insert(
-			$wpdb->prefix . MM_JOB_TABLE,
+			MM_DB::table_meta(),
 			[
 				'attachment_id' => 1,
 				'size'          => 'full',

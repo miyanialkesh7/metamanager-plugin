@@ -253,7 +253,7 @@ class MM_Status {
 	 * @return bool
 	 */
 	public static function is_compressed( int $attachment_id, string $size ): bool {
-		return MM_DB::has_completed_compression( $attachment_id, $size );
+		return MM_DB::has_any_completed_job( $attachment_id );
 	}
 
 	/**
@@ -358,18 +358,12 @@ class MM_Status {
 
 		$system = self::system_status();
 
-		// Queue depth from job directories.
-		$compress_queue = 0;
-		$meta_queue     = 0;
-		$webp_queue     = 0;
-		$completed      = 0;
-		$failed         = 0;
-		foreach ( [ 'compress' => 'compress_queue', 'meta' => 'meta_queue', 'webp' => 'webp_queue', 'completed' => 'completed', 'failed' => 'failed' ] as $dir => $key ) {
-			$path = $job_root . '/' . $dir;
-			if ( is_dir( $path ) ) {
-				$$key = count( glob( $path . '/*.json' ) ) + count( glob( $path . '/*.json.processing' ) );
-			}
-		}
+		// Queue depth from DB tables (single source of truth).
+		$compress_queue = MM_DB::count_by_status( 'compression', 'pending' ) + MM_DB::count_by_status( 'compression', 'processing' );
+		$meta_queue     = MM_DB::count_by_status( 'metadata', 'pending' ) + MM_DB::count_by_status( 'metadata', 'processing' );
+		$webp_queue     = MM_DB::count_by_status( 'webp', 'pending' ) + MM_DB::count_by_status( 'webp', 'processing' );
+		$completed      = MM_DB::count_by_status( 'compression', 'completed' ) + MM_DB::count_by_status( 'metadata', 'completed' ) + MM_DB::count_by_status( 'webp', 'completed' );
+		$failed         = MM_DB::count_by_status( 'compression', 'failed' ) + MM_DB::count_by_status( 'metadata', 'failed' ) + MM_DB::count_by_status( 'webp', 'failed' );
 
 		// Daemon PIDs.
 		$compress_pid = null;

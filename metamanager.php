@@ -44,11 +44,6 @@ define( 'MM_META_KEY',          '_mm_meta' );
  * so PHP and the OS always agree on the location — no hardcoded paths anywhere.
  */
 define( 'MM_JOB_ROOT',     WP_CONTENT_DIR . '/metamanager-jobs' );
-define( 'MM_JOB_COMPRESS', MM_JOB_ROOT . '/compress/' );
-define( 'MM_JOB_META',     MM_JOB_ROOT . '/meta/' );
-define( 'MM_JOB_WEBP',     MM_JOB_ROOT . '/webp/' );
-define( 'MM_JOB_DONE',     MM_JOB_ROOT . '/completed/' );
-define( 'MM_JOB_FAILED',   MM_JOB_ROOT . '/failed/' );
 
 /** Database table name (without prefix). */
 define( 'MM_JOB_TABLE', 'metamanager_jobs' );
@@ -200,10 +195,9 @@ register_deactivation_hook( MM_PLUGIN_FILE, 'mm_deactivate' );
  * and flush rewrite rules so sitemap URLs resolve immediately.
  */
 function mm_activate_single_site(): void {
-	MM_DB::create_or_update_table();
+	MM_DB::create_or_update_tables();
 	MM_Metadata_History::create_or_update_table();
 	MM_Mod_Links::create_table();
-	MM_Job_Queue::ensure_dirs();
 
 	// Cron events: status reporting only. Daemons handle all processing
 	// and call process-result.php directly — no import cron.

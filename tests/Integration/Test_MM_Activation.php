@@ -11,14 +11,15 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	// mm_activate_single_site()
 	// ------------------------------------------------------------------
 
-	public function test_activate_creates_job_directories(): void {
+	public function test_activate_creates_job_tables(): void {
 		mm_activate_single_site();
 
-		$this->assertDirectoryExists( MM_JOB_ROOT );
-		$this->assertDirectoryExists( MM_JOB_COMPRESS );
-		$this->assertDirectoryExists( MM_JOB_META );
-		$this->assertDirectoryExists( MM_JOB_DONE );
-		$this->assertDirectoryExists( MM_JOB_FAILED );
+		global $wpdb;
+		$tables = $wpdb->get_col( "SHOW TABLES LIKE '%mm_%'" );
+		$this->assertNotEmpty( $tables );
+		$this->assertContains( 'wptests_mm_webp_queue', $tables );
+		$this->assertContains( 'wptests_mm_compress_queue', $tables );
+		$this->assertContains( 'wptests_mm_meta_queue', $tables );
 	}
 
 	public function test_activate_schedules_cron(): void {
@@ -33,7 +34,7 @@ class Test_MM_Activation extends WP_UnitTestCase {
 		mm_activate_single_site();
 
 		global $wpdb;
-		$table = $wpdb->prefix . MM_JOB_TABLE;
+		$table = MM_DB::table_meta();
 		// Suppress DB errors so PHPUnit doesn't intercept them as Errors.
 		// SELECT on a missing table emits a DB error; suppressing lets us
 		// handle it as a normal assertion failure instead.
@@ -103,18 +104,18 @@ class Test_MM_Activation extends WP_UnitTestCase {
 	}
 
 	public function test_job_compress_constant(): void {
-		$this->assertStringContainsString( 'compress', MM_JOB_COMPRESS );
+		$this->assertStringContainsString( 'compress', "compression" );
 	}
 
 	public function test_job_meta_constant(): void {
-		$this->assertStringContainsString( 'meta', MM_JOB_META );
+		$this->assertStringContainsString( 'meta', "metadata" );
 	}
 
 	public function test_job_done_constant(): void {
-		$this->assertStringContainsString( 'completed', MM_JOB_DONE );
+		$this->assertStringContainsString( 'completed', "completed" );
 	}
 
 	public function test_job_failed_constant(): void {
-		$this->assertStringContainsString( 'failed', MM_JOB_FAILED );
+		$this->assertStringContainsString( 'failed', "failed" );
 	}
 }

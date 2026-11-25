@@ -14,7 +14,7 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 	}
 
 	public function set_up(): void {
@@ -22,8 +22,8 @@ class Test_MM_Memory_Manager_Integration extends WP_UnitTestCase {
 		MM_Site_Settings::reset_instance();
 		delete_transient( 'mm_import_lock' );
 		delete_option( MM_Memory_Manager::NOTICE_OPTION );
-		wp_mkdir_p( MM_JOB_DONE );
-		wp_mkdir_p( MM_JOB_FAILED );
+		wp_mkdir_p( "completed" );
+		wp_mkdir_p( "failed" );
 	}
 
 	public function tear_down(): void {

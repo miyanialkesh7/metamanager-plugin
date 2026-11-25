@@ -370,9 +370,10 @@ class MM_CLI extends \WP_CLI_Command {
 					\WP_CLI::error( 'Add --yes to confirm clearing all job history.' );
 				}
 				global $wpdb;
-				$table = MM_DB::table_name();
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+				foreach ( [ MM_DB::table_webp(), MM_DB::table_compress(), MM_DB::table_meta() ] as $table ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+					$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+				}
 				\WP_CLI::success( 'Job history cleared. Media files are not affected.' );
 				break;
 

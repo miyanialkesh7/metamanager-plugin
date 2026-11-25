@@ -50,23 +50,7 @@ class MM_Job_Queue {
 	 * Called on plugin activation and defensively before writing.
 	 */
 	public static function ensure_dirs(): void {
-		foreach ( [
-			MM_JOB_COMPRESS,
-			MM_JOB_META,
-			MM_JOB_WEBP,
-			MM_JOB_DONE,
-			MM_JOB_FAILED,
-		] as $dir ) {
-			if ( ! is_dir( $dir ) ) {
-				wp_mkdir_p( $dir );
-			}
-
-			// Drop an .htaccess in each queue dir to prevent direct HTTP access.
-			$htaccess = trailingslashit( $dir ) . '.htaccess';
-			if ( ! file_exists( $htaccess ) ) {
-				self::get_filesystem()->put_contents( $htaccess, "Deny from all\n", FS_CHMOD_FILE );
-			}
-		}
+		// DB-only mode: tables are created by MM_DB::create_or_update_tables()
 	}
 
 	// -----------------------------------------------------------------------
@@ -112,14 +96,6 @@ class MM_Job_Queue {
 		string $size = 'full',
 		array $extra = []
 	): string {
-		self::ensure_dirs();
-
-		$dir = match ( $type ) {
-			'compression' => MM_JOB_COMPRESS,
-			'webp'        => MM_JOB_WEBP,
-			default       => MM_JOB_META,
-		};
-
 		// Note: no deduplication at write time. The daemon's per-file flock
 		// handles concurrency safely. Suppressing writes at queue time drops
 		// work without knowing if the pending job will succeed (rule 18:
@@ -146,24 +122,8 @@ class MM_Job_Queue {
 			'metadata'       => MM_Metadata::get_fields_for_job( $attachment_id ),
 		], $extra );
 
-		$uid      = wp_generate_password( 6, false, false );
-		$filename = $dir . $attachment_id . '-' . $size . '-' . time() . '-' . $uid . '.json';
-
-		$fs    = self::get_filesystem();
-		$bytes = $fs->put_contents( $filename, (string) wp_json_encode( $job ), FS_CHMOD_FILE );
-
-		if ( false === $bytes || 0 === $bytes ) {
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors
-			@error_log( sprintf(
-				'[Metamanager] Failed to write job file: %s (attachment %d, size %s)',
-				$filename,
-				$attachment_id,
-				$size
-			) );
-			return 'failed';
-		}
-
-		MM_DB::log_pending_job( $job );
+		// DB is the single source of truth. No file queues.
+		MM_DB::insert_job( $job );
 
 		return 'written';
 	}
@@ -313,19 +273,7 @@ class MM_Job_Queue {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public static function on_delete_attachment( int $attachment_id ): void {
-		// Remove any unprocessed job files for this attachment.
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP ] as $dir ) {
-			if ( ! is_dir( $dir ) ) {
-				continue;
-			}
-			foreach ( new \GlobIterator( $dir . $attachment_id . '-*.json' ) as $file ) {
-				wp_delete_file( (string) $file );
-			}
-			// Also remove files the daemon is actively processing.
-			foreach ( new \GlobIterator( $dir . $attachment_id . '-*.json.processing' ) as $file ) {
-				wp_delete_file( (string) $file );
-			}
-		}
+		MM_DB::delete_jobs_for_attachment( $attachment_id );
 
 		// Remove all Metamanager custom metadata fields.
 		foreach ( [
@@ -359,31 +307,10 @@ class MM_Job_Queue {
 	 */
 	public static function get_pending_jobs(): array {
 		$result = [ 'compression' => [], 'metadata' => [], 'webp' => [] ];
-
-		foreach ( [
-			'compression' => MM_JOB_COMPRESS,
-			'metadata'    => MM_JOB_META,
-			'webp'        => MM_JOB_WEBP,
-		] as $type => $dir ) {
-			// Include both pending (.json) and in-progress (.json.processing) files
-			// so that daemon-locked jobs are visible in the dashboard rather than
-			// silently disappearing from the queue count.
-			$files = new \AppendIterator();
-			$files->append( new \GlobIterator( $dir . '*.json' ) );
-			$files->append( new \GlobIterator( $dir . '*.json.processing' ) );
-			foreach ( $files as $file ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-				$job = json_decode( file_get_contents( $file->getPathname() ), true );
-				if ( ! is_array( $job ) ) {
-					continue;
-				}
-				$job['_queued_at']  = (int) filemtime( $file );
-				$job['_queue_file'] = basename( $file );
-				$job['job_type']    = $type;
-				$result[ $type ][]  = $job;
-			}
+		foreach ( [ 'compression', 'metadata', 'webp' ] as $type ) {
+			$rows = MM_DB::get_jobs( [ 'job_type' => $type, 'status' => 'pending' ] );
+			$result[$type] = $rows['jobs'] ?? [];
 		}
-
 		return $result;
 	}
 
