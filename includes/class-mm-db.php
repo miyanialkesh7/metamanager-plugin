@@ -42,7 +42,6 @@ class MM_DB {
 	public static function create_or_update_tables(): void {
 		global $wpdb;
 		$charset = $wpdb->get_charset_collate();
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		// WebP queue — minimal: daemon generates webp from source file.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_webp() . " (
@@ -59,7 +58,8 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( $sql );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( $sql );
 
 		// Compression queue — needs dimensions, optimize level, byte counts.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_compress() . " (
@@ -80,7 +80,8 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( $sql );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( $sql );
 
 		// Metadata queue — needs the metadata payload to embed.
 		$sql = "CREATE TABLE IF NOT EXISTS " . self::table_meta() . " (
@@ -102,7 +103,8 @@ class MM_DB {
 			KEY idx_status (status),
 			KEY idx_submitted (submitted_at)
 		) {$charset};";
-		dbDelta( $sql );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$wpdb->query( $sql );
 	}
 
 	// ── Write: queue a job ──────────────────────────────────────────
