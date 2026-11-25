@@ -17,8 +17,8 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
-		MM_DB::create_or_update_table();
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
+		MM_DB::create_or_update_tables();
+		foreach ( [ 'compression', 'metadata', 'webp', 'completed', 'failed' ] as $dir ) {
 			if ( ! is_dir( $dir ) ) {
 				mkdir( $dir, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 			}
@@ -26,7 +26,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 	}
 
 	public function tear_down(): void {
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
+		foreach ( [ 'compression', 'metadata', 'webp', 'completed', 'failed' ] as $dir ) {
 			foreach ( glob( $dir . '*.json' ) ?: [] as $file ) {
 				unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 			}
@@ -65,7 +65,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		wp_update_attachment_metadata( $id, $meta );
 
 		// Clear jobs queued by on_upload so tests start clean.
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_WEBP ] as $dir ) {
+		foreach ( [ 'compression', 'metadata', 'webp' ] as $dir ) {
 			foreach ( glob( $dir . '*.json' ) ?: [] as $file ) {
 				unlink( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 			}
@@ -74,9 +74,9 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		return $id;
 	}
 
-	private function count_jobs( string $dir ): int {
-		return count( glob( $dir . '*.json' ) ?: [] );
-	}
+	private function count_jobs( string $type ): int {
+        return MM_DB::count_by_status( $type, 'pending' );
+    }
 
 	// -----------------------------------------------------------------------
 	// compress
@@ -87,8 +87,8 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::compress( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'compression' ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'webp' ),
 			'JPEG must get WebP generation jobs.' );
 	}
 
@@ -97,7 +97,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::compress( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'webp' ),
 			'PNG must get WebP generation jobs.' );
 	}
 
@@ -106,7 +106,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::compress( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertSame( 0, $this->count_jobs( 'webp' ),
 			'WebP source must NOT get WebP generation jobs.' );
 	}
 
@@ -119,7 +119,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 	public function test_compress_respects_is_compressed_without_force(): void {
 		$id = $this->create_attachment( 'image/jpeg' );
 		// Mark as compressed in DB (is_compressed checks job history).
-		MM_DB::log_job( [
+		MM_DB::log_pending_job( [
 			'attachment_id' => $id,
 			'image_name'    => 'test.jpg',
 			'job_type'      => 'compression',
@@ -137,7 +137,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 
 	public function test_compress_force_overrides_is_compressed(): void {
 		$id = $this->create_attachment( 'image/jpeg' );
-		MM_DB::log_job( [
+		MM_DB::log_pending_job( [
 			'attachment_id' => $id,
 			'image_name'    => 'test.jpg',
 			'job_type'      => 'compression',
@@ -164,7 +164,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $result['count'] );
 		$this->assertSame( 'Test Creator', get_post_meta( $id, MM_Metadata::META_CREATOR, true ) );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'metadata' ) );
 	}
 
 	public function test_embed_metadata_empty_fields_just_queues(): void {
@@ -172,7 +172,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::embed_metadata( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'metadata' ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -195,7 +195,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$this->assertSame( 'Copyright 2026 John Doe', get_post_meta( $id, MM_Metadata::META_COPYRIGHT, true ) );
 		$this->assertSame( 'https://example.com/license', get_post_meta( $id, MM_Metadata::META_LICENSE, true ) );
 		$this->assertSame( 'https://example.com/acquire', get_post_meta( $id, MM_Metadata::META_ACQUIRE_LICENSE_PAGE, true ) );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'metadata' ) );
 	}
 
 	public function test_set_licensing_partial_fields_rejected(): void {
@@ -251,7 +251,7 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::inject_site_info( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'metadata' ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -263,11 +263,11 @@ class Test_MM_Media_Service extends WP_UnitTestCase {
 		$result = MM_Media_Service::scan( [ $id ], 'test' );
 
 		$this->assertSame( 1, $result['count'] );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'compression' ) );
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'webp' ),
 			'Scan must queue WebP generation for JPEG.' );
 		if ( MM_Status::exiftool_available() ) {
-			$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ) );
+			$this->assertGreaterThanOrEqual( 1, $this->count_jobs( 'metadata' ) );
 		}
 	}
 

@@ -43,7 +43,7 @@ class Test_MM_Uninstall extends WP_UnitTestCase {
 
 	public function test_uninstall_drops_jobs_table(): void {
 		global $wpdb;
-		$table = $wpdb->prefix . MM_JOB_TABLE;
+		$table = MM_DB::table_meta();
 
 		// WP test suite rewrites DROP TABLE to DROP TEMPORARY TABLE via
 		// the _drop_temporary_tables query filter. Remove both filters so

@@ -1547,7 +1547,8 @@ class MM_Admin {
 					action: 'mm_jobs_refresh',
 					nonce: '<?php echo esc_js( wp_create_nonce( 'mm_jobs_refresh' ) ); ?>',
 					s:     $('input[name="s"]').val() || '',
-					paged: $('input.mm-paged').val() || 1
+					paged: $('input.mm-paged').val() || 1,
+					tab:   $('input[name="tab"]').val() || 'webp'
 				}, function(html){
 					if (html) $('#mm-jobs-dashboard').html(html);
 				});
@@ -2064,47 +2065,69 @@ class MM_Admin {
 	 */
 	private static function render_history_section(): void {
 		// phpcs:disable WordPress.Security.NonceVerification
-		$search = sanitize_text_field( wp_unslash( $_REQUEST['s'] ?? '' ) );
-		$paged  = max( 1, absint( wp_unslash( $_REQUEST['paged'] ?? '1' ) ) );
+		$search    = sanitize_text_field( wp_unslash( $_REQUEST['s'] ?? '' ) );
+		$paged     = max( 1, absint( wp_unslash( $_REQUEST['paged'] ?? '1' ) ) );
+		$active_tab = sanitize_key( wp_unslash( $_REQUEST['tab'] ?? 'webp' ) );
 		// phpcs:enable
+
+		if ( ! in_array( $active_tab, [ 'webp', 'compression', 'metadata' ], true ) ) {
+			$active_tab = 'webp';
+		}
 
 		$per_page = 25;
 
-		// Pending jobs — always shown in full, never paginated.
-		$pending_result = MM_DB::get_jobs( [ 'search' => $search, 'status' => 'pending', 'per_page' => 500, 'orderby' => 'submitted_at', 'order' => 'ASC' ] );
+		$tabs = [
+			'webp'       => __( 'WebP', 'metamanager' ),
+			'compression' => __( 'Compression', 'metamanager' ),
+			'metadata'   => __( 'Metadata', 'metamanager' ),
+		];
+
+		// Tab counts.
+		$counts = [];
+		foreach ( $tabs as $key => $label ) {
+			$counts[ $key ] = [
+				'pending'   => MM_DB::count_by_status( $key, 'pending' ),
+				'processing' => MM_DB::count_by_status( $key, 'processing' ),
+				'completed' => MM_DB::count_by_status( $key, 'completed' ),
+				'failed'    => MM_DB::count_by_status( $key, 'failed' ),
+			];
+		}
+
+		// Jobs for active tab.
+		$pending_result = MM_DB::get_jobs( [ 'search' => $search, 'status' => 'pending', 'job_type' => $active_tab, 'per_page' => 500, 'orderby' => 'submitted_at', 'order' => 'ASC' ] );
 		$pending_jobs   = $pending_result['jobs'];
 
-		// Completed / failed — paginated.
-		$done_result = MM_DB::get_jobs( [ 'search' => $search, 'status' => 'not_pending', 'paged' => $paged, 'per_page' => $per_page ] );
-		$done_jobs   = $done_result['jobs'];
-		$done_total  = $done_result['total'];
-		$total_pages = (int) ceil( $done_total / $per_page );
+		$done_result = MM_DB::get_jobs( [ 'search' => $search, 'job_type' => $active_tab, 'paged' => $paged, 'per_page' => $per_page ] );
+		$done_jobs   = array_filter( $done_result['jobs'], fn( $j ) => in_array( $j->status, [ 'completed', 'failed', 'processing' ], true ) );
+		$done_total  = $done_result['total'] - count( $pending_jobs );
+		$total_pages = max( 1, (int) ceil( max( 0, $done_total ) / $per_page ) );
 
 		echo '<div class="postbox mm-section">';
-		echo '<div class="postbox-header">'
-			. '<h2 class="hndle">' . esc_html__( 'Jobs', 'metamanager' )
-			. ( ! empty( $pending_jobs )
-				? ' <span class="mm-tag-pending">' . sprintf(
-					/* translators: %d: pending count */
-					esc_html__( '%d pending', 'metamanager' ),
-					count( $pending_jobs )
-				) . '</span>'
-				: '' )
-			. ' <span>' . sprintf(
-				/* translators: %d: completed/failed count */
-				esc_html__( '%d completed', 'metamanager' ),
-				absint( $done_total )
-			) . '</span>'
-			. '</h2>'
-			. '</div><div class="inside">';
+		echo '<div class="postbox-header"><h2 class="hndle">' . esc_html__( 'Job Queues', 'metamanager' ) . '</h2></div>';
+		echo '<div class="inside">';
+
+		// Tab navigation.
+		echo '<nav class="nav-tab-wrapper" style="margin-bottom:1em;">';
+		foreach ( $tabs as $key => $label ) {
+			$active  = $key === $active_tab ? ' nav-tab-active' : '';
+			$badge   = $counts[ $key ]['pending'] + $counts[ $key ]['processing'];
+			$badge_h = $badge > 0
+				? ' <span class="mm-tag-pending" style="margin-left:4px;">' . esc_html( (string) $badge ) . '</span>'
+				: '';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $badge_h built with esc_html above
+			echo '<a class="nav-tab' . esc_attr( $active ) . '" href="' . esc_url( add_query_arg( [ 'tab' => $key, 'paged' => 1, 's' => $search ], admin_url( 'admin.php?page=metamanager-jobs' ) ) ) . '">' . esc_html( $label ) . $badge_h . '</a>';
+		}
+		echo '</nav>';
 
 		// Search form.
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_nonce_field returns safe HTML
 		echo '<form class="mm-search-form" style="margin-bottom:1em;display:flex;gap:8px;">'
+			. '<input type="hidden" name="page" value="metamanager-jobs">'
+			. '<input type="hidden" name="tab" value="' . esc_attr( $active_tab ) . '">'
 			. wp_nonce_field( 'mm_jobs_refresh', '_wpnonce', true, false ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			. '<input type="search" name="s" value="' . esc_attr( $search ) . '" placeholder="' . esc_attr__( 'Search by file or type…', 'metamanager' ) . '" class="regular-text">'
+			. '<input type="search" name="s" value="' . esc_attr( $search ) . '" placeholder="' . esc_attr__( 'Search by file name…', 'metamanager' ) . '" class="regular-text">'
 			. '<button class="button">' . esc_html__( 'Search', 'metamanager' ) . '</button>'
-			. ( $search ? ' <a class="button" href="' . esc_url( remove_query_arg( 's' ) ) . '">' . esc_html__( 'Clear', 'metamanager' ) . '</a>' : '' )
+			. ( $search ? ' <a class="button" href="' . esc_url( add_query_arg( [ 'tab' => $active_tab, 'paged' => 1 ], admin_url( 'admin.php?page=metamanager-jobs' ) ) ) . '">' . esc_html__( 'Clear', 'metamanager' ) . '</a>' : '' )
 			. '</form>';
 
 		$table_header = '<table><thead><tr>'
@@ -2127,7 +2150,7 @@ class MM_Admin {
 			echo '</tbody></table>';
 		}
 
-		// -- Completed / failed rows --
+		// -- Completed / failed / processing rows --
 		if ( empty( $done_jobs ) && empty( $pending_jobs ) ) {
 			echo '<p style="color:#50575e;">' . esc_html__( 'No jobs recorded yet.', 'metamanager' ) . '</p>';
 		} elseif ( ! empty( $done_jobs ) ) {
@@ -2298,6 +2321,18 @@ class MM_Admin {
 		$total_pages = (int) ceil( $total / $per_page );
 
 		$nonce = wp_create_nonce( 'mm_bulk_meta_apply' );
+
+		// Fetch pending job subtypes per attachment for the grid badges.
+		$pending_subtypes = [];
+		foreach ( [ 'webp', 'compression', 'metadata' ] as $qtype ) {
+			$pending_rows = MM_DB::get_jobs( [ 'job_type' => $qtype, 'status' => 'pending', 'per_page' => 1000 ] );
+			foreach ( ( $pending_rows['jobs'] ?? [] ) as $prow ) {
+				$aid = (int) ( $prow->attachment_id ?? 0 );
+				if ( $aid ) {
+					$pending_subtypes[ $aid ][] = $prow->job_subtype ?: $qtype;
+				}
+			}
+		}
 
 		// Compressible MIME types (must match CLI compressible_mimes).
 		$compressible = array_merge(
@@ -2514,6 +2549,27 @@ class MM_Admin {
 									<?php if ( $rating > 0 ) : ?>
 										<div style="font-size:10px;color:#dba617;letter-spacing:1px;">
 											<?php echo esc_html( str_repeat( '★', $rating ) . str_repeat( '☆', 5 - $rating ) ); ?>
+										</div>
+									<?php endif; ?>
+									<?php
+									// Two-way sync status: WP ↔ file.
+									$synced   = get_post_meta( $id, MM_Metadata::META_SYNCED, true );
+									$verified = get_post_meta( $id, MM_Metadata::META_VERIFIED_AT, true );
+									$discrep  = get_post_meta( $id, MM_Metadata::META_VERIFY_DISCREPANCIES, true );
+									$discrep_count = $discrep ? count( (array) json_decode( (string) $discrep, true ) ) : 0;
+									if ( $discrep_count > 0 ) {
+										echo '<div style="font-size:10px;color:#d63638;margin-top:2px;" title="' . esc_attr__( 'File and WordPress metadata differ', 'metamanager' ) . '">&#9888; ' . esc_html( sprintf( _n( '%d discrepancy', '%d discrepancies', $discrep_count, 'metamanager' ), $discrep_count ) ) . '</div>';
+									} elseif ( $synced && $verified ) {
+										echo '<div style="font-size:10px;color:#00a32a;margin-top:2px;" title="' . esc_attr__( 'File and WordPress are in sync', 'metamanager' ) . '">&#10003; ' . esc_html__( 'Synced', 'metamanager' ) . '</div>';
+									} elseif ( $synced ) {
+										echo '<div style="font-size:10px;color:#0073aa;margin-top:2px;" title="' . esc_attr__( 'Metadata written to file, not yet verified', 'metamanager' ) . '">&#8635; ' . esc_html__( 'Written', 'metamanager' ) . '</div>';
+									} else {
+										echo '<div style="font-size:10px;color:#dba617;margin-top:2px;" title="' . esc_attr__( 'File metadata not yet synced from WordPress', 'metamanager' ) . '">&#9675; ' . esc_html__( 'Not synced', 'metamanager' ) . '</div>';
+									}
+									?>
+									<?php if ( ! empty( $pending_subtypes[ $id ] ) ) : ?>
+										<div style="font-size:9px;color:#dba617;margin-top:2px;" title="<?php echo esc_attr( implode( ', ', array_unique( $pending_subtypes[ $id ] ) ) ); ?>">
+											&#8987; <?php echo esc_html( implode( ', ', array_unique( $pending_subtypes[ $id ] ) ) ); ?>
 										</div>
 									<?php endif; ?>
 									<div style="font-size:9px;color:#a7aaad;margin-top:2px;"><?php echo esc_html( strtoupper( pathinfo( $mime, PATHINFO_EXTENSION ) ) ); ?></div>

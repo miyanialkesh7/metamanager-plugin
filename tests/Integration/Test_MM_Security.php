@@ -123,7 +123,7 @@ class Test_MM_Security extends WP_UnitTestCase {
 	// -----------------------------------------------------------------------
 
 	public function test_sql_injection_in_orderby_is_rejected(): void {
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 		$jobs = MM_DB::get_jobs( [
 			'orderby' => 'id DROP TABLE',
 			'order'   => 'ASC',
@@ -226,14 +226,14 @@ class Test_MM_Security extends WP_UnitTestCase {
 	// -----------------------------------------------------------------------
 
 	public function test_rest_stats_requires_auth(): void {
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 		$request  = new WP_REST_Request( 'GET', '/metamanager/v1/stats' );
 		$response = rest_do_request( $request );
 		$this->assertSame( 401, $response->get_status() );
 	}
 
 	public function test_rest_jobs_requires_editor(): void {
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 		wp_set_current_user( $this->author_id );
 		$request  = new WP_REST_Request( 'GET', '/metamanager/v1/jobs' );
 		$response = rest_do_request( $request );

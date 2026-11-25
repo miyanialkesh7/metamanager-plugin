@@ -1,455 +1,484 @@
 <?php
 /**
- * Metamanager Database Class
+ * Database layer for MetaManager job queues.
  *
- * Single, authoritative database schema and query layer.
- * One table. One schema. No conflicts.
+ * Three separate tables, each tailored to its queue's data:
+ *   wp_mm_webp_queue      — WebP generation jobs
+ *   wp_mm_compress_queue  — Lossless compression jobs
+ *   wp_mm_meta_queue      — Metadata read/write jobs
  *
- * @package Metamanager
- */
-
-defined( 'ABSPATH' ) || exit;
-
-/**
- * Class MM_DB
+ * DB is the single source of truth for job state. No file queues.
+ * Pending → processing → completed/failed is one atomic UPDATE.
  */
 class MM_DB {
 
-	/**
-	 * Prevents the one-time dedup migration from running more than once per request.
-	 */
-	private static bool $dedup_done = false;
-
-	/**
-	 * Full (prefixed) table name.
-	 */
-	public static function table_name(): string {
+	// ── Table names ──────────────────────────────────────────────────
+	public static function table_webp(): string {
 		global $wpdb;
-		return $wpdb->prefix . MM_JOB_TABLE;
+		return $wpdb->prefix . 'mm_webp_queue';
+	}
+	public static function table_compress(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'mm_compress_queue';
+	}
+	public static function table_meta(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'mm_meta_queue';
 	}
 
 	/**
-	 * Drop the jobs table. Called during uninstall when data deletion is enabled.
+	 * Map a job_type string to its table name.
 	 */
-	public static function drop_table(): void {
-		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+	public static function table_for( string $job_type ): string {
+		return match ( $job_type ) {
+			'webp'       => self::table_webp(),
+			'compression' => self::table_compress(),
+			default      => self::table_meta(),
+		};
 	}
 
-	/**
-	 * Create or update the jobs table using dbDelta.
-	 * Safe to call on every admin_init — dbDelta only applies changes.
-	 */
-	public static function create_or_update_table(): void {
-		global $wpdb;
-		$table          = self::table_name();
-		$charset_collate = $wpdb->get_charset_collate();
+	// ── Schema ───────────────────────────────────────────────────────
 
+	public static function create_or_update_tables(): void {
+		global $wpdb;
+		$charset = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		self::maybe_deduplicate();
+		// dbDelta requires exact formatting: no IF NOT EXISTS, two spaces
+		// before PRIMARY KEY / KEY / UNIQUE KEY.
+		$tables = [];
 
-		$sql = "CREATE TABLE {$table} (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			job_type VARCHAR(32) NOT NULL DEFAULT '',
-			job_trigger VARCHAR(64) NOT NULL DEFAULT '',
-			file_path TEXT NOT NULL,
-			size VARCHAR(64) NOT NULL DEFAULT '',
-			dimensions VARCHAR(32) NOT NULL DEFAULT '',
-			bytes_before BIGINT(20) UNSIGNED DEFAULT NULL,
-			bytes_after BIGINT(20) UNSIGNED DEFAULT NULL,
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			completed_at DATETIME DEFAULT NULL,
-			details LONGTEXT DEFAULT NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY uniq_job (attachment_id, job_type, size),
-			KEY idx_attachment (attachment_id),
-			KEY idx_job_type (job_type),
-			KEY idx_status (status)
-		) {$charset_collate};";
+		$tables[] = "CREATE TABLE " . self::table_webp() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
 
-		// dbDelta is sensitive to leading whitespace; normalize before calling it.
-		$sql = implode( "\n", array_map( 'ltrim', explode( "\n", $sql ) ) );
+		$tables[] = "CREATE TABLE " . self::table_compress() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  dimensions varchar(32) NOT NULL DEFAULT '',
+  optimize_level tinyint NOT NULL DEFAULT 2,
+  bytes_before bigint(20) unsigned DEFAULT NULL,
+  bytes_after bigint(20) unsigned DEFAULT NULL,
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
 
-		dbDelta( $sql );
+		$tables[] = "CREATE TABLE " . self::table_meta() . " (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  attachment_id bigint(20) unsigned NOT NULL,
+  image_name varchar(255) NOT NULL DEFAULT '',
+  job_type varchar(32) NOT NULL DEFAULT 'metadata',
+  job_subtype varchar(32) NOT NULL DEFAULT '',
+  job_trigger varchar(64) NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  size varchar(64) NOT NULL DEFAULT '',
+  metadata longtext DEFAULT NULL,
+  status varchar(32) NOT NULL DEFAULT 'pending',
+  submitted_at datetime NOT NULL,
+  completed_at datetime DEFAULT NULL,
+  details longtext DEFAULT NULL,
+  PRIMARY KEY  (id),
+  UNIQUE KEY uniq_job (attachment_id, job_type, size),
+  KEY idx_status (status),
+  KEY idx_submitted (submitted_at)
+) {$charset};";
 
-		// dbDelta silently fails on some MySQL/MariaDB versions. Always run a
-		// raw CREATE TABLE IF NOT EXISTS as a fallback — it's idempotent and
-		// avoids information_schema queries that can return stale results inside
-		// WP test suite transactions.
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- DDL fallback; table identifier is prefix-derived, not user input.
-		$wpdb->query( "CREATE TABLE IF NOT EXISTS {$table} (
-			id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-			attachment_id BIGINT(20) UNSIGNED NOT NULL,
-			image_name VARCHAR(255) NOT NULL DEFAULT '',
-			job_type VARCHAR(32) NOT NULL DEFAULT '',
-			job_trigger VARCHAR(64) NOT NULL DEFAULT '',
-			file_path TEXT NOT NULL,
-			size VARCHAR(64) NOT NULL DEFAULT '',
-			dimensions VARCHAR(32) NOT NULL DEFAULT '',
-			bytes_before BIGINT(20) UNSIGNED DEFAULT NULL,
-			bytes_after BIGINT(20) UNSIGNED DEFAULT NULL,
-			status VARCHAR(32) NOT NULL DEFAULT 'pending',
-			submitted_at DATETIME NOT NULL,
-			completed_at DATETIME DEFAULT NULL,
-			details LONGTEXT DEFAULT NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY uniq_job (attachment_id, job_type, size),
-			KEY idx_attachment (attachment_id),
-			KEY idx_job_type (job_type),
-			KEY idx_status (status)
-		) {$charset_collate};" );
-		// phpcs:enable
+		foreach ( $tables as $sql ) {
+			dbDelta( $sql );
+		}
 	}
 
-	/**
-	 * One-time migration: removes duplicate rows (same attachment_id + job_type + size)
-	 * before dbDelta adds the UNIQUE KEY that enforces the one-row-per-triple invariant.
-	 * Runs at most once per request and skips immediately once the key exists.
-	 */
-	public static function maybe_deduplicate(): void {
-		if ( self::$dedup_done ) {
-			return;
-		}
-		self::$dedup_done = true;
-
-		global $wpdb;
-		$table = self::table_name();
-
-		// Skip on a fresh install — the table doesn't exist yet and dbDelta will
-		// create it with the UNIQUE KEY already in place.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- SHOW TABLES is a DDL check; caching is unsuitable
-		if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) ) {
-			return;
-		}
-
-		// Once the UNIQUE KEY is present there is nothing left to clean up.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		if ( $wpdb->get_var( "SHOW INDEX FROM {$table} WHERE Key_name = 'uniq_job'" ) ) {
-			return;
-		}
-
-		// Keep only the latest row per (attachment_id, job_type, size).
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->query( $wpdb->prepare(
-			'DELETE t1 FROM %i t1 INNER JOIN %i t2 ON t1.attachment_id = t2.attachment_id AND t1.job_type = t2.job_type AND t1.size = t2.size AND t1.id < t2.id',
-			$table,
-			$table
-		) );
-	}
+	// ── Write: queue a job ──────────────────────────────────────────
 
 	/**
-	 * Insert a completed or failed job result into the DB.
-	 *
-	 * Expected keys in $job:
-	 *   attachment_id, image_name, job_type, file_path, size, dimensions,
-	 *   status, submitted_at, completed_at, details (optional array).
-	 *
-	 * @param array $job Associative array of job data.
-	 * @return bool True on successful insert, false on failure.
+	 * Insert or update a pending job in the appropriate table.
+	 * This is the ONLY way jobs enter the system. No files.
 	 */
-	public static function log_job( array $job ): bool {
+	public static function log_pending_job( array $job ): bool {
 		global $wpdb;
+		$type = $job['job_type'] ?? 'metadata';
+		$table = self::table_for( $type );
 
-		$table = self::table_name();
-
-		$bytes_before = isset( $job['bytes_before'] ) && (int) $job['bytes_before'] > 0 ? (int) $job['bytes_before'] : null;
-		$bytes_after  = isset( $job['bytes_after'] )  && (int) $job['bytes_after']  > 0 ? (int) $job['bytes_after']  : null;
-
-		$attachment_id = absint( $job['attachment_id'] ?? 0 );
-		$job_type      = sanitize_key( $job['job_type'] ?? 'unknown' );
-		$size          = sanitize_key( $job['size'] ?? '' );
-
-		$data    = [
-			'attachment_id' => $attachment_id,
+		$data = [
+			'attachment_id' => absint( $job['attachment_id'] ?? 0 ),
 			'image_name'    => sanitize_text_field( $job['image_name'] ?? '' ),
-			'job_type'      => $job_type,
-			'job_trigger'   => sanitize_key( $job['trigger'] ?? '' ),
 			'file_path'     => sanitize_text_field( $job['file_path'] ?? '' ),
-			'size'          => $size,
-			'dimensions'    => sanitize_text_field( $job['dimensions'] ?? '' ),
-			'status'        => sanitize_key( $job['status'] ?? 'completed' ),
+			'size'          => sanitize_key( $job['size'] ?? '' ),
+			'status'        => sanitize_text_field( $job['status'] ?? 'pending' ),
 			'submitted_at'  => sanitize_text_field( $job['submitted_at'] ?? current_time( 'mysql' ) ),
-			'completed_at'  => sanitize_text_field( $job['completed_at'] ?? current_time( 'mysql' ) ),
-			'details'       => wp_json_encode( $job['details'] ?? [] ),
 		];
-		$formats = [ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ];
 
-		if ( null !== $bytes_before ) {
-			$data['bytes_before'] = $bytes_before;
-			$formats[]            = '%d';
+		// Table-specific columns.
+		if ( $type === 'compression' ) {
+			$data['dimensions']     = sanitize_text_field( $job['dimensions'] ?? '' );
+			$data['optimize_level'] = absint( $job['optimize_level'] ?? 2 );
+			if ( isset( $job['bytes_before'] ) ) { $data['bytes_before'] = absint( $job['bytes_before'] ); }
+			if ( isset( $job['bytes_after'] ) )  { $data['bytes_after']  = absint( $job['bytes_after'] ); }
 		}
-		if ( null !== $bytes_after ) {
-			$data['bytes_after'] = $bytes_after;
-			$formats[]          = '%d';
+		if ( $type === 'metadata' || $type === 'import' ) {
+			$data['job_type']    = sanitize_key( $job['job_type'] ?? $type );
+			$data['job_subtype'] = sanitize_key( $job['job_subtype'] ?? '' );
+			$data['job_trigger'] = sanitize_key( $job['trigger'] ?? '' );
+			$data['metadata']    = wp_json_encode( $job['metadata'] ?? [] );
+		}
+		if ( isset( $job['completed_at'] ) ) {
+			$data['completed_at'] = sanitize_text_field( $job['completed_at'] );
 		}
 
-		// REPLACE INTO atomically enforces the UNIQUE KEY (attachment_id, job_type, size),
-		// removing any stale row for the same triple before writing the new state.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		return (bool) $wpdb->replace( $table, $data, $formats );
+		$format = array_fill( 0, count( $data ), '%s' );
+		$format[ array_search( 'attachment_id', array_keys( $data ), true ) ] = '%d';
+		if ( $type === 'compression' ) {
+			$oi = array_search( 'optimize_level', array_keys( $data ), true );
+			if ( false !== $oi ) { $format[ $oi ] = '%d'; }
+			foreach ( [ 'bytes_before', 'bytes_after' ] as $bk ) {
+				$bi = array_search( $bk, array_keys( $data ), true );
+				if ( false !== $bi ) { $format[ $bi ] = '%d'; }
+			}
+		}
+
+		// Explicit upsert: same (attachment_id, size) replaces existing row.
+		$existing = $wpdb->get_var( $wpdb->prepare(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
+			"SELECT id FROM {$table} WHERE attachment_id = %d AND size = %s LIMIT 1",
+			$data['attachment_id'], $data['size']
+		) );
+		if ( $existing ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$result = $wpdb->update( $table, $data, [ 'id' => (int) $existing ], $format, [ '%d' ] );
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$result = $wpdb->insert( $table, $data, $format );
+		}
+		return false !== $result;
 	}
 
 	/**
-	 * Query job history with optional search, ordering, and pagination.
-	 *
-	 * @param array $args {
-	 *   @type string $search    Search term for image_name / job_type / status.
-	 *   @type string $orderby   Column to order by. Whitelisted.
-	 *   @type string $order     ASC or DESC.
-	 *   @type int    $per_page  Rows per page.
-	 *   @type int    $paged     Current page (1-based).
-	 * }
-	 * @return array{
-	 *   jobs: list<object{id: int, attachment_id: int, image_name: string, job_type: string, job_trigger: string, file_path: string, size: string, dimensions: string, bytes_before: int, bytes_after: int, status: string, submitted_at: string, completed_at: string|null, details: string|null}>,
-	 *   total: int
-	 * }
+	 * Insert a job without upsert — duplicates allowed (rule 18).
+	 * Used by write_job() where no silent suppression is permitted.
 	 */
-	public static function get_jobs( array $args = [] ): array {
+	public static function insert_job( array $job ): bool {
 		global $wpdb;
+		$type  = $job['job_type'] ?? 'metadata';
+		$table = self::table_for( $type );
 
-		$table = self::table_name();
-
-		$defaults = [
-			'search'   => '',
-			'status'   => '',
-			'orderby'  => 'id',
-			'order'    => 'DESC',
-			'per_page' => 20,
-			'paged'    => 1,
+		$data = [
+			'attachment_id' => absint( $job['attachment_id'] ?? 0 ),
+			'image_name'    => sanitize_text_field( $job['image_name'] ?? '' ),
+			'file_path'     => sanitize_text_field( $job['file_path'] ?? '' ),
+			'size'          => sanitize_key( $job['size'] ?? '' ),
+			'status'        => sanitize_text_field( $job['status'] ?? 'pending' ),
+			'submitted_at'  => sanitize_text_field( $job['submitted_at'] ?? current_time( 'mysql' ) ),
 		];
-		$args = wp_parse_args( $args, $defaults );
 
-		$allowed_orderby = [ 'id', 'image_name', 'job_type', 'status', 'submitted_at', 'completed_at', 'bytes_before', 'bytes_after' ];
-		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'id';
-		$order           = 'ASC' === strtoupper( $args['order'] ) ? 'ASC' : 'DESC';
-		$per_page        = max( 1, (int) $args['per_page'] );
-		$offset          = ( max( 1, (int) $args['paged'] ) - 1 ) * $per_page;
-
-		$conditions = [];
-		if ( ! empty( $args['search'] ) ) {
-			$like         = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-			$conditions[] = $wpdb->prepare(
-				'(image_name LIKE %s OR job_type LIKE %s)',
-				$like, $like
-			);
+		if ( $type === 'compression' ) {
+			$data['dimensions']     = sanitize_text_field( $job['dimensions'] ?? '' );
+			$data['optimize_level'] = absint( $job['optimize_level'] ?? 2 );
+			if ( isset( $job['bytes_before'] ) ) { $data['bytes_before'] = absint( $job['bytes_before'] ); }
+			if ( isset( $job['bytes_after'] ) )  { $data['bytes_after']  = absint( $job['bytes_after'] ); }
 		}
-		$allowed_statuses = [ 'pending', 'completed', 'failed' ];
-		if ( ! empty( $args['status'] ) && in_array( $args['status'], $allowed_statuses, true ) ) {
-			$conditions[] = $wpdb->prepare( 'status = %s', $args['status'] );
-		} elseif ( ! empty( $args['status'] ) && 'not_pending' === $args['status'] ) {
-			$conditions[] = "status != 'pending'";
+		if ( $type === 'metadata' || $type === 'import' ) {
+			$data['job_type']    = sanitize_key( $job['job_type'] ?? $type );
+			$data['job_subtype'] = sanitize_key( $job['job_subtype'] ?? '' );
+			$data['job_trigger'] = sanitize_key( $job['trigger'] ?? '' );
+			$data['metadata']    = wp_json_encode( $job['metadata'] ?? [] );
 		}
-		$where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} {$where}" );
+		$format = array_fill( 0, count( $data ), '%s' );
+		$format[ array_search( 'attachment_id', array_keys( $data ), true ) ] = '%d';
+		if ( $type === 'compression' ) {
+			$oi = array_search( 'optimize_level', array_keys( $data ), true );
+			if ( false !== $oi ) { $format[ $oi ] = '%d'; }
+			foreach ( [ 'bytes_before', 'bytes_after' ] as $bk ) {
+				$bi = array_search( $bk, array_keys( $data ), true );
+				if ( false !== $bi ) { $format[ $bi ] = '%d'; }
+			}
+		}
 
-		$jobs = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$table} {$where} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
-				$per_page,
-				$offset
-			)
-		);
-		// phpcs:enable
-
-		return [ 'jobs' => $jobs ?: [], 'total' => $total ];
-	}
-
-	/**
-	 * Fetch a single job row by ID for re-queue operations.
-	 *
-	 * @param int $job_id DB row ID.
-	 * @return object|null
-	 */
-	public static function get_job( int $job_id ): ?object {
-		global $wpdb;
-		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $job_id ) );
+		$result = $wpdb->insert( $table, $data, $format );
+		return false !== $result;
 	}
 
+	// ── Read: claim next job ────────────────────────────────────────
+
 	/**
-	 * Delete all job history rows for a specific attachment.
-	 * Hooked to 'delete_attachment' so the history self-cleans when media is
-	 * removed from the library.
-	 *
-	 * @param int $attachment_id WordPress attachment post ID.
+	 * Atomically claim the next pending job for a queue type.
+	 * Returns the job row or null if queue is empty.
 	 */
-	public static function delete_jobs_for_attachment( int $attachment_id ): void {
+	public static function claim_next_job( string $job_type ): ?array {
 		global $wpdb;
-		$table = self::table_name();
+		$table = self::table_for( $job_type );
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->delete( $table, [ 'attachment_id' => $attachment_id ], [ '%d' ] );
-	}
+		$row = $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM %i WHERE status = 'pending' ORDER BY submitted_at ASC, id ASC LIMIT 1",
+			$table
+		), ARRAY_A );
 
-	/**
-	 * Return aggregate statistics: total bytes saved, job counts by type and status.
-	 *
-	 * @return array<string, mixed>
-	 */
-	public static function get_stats(): array {
-		global $wpdb;
-		$table = self::table_name();
+		if ( ! $row ) {
+			return null;
+		}
+
+		// Atomic claim: only succeed if still pending.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$row = $wpdb->get_row(
-			"SELECT
-				COUNT(*)                                          AS total_jobs,
-				SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
-				SUM(CASE WHEN status='failed'    THEN 1 ELSE 0 END) AS failed,
-				SUM(CASE WHEN job_type='compression' AND status='completed' AND bytes_before > 0 AND bytes_after > 0 AND bytes_after < bytes_before
-				         THEN (bytes_before - bytes_after) ELSE 0 END) AS bytes_saved,
-				SUM(CASE WHEN job_type='compression' AND status='completed' AND bytes_before > 0 AND bytes_after > 0 AND bytes_after < bytes_before
-				         THEN bytes_before ELSE 0 END)             AS bytes_original,
-				COUNT(DISTINCT attachment_id)                     AS unique_attachments
-			FROM {$table}" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		);
-		return $row ? (array) $row : [
-			'total_jobs'         => 0,
-			'completed'          => 0,
-			'failed'             => 0,
-			'bytes_saved'        => 0,
-			'bytes_original'     => 0,
-			'unique_attachments' => 0,
-		];
-	}
-
-	/**
-	 * Check whether a completed compression job exists for this attachment + size.
-	 * Single source of truth for the library compression column.
-	 *
-	 * @param int    $attachment_id Attachment ID.
-	 * @param string $size          Size slug (e.g. 'full', 'thumbnail').
-	 * @return bool
-	 */
-	public static function has_completed_compression( int $attachment_id, string $size ): bool {
-		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (bool) $wpdb->get_var( $wpdb->prepare(
-			'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND job_type = \'compression\' AND size = %s AND status = \'completed\'',
+		$claimed = $wpdb->query( $wpdb->prepare(
+			"UPDATE %i SET status = 'processing' WHERE id = %d AND status = 'pending'",
 			$table,
-			$attachment_id,
-			$size
+			$row['id']
+		) );
+
+		if ( ! $claimed ) {
+			return null; // Another daemon claimed it first.
+		}
+
+		$row['status'] = 'processing';
+		return $row;
+	}
+
+	/**
+	 * Mark a job as completed or failed.
+	 */
+	public static function finish_job( string $job_type, int $job_id, string $status, string $details = '', array $extra = [] ): void {
+		global $wpdb;
+		$table = self::table_for( $job_type );
+
+		$data = [
+			'status'       => $status,
+			'completed_at' => current_time( 'mysql' ),
+			'details'      => $details,
+		];
+		foreach ( $extra as $k => $v ) {
+			$data[ $k ] = $v;
+		}
+
+		$format = array_fill( 0, count( $data ), '%s' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->update( $table, $data, [ 'id' => $job_id ], $format, [ '%d' ] );
+	}
+
+	// ── History queries ─────────────────────────────────────────────
+
+	public static function count_by_status( string $job_type, string $status ): int {
+		global $wpdb;
+		$table = self::table_for( $job_type );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM %i WHERE status = %s", $table, $status
 		) );
 	}
 
-	/**
-	 * Check whether any completed metadata embedding job exists for this attachment.
-	 * Single source of truth for the library metadata column.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 * @return bool
-	 */
-	public static function has_any_completed_metadata( int $attachment_id ): bool {
-		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (bool) $wpdb->get_var( $wpdb->prepare(
-			'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND job_type = \'metadata\' AND status = \'completed\'',
-			$table,
-			$attachment_id
-		) );
-	}
-
-	/**
-	 * Write a 'pending' row when a job is queued.
-	 * Same upsert as log_job, so each (attachment_id, job_type, size) always has
-	 * exactly one row and its status reflects current state: pending → completed/failed.
-	 *
-	 * @param array $job Job data (same keys that write_job builds).
-	 */
-	public static function log_pending_job( array $job ): void {
-		global $wpdb;
-		$table = self::table_name();
-
-		$attachment_id = absint( $job['attachment_id'] ?? 0 );
-		$job_type      = sanitize_key( $job['job_type'] ?? 'unknown' );
-		$size          = sanitize_key( $job['size'] ?? '' );
-
-		// completed_at is omitted so it defaults to NULL in the schema.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$wpdb->replace(
-			$table,
-			[
-				'attachment_id' => $attachment_id,
-				'image_name'    => sanitize_text_field( $job['image_name'] ?? '' ),
-				'job_type'      => $job_type,
-				'job_trigger'   => sanitize_key( $job['trigger'] ?? '' ),
-				'file_path'     => sanitize_text_field( $job['file_path'] ?? '' ),
-				'size'          => $size,
-				'dimensions'    => sanitize_text_field( $job['dimensions'] ?? '' ),
-				'status'        => 'pending',
-				'submitted_at'  => sanitize_text_field( $job['submitted_at'] ?? current_time( 'mysql' ) ),
-				'details'       => wp_json_encode( [] ),
-			],
-			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
-		);
-	}
-
-	/**
-	 * Return true if any completed job exists for this attachment.
-	 * Used to distinguish a fresh upload from a thumbnail regeneration.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 * @return bool
-	 */
 	public static function has_any_completed_job( int $attachment_id ): bool {
 		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return (bool) $wpdb->get_var( $wpdb->prepare(
-			'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND status = \'completed\'',
-			$table,
-			$attachment_id
-		) );
+		foreach ( [ self::table_webp(), self::table_compress(), self::table_meta() ] as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			if ( $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND status = 'completed'", $table, $attachment_id
+			) ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
-	 * Return the distinct job_type values that are currently pending for an attachment.
-	 * Empty array means no queued work. Used for queue-indicator badges in the admin.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 * @return string[]  e.g. ['import', 'compression']
+	 * Drop all three tables. Called during uninstall.
 	 */
+	public static function drop_tables(): void {
+		global $wpdb;
+		foreach ( [ self::table_webp(), self::table_compress(), self::table_meta() ] as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
+			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+		}
+	}
+
+	// ── Compatibility methods for existing callers ──────────────────
+
+	public static function table_name(): string {
+		return self::table_meta();
+	}
+
+	public static function get_job( int $job_id, string $job_type = '' ): ?object {
+		global $wpdb;
+		$tables = $job_type ? [ self::table_for( $job_type ) ] : [ self::table_webp(), self::table_compress(), self::table_meta() ];
+		foreach ( $tables as $table ) {
+			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $job_id ), OBJECT );
+			if ( $row ) return $row;
+		}
+		return null;
+	}
+
+	public static function get_jobs( array $args = [] ): array {
+		global $wpdb;
+		$status   = $args['status'] ?? '';
+		$type     = $args['job_type'] ?? '';
+		$per_page = $args['per_page'] ?? ( $args['number'] ?? 50 );
+		$paged    = max( 1, (int) ( $args['paged'] ?? 1 ) );
+		$offset   = ( $paged - 1 ) * $per_page;
+		$search   = $args['search'] ?? '';
+		$orderby  = $args['orderby'] ?? 'id';
+		$order    = strtoupper( $args['order'] ?? 'DESC' );
+
+		$allowed_cols = [ 'id', 'attachment_id', 'image_name', 'job_type', 'size', 'status', 'submitted_at', 'completed_at' ];
+		if ( ! in_array( $orderby, $allowed_cols, true ) ) { $orderby = 'id'; }
+		if ( ! in_array( $order, [ 'ASC', 'DESC' ], true ) ) { $order = 'DESC'; }
+
+		$results = array();
+		$total   = 0;
+		$tables  = $type ? [ self::table_for( $type ) ] : [ self::table_webp(), self::table_compress(), self::table_meta() ];
+
+		foreach ( $tables as $table ) {
+			$where  = '1=1';
+			$params = array();
+			if ( 'not_pending' === $status ) {
+				$where .= " AND status != 'pending'";
+			} elseif ( $status ) {
+				$where .= ' AND status = %s'; $params[] = $status;
+			}
+			if ( $search ) {
+				$like = '%' . $wpdb->esc_like( $search ) . '%';
+				if ( $table === self::table_meta() ) {
+					$where  .= ' AND (image_name LIKE %s OR job_type LIKE %s)';
+					$params[] = $like;
+					$params[] = $like;
+				} else {
+					$where  .= ' AND image_name LIKE %s';
+					$params[] = $like;
+				}
+			}
+
+			$count_params = $params;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where built from sanitized conditions
+			$count_row = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE ' . $where, array_merge( [ $table ], $count_params ) ) );
+			$total += (int) $count_row;
+
+			$params[] = $per_page;
+			$params[] = $offset;
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $orderby/$order from whitelist, $where from sanitized conditions
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE ' . $where . " ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d", array_merge( [ $table ], $params ) ), OBJECT );
+			$results = array_merge( $results, $rows );
+		}
+		return array( 'jobs' => $results, 'total' => $total );
+	}
+
+	public static function has_completed_compression( int $attachment_id, string $size ): bool {
+		global $wpdb;
+		return (bool) $wpdb->get_var( $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND size = %s AND status = "completed"', self::table_compress(), $attachment_id, $size
+		) );
+	}
+
+	public static function has_any_completed_metadata( int $attachment_id ): bool {
+		global $wpdb;
+		return (bool) $wpdb->get_var( $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND status = "completed"', self::table_meta(), $attachment_id
+		) );
+	}
+
 	public static function get_pending_job_types( int $attachment_id ): array {
 		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$types = $wpdb->get_col( $wpdb->prepare(
-			'SELECT DISTINCT job_type FROM %i WHERE attachment_id = %d AND status = \'pending\'',
-			$table,
-			$attachment_id
-		) );
-		return is_array( $types ) ? $types : [];
+		$types = array();
+		foreach ( [ 'webp' => self::table_webp(), 'compression' => self::table_compress(), 'metadata' => self::table_meta() ] as $type => $table ) {
+			$c = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND status = "pending"', $table, $attachment_id ) );
+			if ( $c ) $types[] = $type;
+		}
+		return $types;
 	}
 
-	/**
-	 * Return attachment IDs that have at least one completed job of the given type.
-	 * Used by library scan to find unprocessed attachments without post_meta queries.
-	 *
-	 * @param string $job_type 'compression' or 'metadata'.
-	 * @return int[]
-	 */
 	public static function get_ids_with_completed_job( string $job_type ): array {
 		global $wpdb;
-		$table = self::table_name();
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$ids = $wpdb->get_col( $wpdb->prepare(
-			'SELECT DISTINCT attachment_id FROM %i WHERE job_type = %s AND status = \'completed\'',
-			$table,
-			$job_type
-		) );
-		return $ids ? array_map( 'intval', $ids ) : [];
+		$table = self::table_for( $job_type );
+		return $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT attachment_id FROM %i WHERE status = "completed"', $table ) );
 	}
 
-}
+	public static function get_stats(): array {
+		global $wpdb;
+		$stats = array(
+			'total_jobs' => 0,
+			'pending' => 0,
+			'completed' => 0,
+			'failed' => 0,
+			'bytes_saved' => 0,
+			'bytes_original' => 0,
+			'unique_attachments' => 0,
+		);
+		$all_ids = array();
+		foreach ( [ 'webp', 'compression', 'metadata' ] as $type ) {
+			$table = self::table_for( $type );
+			$pending   = self::count_by_status( $type, 'pending' );
+			$completed = self::count_by_status( $type, 'completed' );
+			$failed    = self::count_by_status( $type, 'failed' );
+			$stats['pending']   += $pending;
+			$stats['completed'] += $completed;
+			$stats['failed']    += $failed;
+			$stats['total_jobs'] += $pending + $completed + $failed;
+			$stats[$type] = array(
+				'pending'   => $pending,
+				'completed' => $completed,
+				'failed'    => $failed,
+			);
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
+			$ids = $wpdb->get_col( "SELECT DISTINCT attachment_id FROM {$table}" );
+			$all_ids = array_merge( $all_ids, array_map( 'intval', $ids ) );
+			// Byte counts (compression table only has these columns).
+			if ( $type === 'compression' ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table from self::table_for()
+				$row = $wpdb->get_row( "SELECT COALESCE(SUM(bytes_before),0) AS ob, COALESCE(SUM(bytes_after),0) AS oa FROM {$table} WHERE bytes_before IS NOT NULL" );
+				if ( $row ) {
+					$stats['bytes_original'] += (int) $row->ob;
+					$stats['bytes_saved']    += (int) $row->ob - (int) $row->oa;
+				}
+			}
+		}
+		$stats['unique_attachments'] = count( array_unique( $all_ids ) );
+		return $stats;
+	}
 
-// Run on every admin_init to self-heal if the table drifts (e.g. after manual DB restore).
-add_action( 'admin_init', [ 'MM_DB', 'create_or_update_table' ] );
+	public static function delete_jobs_for_attachment( int $attachment_id ): void {
+		global $wpdb;
+		foreach ( [ self::table_webp(), self::table_compress(), self::table_meta() ] as $table ) {
+			$wpdb->delete( $table, array( 'attachment_id' => $attachment_id ) );
+		}
+	}
+
+	public static function log_job( array $job ): bool {
+		self::log_pending_job( $job );
+		$type   = $job['job_type'] ?? 'metadata';
+		$status = $job['status'] ?? 'pending';
+		if ( 'completed' === $status || 'failed' === $status ) {
+			$id = (int) ( $job['id'] ?? 0 );
+			if ( $id ) {
+				self::finish_job( $type, $id, $status, $job['details'] ?? '', [
+					'bytes_before' => $job['bytes_before'] ?? null,
+					'bytes_after'  => $job['bytes_after'] ?? null,
+				] );
+			}
+		}
+		return true;
+	}
+
+	public static function drop_table(): void {
+		self::drop_tables();
+	}
+}

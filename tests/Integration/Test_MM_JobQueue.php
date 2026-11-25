@@ -25,9 +25,9 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	public static function set_up_before_class(): void {
 		parent::set_up_before_class();
 		// Create the jobs table (Test_MM_DB drops it after its own class runs).
-		MM_DB::create_or_update_table();
+		MM_DB::create_or_update_tables();
 		// Ensure all queue directories exist for the test run.
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
+		foreach ( [ "compression", "metadata", "completed", "failed" ] as $dir ) {
 			if ( ! is_dir( $dir ) ) {
 				mkdir( $dir, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test setup, WP_Filesystem not available
 			}
@@ -36,10 +36,11 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		// Remove all job files written during the test.
-		foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
-			foreach ( glob( $dir . '*.json' ) ?: [] as $file ) {
-				wp_delete_file( $file );
-			}
+		foreach ( [ "compression", "metadata", "completed", "failed" ] as $dir ) {
+			foreach ( [ 'compression', 'metadata', 'webp' ] as $type ) {
+			global $wpdb;
+			$wpdb->query( 'DELETE FROM ' . MM_DB::table_for( $type ) );
+		}
 		}
 		// Remove temporary media files created by create_tmp_attachment().
 		foreach ( $this->tmp_files as $file ) {
@@ -75,8 +76,8 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 	 * @param  string $dir Queue directory path.
 	 * @return int
 	 */
-	private function count_jobs( string $dir ): int {
-		return count( glob( $dir . '*.json' ) ?: [] );
+	private function count_jobs( string $type ): int {
+		return MM_DB::count_by_status( $type, 'pending' );
 	}
 
 	/**
@@ -125,7 +126,7 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 		MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
+		$this->assertSame( 1, $this->count_jobs( "compression" ) );
 	}
 
 	public function test_write_metadata_job_creates_file(): void {
@@ -133,7 +134,7 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 		MM_Job_Queue::write_job( 'metadata', $attachment_id, '/tmp/photo.jpg', 'full' );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertSame( 1, $this->count_jobs( "metadata" ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -149,7 +150,7 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		// Both jobs are written — no silent suppression (rule 18).
 		$this->assertSame( 'written', $result1 );
 		$this->assertSame( 'written', $result2 );
-		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ) );
+		$this->assertSame( 2, $this->count_jobs( "compression" ) );
 	}
 
 	public function test_different_sizes_are_not_duplicates(): void {
@@ -160,7 +161,7 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 		$this->assertSame( 'written', $result_full );
 		$this->assertSame( 'written', $result_thumb );
-		$this->assertSame( 2, $this->count_jobs( MM_JOB_COMPRESS ) );
+		$this->assertSame( 2, $this->count_jobs( "compression" ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -173,13 +174,13 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		MM_Job_Queue::write_job( 'compression', $attachment_id, '/tmp/photo.jpg', 'full' );
 		MM_Job_Queue::write_job( 'metadata',    $attachment_id, '/tmp/photo.jpg', 'full' );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ) );
+		$this->assertSame( 1, $this->count_jobs( "compression" ) );
+		$this->assertSame( 1, $this->count_jobs( "metadata" ) );
 
 		MM_Job_Queue::on_delete_attachment( $attachment_id );
 
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_COMPRESS ) );
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_META ) );
+		$this->assertSame( 0, $this->count_jobs( "compression" ) );
+		$this->assertSame( 0, $this->count_jobs( "metadata" ) );
 	}
 
 	// -----------------------------------------------------------------------
@@ -202,11 +203,11 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		// No completed jobs in DB → treated as a fresh upload.
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 1, $this->count_jobs( "compression" ),
 			'Fresh image upload must queue a compression job.' );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( "webp" ),
 			'Fresh image upload must queue webp jobs (full + sizes).' );
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
+		$this->assertSame( 1, $this->count_jobs( "metadata" ),
 			'Fresh image upload must queue a metadata-embedding job.' );
 	}
 
@@ -214,7 +215,7 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		[ $attachment_id ] = $this->create_tmp_attachment( 'image/jpeg' );
 
 		// Insert a completed DB row to simulate a previous run (thumbnail regen).
-		MM_DB::log_job( [
+		MM_DB::log_pending_job( [
 			'attachment_id' => $attachment_id,
 			'image_name'    => 'test.jpg',
 			'job_type'      => 'compression',
@@ -232,11 +233,11 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		update_post_meta( $attachment_id, MM_Metadata::META_SYNCED, '1' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 1, $this->count_jobs( "compression" ),
 			'Thumbnail regeneration must re-queue compression.' );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( "webp" ),
 			'Thumbnail regeneration must re-queue webp.' );
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_META ),
+		$this->assertSame( 0, $this->count_jobs( "metadata" ),
 			'Thumbnail regeneration must NOT queue metadata (preserves user edits).' );
 	}
 
@@ -253,9 +254,9 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 		MM_Metadata::on_fields_save( [ 'ID' => $attachment_id ], [] );
 
-		$this->assertGreaterThan( 0, $this->count_jobs( MM_JOB_META ),
+		$this->assertGreaterThan( 0, $this->count_jobs( "metadata" ),
 			'Editing attachment fields must queue a metadata-embedding job.' );
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 0, $this->count_jobs( "compression" ),
 			'Editing attachment fields must NOT queue a compression job.' );
 	}
 
@@ -272,9 +273,9 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 
 		MM_Job_Queue::enqueue_all_sizes( $attachment_id, [], 'both', [ 'trigger' => 'scan' ] );
 
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 1, $this->count_jobs( "compression" ),
 			'Library scan must queue a compression job for an image.' );
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_META ),
+		$this->assertSame( 1, $this->count_jobs( "metadata" ),
 			'Library scan must queue a metadata-embedding job for an image.' );
 	}
 
@@ -286,9 +287,9 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		[ $attachment_id ] = $this->create_tmp_attachment( 'image/webp' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
 		// WebP is already optimal from the webp daemon — cascade queues metadata only.
-		$this->assertSame( 0, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 0, $this->count_jobs( "compression" ),
 			'WebP must NOT get compression (already optimal from daemon).' );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_META ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( "metadata" ),
 			'WebP must get metadata jobs.' );
 	}
 
@@ -296,9 +297,9 @@ class Test_MM_JobQueue extends WP_UnitTestCase {
 		[ $attachment_id ] = $this->create_tmp_attachment( 'image/jpeg' );
 		MM_Job_Queue::on_upload( [], $attachment_id );
 		// JPEG gets compression (compress queue) + webp generation (webp queue).
-		$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ),
+		$this->assertSame( 1, $this->count_jobs( "compression" ),
 			'JPEG must get compression job.' );
-		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( MM_JOB_WEBP ),
+		$this->assertGreaterThanOrEqual( 1, $this->count_jobs( "webp" ),
 			'JPEG must get webp generation jobs in webp queue.' );
 	}
 }

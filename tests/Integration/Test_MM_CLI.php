@@ -23,8 +23,8 @@ private array $tmp_files = [];
 
 public static function set_up_before_class(): void {
 parent::set_up_before_class();
-MM_DB::create_or_update_table();
-foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
+MM_DB::create_or_update_tables();
+foreach ( [ "compression", "metadata", "webp" ] as $dir ) {
 if ( ! is_dir( $dir ) ) {
 mkdir( $dir, 0755, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- test setup, WP_Filesystem not available
 }
@@ -37,7 +37,7 @@ WP_CLI::$output = [];
 }
 
 public function tear_down(): void {
-foreach ( [ MM_JOB_COMPRESS, MM_JOB_META, MM_JOB_DONE, MM_JOB_FAILED ] as $dir ) {
+foreach ( [ "compression", "metadata", "webp" ] as $dir ) {
 foreach ( glob( $dir . '*.json' ) ?: [] as $file ) {
 wp_delete_file( $file );
 }
@@ -51,15 +51,15 @@ parent::tear_down();
 
 public static function tear_down_after_class(): void {
 MM_DB::drop_table();
-if ( is_dir( MM_JOB_ROOT ) ) {
+if ( is_dir( WP_CONTENT_DIR . "/metamanager-jobs" ) ) {
 $iter = new RecursiveIteratorIterator(
-new RecursiveDirectoryIterator( MM_JOB_ROOT, FilesystemIterator::SKIP_DOTS ),
+new RecursiveDirectoryIterator( WP_CONTENT_DIR . "/metamanager-jobs", FilesystemIterator::SKIP_DOTS ),
 RecursiveIteratorIterator::CHILD_FIRST
 );
 foreach ( $iter as $item ) {
 $item->isDir() ? rmdir( $item->getRealPath() ) : wp_delete_file( $item->getRealPath() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 }
-rmdir( MM_JOB_ROOT ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+rmdir( WP_CONTENT_DIR . "/metamanager-jobs" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 }
 parent::tear_down_after_class();
 }
@@ -68,9 +68,9 @@ parent::tear_down_after_class();
 // Helpers
 // ------------------------------------------------------------------
 
-private function count_jobs( string $dir ): int {
-return count( glob( $dir . '*.json' ) ?: [] );
-}
+private function count_jobs( string $type ): int {
+		return MM_DB::count_by_status( $type, 'pending' );
+	}
 
 private function create_tmp_attachment( string $mime = 'image/jpeg' ): array {
 $ext = match ( $mime ) {
@@ -101,13 +101,13 @@ private function run_cli( string $command, array $args = [], array $assoc_args =
 public function test_compress_single_image_queues_job(): void {
 [ $id ] = $this->create_tmp_attachment( 'image/jpeg' );
 $this->run_cli( 'compress', [ (string) $id ] );
-$this->assertGreaterThan( 0, $this->count_jobs( MM_JOB_COMPRESS ) );
+$this->assertGreaterThan( 0, $this->count_jobs( "compression" ) );
 }
 
 public function test_compress_video_queues_job(): void {
 [ $id ] = $this->create_tmp_attachment( 'video/mp4' );
 $this->run_cli( 'compress', [ (string) $id ] );
-$this->assertSame( 1, $this->count_jobs( MM_JOB_COMPRESS ) );
+$this->assertSame( 1, $this->count_jobs( "compression" ) );
 }
 
 public function test_compress_audio_throws_error(): void {
@@ -118,7 +118,7 @@ $this->run_cli( 'compress', [ (string) $id ] );
 
 public function test_compress_already_compressed_skipped_without_force(): void {
 [ $id ] = $this->create_tmp_attachment( 'image/jpeg' );
-$GLOBALS['wpdb']->insert( $GLOBALS['wpdb']->prefix . MM_JOB_TABLE, [
+$GLOBALS['wpdb']->insert( MM_DB::table_for("metadata"), [
 'attachment_id' => $id,
 'size'          => 'full',
 'job_type'      => 'compression',
@@ -128,12 +128,12 @@ $GLOBALS['wpdb']->insert( $GLOBALS['wpdb']->prefix . MM_JOB_TABLE, [
 'job_trigger'   => 'upload',
 ] );
 $this->run_cli( 'compress', [ (string) $id ] );
-$this->assertSame( 0, $this->count_jobs( MM_JOB_COMPRESS ) );
+$this->assertSame( 0, $this->count_jobs( "compression" ) );
 }
 
 public function test_compress_already_compressed_requeued_with_force(): void {
 [ $id ] = $this->create_tmp_attachment( 'image/jpeg' );
-$GLOBALS['wpdb']->insert( $GLOBALS['wpdb']->prefix . MM_JOB_TABLE, [
+$GLOBALS['wpdb']->insert( MM_DB::table_for("metadata"), [
 'attachment_id' => $id,
 'size'          => 'full',
 'job_type'      => 'compression',
@@ -143,7 +143,7 @@ $GLOBALS['wpdb']->insert( $GLOBALS['wpdb']->prefix . MM_JOB_TABLE, [
 'job_trigger'   => 'upload',
 ] );
 $this->run_cli( 'compress', [ (string) $id ], [ 'force' => true ] );
-$this->assertGreaterThan( 0, $this->count_jobs( MM_JOB_COMPRESS ) );
+$this->assertGreaterThan( 0, $this->count_jobs( "compression" ) );
 }
 
 public function test_compress_all_empty_succeeds(): void {
@@ -159,13 +159,13 @@ $this->assertSame( 'success', $last['type'] );
 public function test_embed_single_image_queues_metadata_jobs(): void {
 [ $id ] = $this->create_tmp_attachment( 'image/jpeg' );
 $this->run_cli( 'embed', [ (string) $id ] );
-$this->assertGreaterThan( 0, $this->count_jobs( MM_JOB_META ) );
+$this->assertGreaterThan( 0, $this->count_jobs( "metadata" ) );
 }
 
 public function test_embed_audio_queues_metadata_job(): void {
 [ $id ] = $this->create_tmp_attachment( 'audio/mpeg' );
 $this->run_cli( 'embed', [ (string) $id ] );
-$this->assertSame( 1, $this->count_jobs( MM_JOB_META ) );
+$this->assertSame( 1, $this->count_jobs( "metadata" ) );
 }
 
 public function test_embed_all_empty_succeeds(): void {
@@ -197,12 +197,12 @@ $this->run_cli( 'import', [ (string) $id ] );
 public function test_scan_queues_jobs_for_unsynced_image(): void {
 $this->create_tmp_attachment( 'image/jpeg' );
 $this->run_cli( 'scan' );
-$this->assertGreaterThan( 0, $this->count_jobs( MM_JOB_META ) + $this->count_jobs( MM_JOB_COMPRESS ) );
+$this->assertGreaterThan( 0, $this->count_jobs( "metadata" ) + $this->count_jobs( "compression" ) );
 }
 
 public function test_scan_skips_already_synced_files(): void {
 [ $id ] = $this->create_tmp_attachment( 'image/jpeg' );
-$GLOBALS['wpdb']->insert( $GLOBALS['wpdb']->prefix . MM_JOB_TABLE, [
+$GLOBALS['wpdb']->insert( MM_DB::table_for("metadata"), [
 'attachment_id' => $id,
 'size'          => 'full',
 'job_type'      => 'metadata',

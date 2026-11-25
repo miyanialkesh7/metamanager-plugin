@@ -1054,6 +1054,7 @@ class MM_Abilities {
 					'acquire'     => [ 'type' => 'string', 'description' => 'For set-licensing: acquire license URL.' ],
 					'creator'     => [ 'type' => 'string', 'description' => 'For set-licensing: creator / photographer name.' ],
 					'copyright'   => [ 'type' => 'string', 'description' => 'For set-licensing: copyright notice.' ],
+					'subtype'     => [ 'type' => 'string', 'enum' => [ 'provenance', 'copyright', 'geocode', 'edit', 'import' ], 'description' => 'For embed: job subtype label. Default: auto-detected.' ],
 				],
 				'required' => [ 'action' ],
 			],
@@ -1116,7 +1117,8 @@ class MM_Abilities {
 				if ( empty( $ids ) ) {
 					return new WP_Error( 'missing_ids', 'attachment_ids is required for embed.' );
 				}
-				$result = MM_Media_Service::embed_metadata( $ids, 'ability_embed' );
+				$subtype = sanitize_key( $input['subtype'] ?? '' );
+				$result = MM_Media_Service::embed_metadata( $ids, 'ability_embed', [], $subtype );
 				return [ 'success' => true, 'message' => "Metadata embed queued for {$result['count']} attachments.", 'count' => $result['count'] ];
 
 			case 'set-licensing':

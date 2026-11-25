@@ -370,9 +370,10 @@ class MM_CLI extends \WP_CLI_Command {
 					\WP_CLI::error( 'Add --yes to confirm clearing all job history.' );
 				}
 				global $wpdb;
-				$table = MM_DB::table_name();
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+				foreach ( [ MM_DB::table_webp(), MM_DB::table_compress(), MM_DB::table_meta() ] as $table ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+					$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+				}
 				\WP_CLI::success( 'Job history cleared. Media files are not affected.' );
 				break;
 
@@ -451,18 +452,23 @@ class MM_CLI extends \WP_CLI_Command {
 	 * [--force]
 	 * : Re-queue even if the file already has a completed metadata job.
 	 *
+	 * [--subtype=<subtype>]
+	 * : Job subtype label (provenance, copyright, geocode, edit, import). Default: auto-detected.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp metamanager embed 42
 	 *     wp metamanager embed all
 	 *     wp metamanager embed all --force
+	 *     wp metamanager embed all --subtype=copyright
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
 	 */
 	public function embed( array $args, array $assoc_args = [] ): void {
-		$force  = isset( $assoc_args['force'] );
-		$target = $args[0] ?? 'all';
+		$force   = isset( $assoc_args['force'] );
+		$subtype = sanitize_key( $assoc_args['subtype'] ?? '' );
+		$target  = $args[0] ?? 'all';
 
 		if ( 'all' === strtolower( $target ) ) {
 			$supported_mimes = array_merge(
@@ -500,7 +506,7 @@ class MM_CLI extends \WP_CLI_Command {
 			$ids      = array_values( array_diff( array_map( 'intval', $ids ), $done_ids ) );
 		}
 
-		$result = MM_Media_Service::embed_metadata( $ids, 'cli' );
+		$result = MM_Media_Service::embed_metadata( $ids, 'cli', [], $subtype );
 		\WP_CLI::success( sprintf(
 			'Queued embed jobs for %d file(s). Skipped: %d.',
 			$result['count'],

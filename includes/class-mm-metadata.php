@@ -742,7 +742,7 @@ class MM_Metadata {
 		}
 
 		// Enqueue metadata embedding jobs — do NOT compress on edit.
-		MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'edit' ] );
+		MM_Job_Queue::enqueue_all_sizes( $id, [], 'metadata', [ 'trigger' => 'edit', 'job_subtype' => 'edit' ] );
 
 		return $post;
 	}
@@ -827,7 +827,7 @@ class MM_Metadata {
 			return;
 		}
 
-		MM_Job_Queue::write_job( 'import', $attachment_id, $file, 'full', [ 'trigger' => 'import' ] );
+		MM_Job_Queue::write_job( 'import', $attachment_id, $file, 'full', [ 'trigger' => 'import', 'job_subtype' => 'import' ] );
 	}
 
 	/**

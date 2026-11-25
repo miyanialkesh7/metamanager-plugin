@@ -3,7 +3,7 @@
  * Plugin Name:  Metamanager
  * Plugin URI:   https://github.com/richardkentgates/metamanager-plugin
  * Description:  Lossless image compression and standards-compliant metadata embedding (EXIF, IPTC, XMP) via OS-level daemons. Expands the WordPress Media Library with native metadata editing, bulk operations, and a real-time job dashboard.
- * Version:      2.3.411
+ * Version:      2.3.427
  * Requires at least: 6.2
  * Requires PHP: 8.0
  * Author:       Richard Kent Gates
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 // Plugin constants
 // ---------------------------------------------------------------------------
 
-define( 'MM_VERSION',     '2.3.411' );
+define( 'MM_VERSION',     '2.3.427' );
 define( 'MM_PLUGIN_FILE', __FILE__ );
 define( 'MM_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'MM_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
@@ -44,11 +44,6 @@ define( 'MM_META_KEY',          '_mm_meta' );
  * so PHP and the OS always agree on the location — no hardcoded paths anywhere.
  */
 define( 'MM_JOB_ROOT',     WP_CONTENT_DIR . '/metamanager-jobs' );
-define( 'MM_JOB_COMPRESS', MM_JOB_ROOT . '/compress/' );
-define( 'MM_JOB_META',     MM_JOB_ROOT . '/meta/' );
-define( 'MM_JOB_WEBP',     MM_JOB_ROOT . '/webp/' );
-define( 'MM_JOB_DONE',     MM_JOB_ROOT . '/completed/' );
-define( 'MM_JOB_FAILED',   MM_JOB_ROOT . '/failed/' );
 
 /** Database table name (without prefix). */
 define( 'MM_JOB_TABLE', 'metamanager_jobs' );
@@ -200,10 +195,9 @@ register_deactivation_hook( MM_PLUGIN_FILE, 'mm_deactivate' );
  * and flush rewrite rules so sitemap URLs resolve immediately.
  */
 function mm_activate_single_site(): void {
-	MM_DB::create_or_update_table();
+	MM_DB::create_or_update_tables();
 	MM_Metadata_History::create_or_update_table();
 	MM_Mod_Links::create_table();
-	MM_Job_Queue::ensure_dirs();
 
 	// Cron events: status reporting only. Daemons handle all processing
 	// and call process-result.php directly — no import cron.
