@@ -15,11 +15,10 @@ class Test_MM_Activation extends WP_UnitTestCase {
 		mm_activate_single_site();
 
 		global $wpdb;
-		$tables = $wpdb->get_col( "SHOW TABLES LIKE '%mm_%'" );
-		$this->assertNotEmpty( $tables );
-		$this->assertContains( $wpdb->prefix . 'mm_webp_queue', $tables );
-		$this->assertContains( $wpdb->prefix . 'mm_compress_queue', $tables );
-		$this->assertContains( $wpdb->prefix . 'mm_meta_queue', $tables );
+		$all_tables = $wpdb->get_col( 'SHOW TABLES' );
+		$this->assertContains( $wpdb->prefix . 'mm_webp_queue', $all_tables, 'mm_webp_queue table should exist after activation.' );
+		$this->assertContains( $wpdb->prefix . 'mm_compress_queue', $all_tables, 'mm_compress_queue table should exist after activation.' );
+		$this->assertContains( $wpdb->prefix . 'mm_meta_queue', $all_tables, 'mm_meta_queue table should exist after activation.' );
 	}
 
 	public function test_activate_schedules_cron(): void {
