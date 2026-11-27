@@ -1504,6 +1504,7 @@ class MM_Schema_Post_Types {
 			update_post_meta( $post_id, '_thumbnail_id', $thumbnail_id );
 		}
 
+
 		// Verify panels_data survived — SiteOrigin content is the page layout.
 		$panels = get_post_meta( $post_id, 'panels_data', true );
 		if ( empty( $panels ) ) {
