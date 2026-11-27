@@ -1834,6 +1834,7 @@ class MM_Admin {
 		// Build sanitized field map — skip empty values (blank = leave unchanged).
 		$allowed_fields = [
 			MM_Metadata::META_CREATOR,
+			MM_Metadata::META_CREATOR_TYPE,
 			MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_OWNER,
 			MM_Metadata::META_HEADLINE,
@@ -2388,6 +2389,15 @@ class MM_Admin {
 						   style="width:100%;box-sizing:border-box;">
 				</div>
 				<?php endforeach; ?>
+
+					<div class="mm-field-group" data-field="<?php echo esc_attr( MM_Metadata::META_CREATOR_TYPE ); ?>" data-caps="full,xmp_only" style="margin-bottom:8px;">
+						<label style="display:block;font-size:12px;font-weight:600;margin-bottom:2px;"><?php esc_html_e( 'Creator Type', 'metamanager' ); ?></label>
+						<select class="mm-apply-field" data-key="<?php echo esc_attr( MM_Metadata::META_CREATOR_TYPE ); ?>" style="width:100%;">
+							<option value=""><?php esc_html_e( '— leave unchanged —', 'metamanager' ); ?></option>
+							<option value="Person"><?php esc_html_e( 'Person', 'metamanager' ); ?></option>
+							<option value="Organization"><?php esc_html_e( 'Organization', 'metamanager' ); ?></option>
+						</select>
+					</div>
 
 					<div class="mm-field-group" data-field="<?php echo esc_attr( MM_Metadata::META_RATING ); ?>" data-caps="full,xmp_only" style="margin-bottom:8px;">
 						<label style="display:block;font-size:12px;font-weight:600;margin-bottom:2px;"><?php esc_html_e( 'Rating', 'metamanager' ); ?></label>

@@ -274,7 +274,7 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			$og_att_id = attachment_url_to_postid( $og_image['url'] );
 			if ( $og_att_id ) {
 				$creator = (string) get_post_meta( $og_att_id, MM_Metadata::META_CREATOR, true );
-				if ( '' !== $creator ) { $image_node['creator'] = [ '@type' => 'Person', 'name' => $creator ]; }
+				if ( '' !== $creator ) { $creator_type = (string) get_post_meta( $og_att_id, MM_Metadata::META_CREATOR_TYPE, true ) ?: 'Person'; $image_node['creator'] = [ '@type' => $creator_type, 'name' => $creator ]; }
 				$copyright = (string) get_post_meta( $og_att_id, MM_Metadata::META_COPYRIGHT, true );
 				if ( '' !== $copyright ) { $image_node['copyrightNotice'] = $copyright; }
 				$license = (string) get_post_meta( $og_att_id, MM_Metadata::META_LICENSE, true );
@@ -944,7 +944,8 @@ class MM_Mod_Schema extends MM_Mod_Base {
 			// Using it is a regular management task, not automation.
 			$creator = $meta( MM_Metadata::META_CREATOR );
 			if ( '' !== $creator ) {
-				$node['creator'] = [ '@type' => 'Person', 'name' => $creator ];
+				$creator_type = $meta( MM_Metadata::META_CREATOR_TYPE ) ?: 'Person';
+				$node['creator'] = [ '@type' => $creator_type, 'name' => $creator ];
 			}
 			$copyright = $meta( MM_Metadata::META_COPYRIGHT );
 			if ( '' !== $copyright ) {
