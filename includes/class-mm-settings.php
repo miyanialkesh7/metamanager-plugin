@@ -548,6 +548,49 @@ class MM_Settings {
 	}
 
 	/**
+	 * Send a failure notification email when a job fails.
+	 *
+	 * @param string $job_type    Job type (webp, compression, metadata).
+	 * @param int    $job_id      Job row ID.
+	 * @param string $details     Failure details.
+	 * @param int    $attachment_id Attachment ID.
+	 */
+	public static function send_failure_notification( string $job_type, int $job_id, string $details, int $attachment_id = 0 ): void {
+		if ( ! self::get_notify_enabled() ) {
+			return;
+		}
+		$to = self::get_notify_email();
+		if ( ! $to ) {
+			return;
+		}
+
+		$site_name = get_bloginfo( 'name' );
+		$site_url  = home_url();
+		$dashboard = admin_url( 'admin.php?page=metamanager' );
+		$att_link  = $attachment_id ? get_edit_post_link( $attachment_id ) : '';
+		$att_title = $attachment_id ? get_the_title( $attachment_id ) : '';
+
+		$subject = sprintf( '[%s] Metamanager job failed: %s', $site_name, $job_type );
+
+		$body  = "A Metamanager job has failed.\n\n";
+		$body .= "Site: {$site_name} ({$site_url})\n";
+		$body .= "Job type: {$job_type}\n";
+		$body .= "Job ID: {$job_id}\n";
+		if ( $attachment_id ) {
+			$body .= "Attachment: {$att_title} (#{$attachment_id})\n";
+		}
+		$body .= "Details: {$details}\n\n";
+		$body .= "View Job Dashboard: {$dashboard}\n";
+		if ( $att_link ) {
+			$body .= "Edit Attachment: {$att_link}\n";
+		}
+		$body .= "\n-- {$site_name}\n";
+
+		$headers = [ 'Content-Type: text/plain; charset=UTF-8' ];
+		wp_mail( $to, $subject, $body, $headers );
+	}
+
+	/**
 	 * Whether all plugin data should be removed on uninstall.
 	 */
 	public static function get_delete_data(): bool {

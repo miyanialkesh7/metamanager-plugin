@@ -8,9 +8,9 @@ This document describes the internal design of the Metamanager plugin: how its c
 
 | Principle | In practice |
 |-----------|-------------|
-| **PHP coordinates, OS executes** | PHP never calls `shell_exec()`, `exec()`, or any other subprocess API. All media work is delegated to OS-level daemons via JSON job files. |
+| **PHP coordinates, OS executes** | PHP never calls `shell_exec()`, `exec()`, or any other subprocess API. All media work is delegated to OS-level daemons via DB job rows. |
 | **No blocking in the request path** | Upload hooks and save hooks only write a small JSON file. They never wait for a daemon result — that happens asynchronously via WP-Cron. |
-| **One source of truth per concern** | `MM_DB` owns the schema and all SQL. `MM_Metadata` owns all field names and sync logic. `MM_Job_Queue` owns all filesystem I/O for jobs. Nothing else writes job files or query the jobs table directly. |
+| **One source of truth per concern** | `MM_DB` owns the schema and all SQL. `MM_Metadata` owns all field names and sync logic. `MM_Job_Queue` owns job enqueue. Nothing else writes jobs or queries the job tables directly. |
 | **Safe defaults** | Data is never deleted on uninstall unless explicitly opted in. Attribution fields (Creator, Copyright, Owner) are never set by bulk actions. Existing user-set values are never overwritten during import. |
 | **Minimal WordPress coupling** | Classes are plain PHP. They use WordPress APIs (wpdb, Options, Post Meta, WP-Cron, REST, WP-CLI) but have no hard dependency on plugin bootstrap order. |
 
@@ -25,7 +25,7 @@ metamanager/
 │
 ├── includes/
 │   ├── class-mm-db.php           Database layer: job log table schema, CRUD, stats, deduplication migration
-│   ├── class-mm-job-queue.php    Job file write/read/cleanup (filesystem only — no DB)
+│   ├── class-mm-job-queue.php    Job enqueue (DB only — insert_job/log_pending_job)
 │   ├── class-mm-metadata.php     Field constants, WP field sync, daemon job payload builder
 │   ├── class-mm-admin.php        All wp-admin integration: columns, panes, bulk, dashboard, help tabs
 │   ├── class-mm-settings.php     Media/compression Preferences page registration and rendering
@@ -91,12 +91,10 @@ metamanager/
 | `MM_PLUGIN_FILE` | `__FILE__` | Passed to activation/deactivation hooks |
 | `MM_PLUGIN_DIR` | `plugin_dir_path(__FILE__)` | Absolute filesystem path |
 | `MM_PLUGIN_URL` | `plugin_dir_url(__FILE__)` | URL for enqueuing assets |
-| `MM_JOB_ROOT` | `WP_CONTENT_DIR . '/metamanager-jobs'` | Parent of all queue directories |
-| `MM_JOB_COMPRESS` | `MM_JOB_ROOT . '/compress/'` | Incoming compression job files |
-| `MM_JOB_META` | `MM_JOB_ROOT . '/meta/'` | Incoming metadata job files |
-| `MM_JOB_DONE` | `MM_JOB_ROOT . '/completed/'` | Daemon-written result files |
-| `MM_JOB_FAILED` | `MM_JOB_ROOT . '/failed/'` | Daemon-written failure files |
-| `MM_JOB_TABLE` | `'metamanager_jobs'` | DB table name without prefix |
+| `MM_JOB_ROOT` | `WP_CONTENT_DIR . '/metamanager-jobs'` | PID files + status.json only (no queues) |
+| `MM_DB::table_webp()` | `{prefix}mm_webp_queue` | WebP job table |
+| `MM_DB::table_compress()` | `{prefix}mm_compress_queue` | Compression job table |
+| `MM_DB::table_meta()` | `{prefix}mm_meta_queue` | Metadata job table |
 | `MM_PID_COMPRESS` | `MM_JOB_ROOT . '/compress-daemon.pid'` | Written by compress daemon on start |
 | `MM_PID_META` | `MM_JOB_ROOT . '/meta-daemon.pid'` | Written by meta daemon on start |
 
@@ -107,7 +105,7 @@ metamanager/
 3. Register `plugins_loaded` hook for `MM_Metadata_Loader::run()` (initialises the full web-layer metadata subsystem). Admin-only classes (`MM_Admin`, `MM_Settings`, `MM_Updater`, `MM_Daemon_Updater`) are initialized inside `if (is_admin())` at `plugins_loaded` priority 5. `MM_Upload_Notify::init()` is called unconditionally.
 4. Register `rest_api_init` hook for REST routes unconditionally (REST requests are not `is_admin()`).
 5. Register `admin_init` hook for `MM_DB::create_or_update_table()` (safe to run on every request — `dbDelta` is a no-op when no schema changes are needed).
-6. Register WP-Cron intervals and the `mm_import_completed_jobs` event handler.
+6. Register WP-Cron intervals and the `mm_write_status_json` event handler.
 7. Register `delete_attachment` hook for `MM_DB::delete_jobs_for_attachment()`.
 8. `MM_Head_Emitter` registers `wp_head` hook; modules emit schema/OG/meta tags.
 9. `MM_Mod_Sitemap_Web` registers rewrite rules for sitemaps.
@@ -136,45 +134,39 @@ add_attachment / wp_generate_attachment_metadata (WP hooks)
 ### Daemon processing (compress path)
 
 ```
-compress/<job-name>.json  written
+MM_DB::insert_job() → mm_compress_queue (status=pending)
         │
-        inotifywait (IN_CLOSE_WRITE)
-        │
-        mv → compress/<job-name>.json.processing
+        daemon polls DB (claim_next_job → status=processing)
         │
         jpegtran / optipng / cwebp / avifenc / ffmpeg
         │
-        write  completed/<job-name>.json-result.json  { status, bytes_before, bytes_after, ... }
-   OR   write  failed/<job-name>.json-result.json
-        │
-        rm compress/<job-name>.json.processing
+        MM_DB::finish_job() → status=completed/failed + details
 ```
 
 ### Daemon processing (meta path)
 
 ```
-meta/<job-name>.json  written
+MM_DB::insert_job() → mm_meta_queue (status=pending)
         │
-        inotifywait (IN_CLOSE_WRITE)
-        │
-        mv → meta/<job-name>.json.processing
+        daemon polls DB (claim_next_job → status=processing)
         │
         job_type == "import":
-            ExifTool reads embedded tags → JSON stdout → write to completed/<job-name>.json-result.json
+            ExifTool reads embedded tags → import-metadata.php → WP meta
         job_type == "metadata":
-            ExifTool writes WP field values back to the file → write to completed/<job-name>.json-result.json
+            ExifTool writes WP field values → write-metadata.php → file
         │
-        rm meta/<job-name>.json.processing
+        MM_DB::finish_job() → status=completed/failed + details
 ```
 
-### WP-Cron result import (runs every 60 seconds)
+### Result processing (inline during daemon)
 
 ```
-mm_import_completed_jobs  (WP-Cron, every 60s)
+MM_DB::finish_job() called by daemon
         │
-        MM_Job_Queue::import_completed_jobs()
-        │
-        for each file in completed/ and failed/:
+        Import result → apply_import_result() → queue write-back
+        Verify result → apply_verify_result()
+        Failed → send_failure_notification() if enabled
+```
           │
           ├─ job_type == "import":
           │     MM_Metadata::apply_imported_tags($attachment_id, $tags)
