@@ -1504,6 +1504,15 @@ class MM_Schema_Post_Types {
 			update_post_meta( $post_id, '_thumbnail_id', $thumbnail_id );
 		}
 
+		// If the thumbnail ID no longer resolves (attachment deleted or ID
+		// changed during migration), match by filename or title instead.
+		if ( $thumbnail_id && ! get_post( (int) $thumbnail_id ) ) {
+			$matched = self::find_attachment_by_filename_or_title( $post_id, $thumbnail_id );
+			if ( $matched ) {
+				update_post_meta( $post_id, '_thumbnail_id', $matched );
+			}
+		}
+
 		// Verify panels_data survived — SiteOrigin content is the page layout.
 		$panels = get_post_meta( $post_id, 'panels_data', true );
 		if ( empty( $panels ) ) {
@@ -1515,6 +1524,61 @@ class MM_Schema_Post_Types {
 		}
 
 		return $slug;
+	}
+
+	/**
+	 * Find an attachment by matching the original thumbnail's filename or title.
+	 *
+	 * When attachment IDs change during migration (new attachments created),
+	 * the old _thumbnail_id points to a nonexistent post. This looks up the
+	 * original attachment's file name or title and finds a matching attachment.
+	 *
+	 * @param int $post_id      Post that needs the featured image.
+	 * @param int $old_thumb_id The stale attachment ID.
+	 * @return int|false Matched attachment ID, or false if none found.
+	 */
+	private static function find_attachment_by_filename_or_title( int $post_id, int $old_thumb_id ) {
+		// Try to get the original attachment's file name from its meta.
+		$old_file = get_post_meta( $old_thumb_id, '_wp_attached_file', true );
+		$old_title = get_the_title( $old_thumb_id );
+
+		if ( ! $old_file && ! $old_title ) {
+			return false;
+		}
+
+		// Search for an attachment with matching file name or title.
+		$args = [
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+		];
+
+		if ( $old_file ) {
+			$filename = basename( (string) $old_file );
+			$args['meta_query'] = [
+				[
+					'key'     => '_wp_attached_file',
+					'value'   => $filename,
+					'compare' => 'LIKE',
+				],
+			];
+			$found = get_posts( $args );
+			if ( ! empty( $found ) ) {
+				return (int) $found[0];
+			}
+		}
+
+		if ( $old_title ) {
+			unset( $args['meta_query'] );
+			$args['s'] = $old_title;
+			$found = get_posts( $args );
+			if ( ! empty( $found ) ) {
+				return (int) $found[0];
+			}
+		}
+
+		return false;
 	}
 
 	/**
