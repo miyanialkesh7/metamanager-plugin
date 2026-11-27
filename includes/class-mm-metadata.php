@@ -40,6 +40,7 @@ class MM_Metadata {
 	// -----------------------------------------------------------------------
 
 	public const META_CREATOR   = 'mm_creator';
+	public const META_CREATOR_TYPE = 'mm_creator_type';
 	public const META_COPYRIGHT = 'mm_copyright';
 	public const META_OWNER     = 'mm_owner';
 	public const META_HEADLINE  = 'mm_headline';
@@ -174,19 +175,19 @@ class MM_Metadata {
 	 */
 	public const FIELD_COMPAT = [
 		'full' => [
-			self::META_CREATOR, self::META_COPYRIGHT, self::META_OWNER,
+			self::META_CREATOR, self::META_CREATOR_TYPE, self::META_COPYRIGHT, self::META_OWNER,
 			self::META_HEADLINE, self::META_CREDIT, self::META_KEYWORDS,
 			self::META_DATE, self::META_CITY, self::META_STATE,
 			self::META_COUNTRY, self::META_RATING,
 		],
 		'xmp_only' => [
-			self::META_CREATOR, self::META_COPYRIGHT,
+			self::META_CREATOR, self::META_CREATOR_TYPE, self::META_COPYRIGHT,
 			self::META_HEADLINE, self::META_CREDIT, self::META_KEYWORDS,
 			self::META_DATE, self::META_CITY, self::META_STATE,
 			self::META_COUNTRY, self::META_RATING,
 		],
 		'vorbis_only' => [
-			self::META_CREATOR, self::META_COPYRIGHT,
+			self::META_CREATOR, self::META_CREATOR_TYPE, self::META_COPYRIGHT,
 			self::META_HEADLINE, self::META_KEYWORDS, self::META_DATE,
 		],
 	];
@@ -382,6 +383,7 @@ class MM_Metadata {
 
 		$string_fields = [
 			self::META_CREATOR   => __( 'Original creator or photographer.', 'metamanager' ),
+			self::META_CREATOR_TYPE => __( 'Creator entity type (Person or Organization).', 'metamanager' ),
 			self::META_COPYRIGHT => __( 'Copyright notice.', 'metamanager' ),
 			self::META_OWNER     => __( 'Current rights holder or asset owner.', 'metamanager' ),
 			self::META_HEADLINE  => __( 'Short editorial headline.', 'metamanager' ),
@@ -486,6 +488,7 @@ class MM_Metadata {
 			'AltText'     => $meta( '_wp_attachment_image_alt' ),
 			// Per-image attribution.
 			'Creator'     => $meta( self::META_CREATOR ),
+			'CreatorType' => $meta( self::META_CREATOR_TYPE ),
 			'Copyright'   => $meta( self::META_COPYRIGHT ),
 			'Owner'       => $meta( self::META_OWNER ),
 			// Site provenance — neutral, never asserts authorship or copyright.
@@ -563,6 +566,18 @@ class MM_Metadata {
 			'input' => 'text',
 			'value' => (string) get_post_meta( $id, self::META_CREATOR, true ),
 			'helps' => esc_html__( 'Original creator/photographer. → EXIF:Artist, IPTC:By-line, XMP:Creator', 'metamanager' ),
+		];
+
+		$form_fields[ self::META_CREATOR_TYPE ] = [
+			'label'   => esc_html__( 'Creator Type', 'metamanager' ),
+			'input'   => 'select',
+			'value'   => (string) get_post_meta( $id, self::META_CREATOR_TYPE, true ),
+			'options' => [
+				''             => esc_html__( '— Select —', 'metamanager' ),
+				'Person'       => esc_html__( 'Person', 'metamanager' ),
+				'Organization' => esc_html__( 'Organization', 'metamanager' ),
+			],
+			'helps' => esc_html__( 'Entity type for schema.org creator. Person for individuals, Organization for businesses.', 'metamanager' ),
 		];
 
 		$form_fields[ self::META_COPYRIGHT ] = [

@@ -121,6 +121,7 @@ class MM_Media_Service {
 		// Build allowed fields map (field name => meta_key).
 		$allowed = [
 			MM_Metadata::META_CREATOR   => MM_Metadata::META_CREATOR,
+			MM_Metadata::META_CREATOR_TYPE => MM_Metadata::META_CREATOR_TYPE,
 			MM_Metadata::META_COPYRIGHT => MM_Metadata::META_COPYRIGHT,
 			MM_Metadata::META_OWNER     => MM_Metadata::META_OWNER,
 			MM_Metadata::META_HEADLINE  => MM_Metadata::META_HEADLINE,
