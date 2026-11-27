@@ -52,6 +52,10 @@ class MM_Schema_Post_Types {
 		add_action( 'pre_get_posts', [ __CLASS__, 'order_archives_by_menu_order' ] );
 		add_action( 'wp_ajax_mm_search_vessels', [ __CLASS__, 'ajax_search_vessels' ] );
 		add_action( 'wp_ajax_mm_search_destinations', [ __CLASS__, 'ajax_search_destinations' ] );
+		// SiteOrigin Page Builder: enable for all schema CPTs.
+		add_filter( 'siteorigin_panels_post_types', [ __CLASS__, 'add_siteorigin_post_types' ] );
+		// Ensure SiteOrigin settings include our CPTs (belt and suspenders).
+		add_action( 'admin_init', [ __CLASS__, 'sync_siteorigin_settings' ] );
 	}
 
 	/**
@@ -177,6 +181,56 @@ class MM_Schema_Post_Types {
 				'show_in_rest' => true,
 				'show_in_menu' => 'mm-schema-dashboard',
 			] );
+		}
+	}
+
+	/**
+	 * Enable SiteOrigin Page Builder for all schema CPTs.
+	 *
+	 * SiteOrigin decides which post types support the page builder via the
+	 * siteorigin_panels_post_types filter AND the siteorigin_panels_settings
+	 * option. Without this, panels_data is stored but never rendered — the
+	 * page builder UI is absent from the edit screen and the frontend shows
+	 * raw content instead of the built layout.
+	 *
+	 * @param array $post_types Post types currently enabled.
+	 * @return array Modified post types list.
+	 */
+	public static function add_siteorigin_post_types( array $post_types ): array {
+		foreach ( self::TYPES as $slug => $config ) {
+			if ( ! in_array( $slug, $post_types, true ) ) {
+				$post_types[] = $slug;
+			}
+		}
+		return $post_types;
+	}
+
+	/**
+	 * Sync the siteorigin_panels_settings option to include schema CPTs.
+	 *
+	 * The filter alone is not enough — SiteOrigin also reads the stored
+	 * post-types array from its settings option. We merge our CPTs into it
+	 * so both the filter and the stored setting agree.
+	 */
+	public static function sync_siteorigin_settings(): void {
+		$settings = get_option( 'siteorigin_panels_settings' );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		$current = $settings['post-types'] ?? [ 'page', 'post' ];
+		if ( ! is_array( $current ) ) {
+			$current = [ 'page', 'post' ];
+		}
+		$changed = false;
+		foreach ( self::TYPES as $slug => $config ) {
+			if ( ! in_array( $slug, $current, true ) ) {
+				$current[] = $slug;
+				$changed   = true;
+			}
+		}
+		if ( $changed ) {
+			$settings['post-types'] = $current;
+			update_option( 'siteorigin_panels_settings', $settings );
 		}
 	}
 
@@ -1429,13 +1483,38 @@ class MM_Schema_Post_Types {
 			update_post_meta( $post_id, 'mm_breadcrumb_label', $old_meta['breadcrumb_label'] );
 		}
 
-		// Change post type.
+		// Snapshot data that must survive the migration.
+		$thumbnail_id = get_post_meta( $post_id, '_thumbnail_id', true );
+		$post_status  = $post->post_status;
+
+		// Change post type — explicitly preserve status and featured image.
 		$result = wp_update_post( [
-			'ID'        => $post_id,
-			'post_type' => $slug,
+			'ID'          => $post_id,
+			'post_type'   => $slug,
+			'post_status' => $post_status,
 		], true );
 
-		return is_wp_error( $result ) ? false : $slug;
+		if ( is_wp_error( $result ) ) {
+			return false;
+		}
+
+		// Verify featured image survived (wp_update_post preserves postmeta,
+		// but we restore it explicitly in case anything stripped it).
+		if ( $thumbnail_id && ! get_post_meta( $post_id, '_thumbnail_id', true ) ) {
+			update_post_meta( $post_id, '_thumbnail_id', $thumbnail_id );
+		}
+
+		// Verify panels_data survived — SiteOrigin content is the page layout.
+		$panels = get_post_meta( $post_id, 'panels_data', true );
+		if ( empty( $panels ) ) {
+			// Panels data was lost — this is a data-loss failure. Surface it.
+			error_log( sprintf(
+				'[Metamanager] migrate_post: panels_data missing after migration of post %d to %s',
+				$post_id, $slug
+			) );
+		}
+
+		return $slug;
 	}
 
 	/**
