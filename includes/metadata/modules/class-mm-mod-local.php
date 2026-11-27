@@ -177,7 +177,9 @@ class MM_Mod_Local extends MM_Mod_Base {
 						'http://schema.org/MobileWebPlatform',
 					],
 				],
-				'reservationFor' => [
+				// schema.org: ReserveAction uses 'object' (the thing being
+				// reserved). The property belonging to Reservation is not valid here.
+				'object' => [
 					'@type' => 'Service',
 					'name'  => sanitize_text_field( $biz['booking_link_label'] ?? 'Book Now' ),
 				],

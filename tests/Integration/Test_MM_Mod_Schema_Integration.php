@@ -340,4 +340,38 @@ class Test_MM_Mod_Schema_Integration extends WP_UnitTestCase {
 		$types = array_column( $graph, '@type' );
 		$this->assertContains( 'Organization', $types );
 	}
+
+	// ------------------------------------------------------------------
+	// SiteOrigin Page Builder CPT integration
+	// ------------------------------------------------------------------
+
+	public function test_siteorigin_post_types_filter_includes_schema_cpts(): void {
+		$types = apply_filters( 'siteorigin_panels_post_types', [ 'page', 'post' ] );
+		$this->assertContains( 'mm_service', $types, 'mm_service must be enabled for SiteOrigin' );
+		$this->assertContains( 'mm_event', $types, 'mm_event must be enabled for SiteOrigin' );
+		$this->assertContains( 'mm_how_to', $types, 'mm_how_to must be enabled for SiteOrigin' );
+		$this->assertContains( 'page', $types, 'page must remain enabled' );
+		$this->assertContains( 'post', $types, 'post must remain enabled' );
+	}
+
+	public function test_siteorigin_settings_synced_on_admin_init(): void {
+		// Simulate stale settings without our CPTs.
+		update_option( 'siteorigin_panels_settings', [ 'post-types' => [ 'page', 'post' ] ] );
+		MM_Schema_Post_Types::sync_siteorigin_settings();
+		$settings = get_option( 'siteorigin_panels_settings' );
+		$this->assertContains( 'mm_service', $settings['post-types'], 'sync must add mm_service' );
+		$this->assertContains( 'page', $settings['post-types'], 'sync must keep page' );
+	}
+
+	// ------------------------------------------------------------------
+	// ReserveAction schema correctness
+	// ------------------------------------------------------------------
+
+	public function test_reserve_action_uses_object_not_reservation_for(): void {
+		// reservationFor is a Reservation property, not ReserveAction.
+		// ReserveAction uses 'object' for the thing being reserved.
+		$file = file_get_contents( dirname( __DIR__, 2 ) . '/includes/metadata/modules/class-mm-mod-local.php' );
+		$this->assertStringNotContainsString( 'reservationFor', $file, 'ReserveAction must not use reservationFor (wrong property)' );
+		$this->assertStringContainsString( "'object' =>", $file, 'ReserveAction must use object property' );
+	}
 }
