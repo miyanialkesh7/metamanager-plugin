@@ -77,7 +77,7 @@ class MM_Biz_Card_CSS {
 		$css .= ".gcm-biz-card__actions{display:flex;flex-direction:column;gap:8px;margin-top:16px;}\n";
 
 		// Apply button styles to ALL button/link classes across the site.
-		$btn_selectors = '.gcm-biz-card__btn,.gcm-contact-page__btn,.gcm-about-page__link,.gcm-about-page__cta-btn,.mm-person__phone-btn,.mm-person__email-btn,.mm-archive-card__link';
+		$btn_selectors = '.gcm-biz-card__btn,.gcm-contact-page__btn,.gcm-about-page__link,.gcm-about-page__cta-btn,.mm-person__phone-btn,.mm-person__email-btn,.mm-archive-card__link,.mm-contact-submit-btn';
 
 		$css .= "{$btn_selectors}{display:inline-flex;align-items:center;gap:8px;text-decoration:none;transition:background 0.2s ease,color 0.2s ease;";
 		$css .= "background:{$btn_bg};color:{$btn_text} !important;padding:{$btn_padding};";

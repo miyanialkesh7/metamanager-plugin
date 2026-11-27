@@ -273,22 +273,7 @@
 	margin: 24px 0;
 }
 
-.gcm-about-page__cta-btn {
-	display: inline-block;
-	padding: 12px 28px;
-	background: #2271b1;
-	color: #ffffff !important;
-	border-radius: 4px;
-	font-size: 15px;
-	font-weight: 600;
-	text-decoration: none;
-}
-
-.gcm-about-page__cta-btn:hover {
-	opacity: .88;
-	text-decoration: none;
-	color: #ffffff !important;
-}
+/* Visual button styles handled by MM_Biz_Card_CSS inline output (admin settings). */
 
 .gcm-contact-page__mailing-label,
 .gcm-about-page__mailing-label {
@@ -530,22 +515,7 @@
 	margin-bottom: 20px;
 }
 
-.gcm-contact-page__btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	padding: 10px 16px;
-	border-radius: 4px;
-	text-decoration: none;
-	font-size: 14px;
-	font-weight: 500;
-	transition: opacity .2s;
-}
-
-.gcm-contact-page__btn:hover {
-	opacity: .85;
-	text-decoration: none;
-}
+/* Visual button styles handled by MM_Biz_Card_CSS inline output (admin settings). */
 
 .gcm-contact-page__social {
 	margin-bottom: 20px;
@@ -759,21 +729,7 @@
 	flex-shrink: 0;
 }
 
-.mm-contact-submit-btn {
-	background: #0073aa;
-	color: #fff;
-	border: none;
-	border-radius: 4px;
-	padding: 12px 32px;
-	font-size: 15px;
-	font-weight: 600;
-	cursor: pointer;
-}
-
-.mm-contact-submit-btn:hover {
-	background: #005a87;
-}
-
+/* Button styles handled by MM_Biz_Card_CSS inline output (admin settings). */
 .mm-contact-submit-btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
