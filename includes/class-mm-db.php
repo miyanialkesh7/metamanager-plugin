@@ -273,6 +273,11 @@ class MM_DB {
 		$format = array_fill( 0, count( $data ), '%s' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
 		$wpdb->update( $table, $data, [ 'id' => $job_id ], $format, [ '%d' ] );
+
+		// Send failure notification if enabled.
+		if ( 'failed' === $status && class_exists( 'MM_Settings' ) ) {
+			MM_Settings::send_failure_notification( $job_type, $job_id, $details );
+		}
 	}
 
 	// ── History queries ─────────────────────────────────────────────

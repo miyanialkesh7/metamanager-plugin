@@ -14,46 +14,29 @@ Verified against code 2026-11-16. Producer: `MM_Job_Queue::write_job()`
 
 ---
 
-## Directory Structure
+## Architecture — DB as Single Source of Truth
 
-`MM_JOB_ROOT` = `WP_CONTENT_DIR/metamanager-jobs/` (plugin constant,
-`metamanager.php`; the daemons carry the same path patched in by
-`metamanager-install.sh` at install time).
+**Three dedicated tables** (one per queue), each tailored to its data needs:
 
-```
-WP_CONTENT_DIR/metamanager-jobs/
-├── compress/              # Compression job queue (plugin writes, compress daemon reads)
-│   ├── *.json             # Pending jobs
-│   └── *.json.processing  # Claimed jobs (daemon-locked)
-├── meta/                  # Metadata job queue (plugin writes, meta daemon reads)
-│   ├── *.json             # Pending jobs (job_type "metadata" or "import")
-│   └── *.json.processing  # Claimed jobs (daemon-locked)
-├── completed/             # Completed results (daemons write, plugin reads)
-│   └── <job-name>.json-result.json
-├── failed/                # Failed results (daemons write, plugin reads)
-│   └── <job-name>.json-result.json
-├── compress-daemon.pid    # PID file, compress daemon
-├── meta-daemon.pid        # PID file, meta daemon
-├── compress-status.json   # Daemon-written status (see Daemon Status Files)
-└── meta-status.json       # Daemon-written status (see Daemon Status Files)
-```
+| Table | Queue | Key columns |
+|---|---|---|
+| `{prefix}mm_webp_queue` | WebP generation | `attachment_id`, `image_name`, `file_path`, `size`, `status`, `submitted_at`, `completed_at`, `details` |
+| `{prefix}mm_compress_queue` | Lossless compression | + `dimensions`, `optimize_level`, `bytes_before`, `bytes_after` |
+| `{prefix}mm_meta_queue` | Metadata read/write | + `job_type`, `job_subtype`, `job_trigger`, `metadata` (JSON payload) |
 
-Each queue directory also contains an `.htaccess` with `Deny from all`, written
-by the plugin on creation.
+**Status lifecycle:** `pending` → `processing` → `completed` or `failed`
 
-The plugin additionally writes its own `metamanager-status.json` into
-`MM_JOB_ROOT` (read by the plugin/daemon status checks). It is not part of the
-job/result protocol described here.
+**No file queues.** The `MM_JOB_ROOT` directory exists only for daemon PID files and `metamanager-status.json` (admin/monitor consumption).
 
 ---
 
-## Job Files
+## Job Rows
 
 Written by the plugin as one JSON object per file. Filename pattern
 (`MM_Job_Queue::write_job()`):
 
 ```
-<attachment_id>-<size>-<unix_time>-<6_char_uid>.json
+Jobs are identified by DB row ID. The `file_path` column stores the absolute path to the media file.
 ```
 
 into `compress/` for `job_type: "compression"` and into `meta/` for
@@ -244,19 +227,11 @@ consumed.
 ## Result Files
 
 Filename (written by `write_result()` in `daemon-common.sh`, and the import
-path in `metamanager-meta-daemon.sh`): the claimed job filename (still
-including its `.json`) with `-result.json` appended:
-
-```
-<attachment_id>-<size>-<unix_time>-<6_char_uid>.json-result.json
-```
-
-Written to `completed/` or `failed/` atomically (`.tmp` then `mv`). A result is
-the original job JSON with these keys merged in:
+Results are written directly to the DB via `MM_DB::finish_job()`. No result files.
 
 | Key | Type | Present | Description |
 |-----|------|---------|-------------|
-| `status` | string | always | `"completed"` or `"failed"` (also implied by the directory) |
+| `status` | string | always | `"completed"` or `"failed"` (stored in DB) |
 | `completed_at` | string | always | `YYYY-MM-DD HH:MM:SS` (daemon clock; fleet runs UTC) |
 | `bytes_before` | int | compression only | Original size in bytes (`0` on failure) |
 | `bytes_after` | int | compression only | Result size in bytes (`0` on failure) |
@@ -321,18 +296,12 @@ priority lists.
 
 ---
 
-## Result Import (plugin side)
+## Result Processing (plugin side)
 
-`mm_import_completed_jobs()` (WP-Cron, every minute) globs `*.json` in
-`completed/` and `failed/` (skipping `.tmp`, `.processing`, `.unparseable`),
-persists each result via `MM_DB::log_job()` into the `{prefix}metamanager_jobs`
-history table (REPLACE on the unique key `attachment_id + job_type + size`),
-then deletes the result file. Unparseable results are renamed `.unparseable`
-for inspection. Failed jobs trigger one combined notification email when
-notifications are enabled.
+Results are written directly to the DB via `MM_DB::finish_job()` during daemon
+processing. No result files, no import cron.
 
-DB mapping note: the JSON key `trigger` is stored in the `job_trigger` column.
-`details` is stored JSON-encoded.
+DB mapping: `trigger` → `job_trigger` column. `details` stored as text.
 
 Post-processing after a successful DB write:
 
@@ -344,29 +313,21 @@ Post-processing after a successful DB write:
 - Completed `metadata` job on `full` → queues an import job (`trigger: "verify"`)
   to confirm the values stuck.
 
-Enqueue dedup (`write_job()`): compression jobs for an attachment+size already
-pending (plain `.json`) are suppressed (return `skipped`); metadata/import jobs
-are written anyway (return `queued`) and run in sequence.
+Enqueue dedup: `MM_DB::insert_job()` allows duplicates (rule 18, no silent
+suppression). `MM_DB::log_pending_job()` upserts on same attachment+size.
 
 ---
 
 ## Atomic Ownership Protocol
 
-1. **Claim:** daemon renames `job.json` → `job.json.processing` (atomic `mv`;
-   failure means another worker claimed it — skip).
-2. **Lock:** per-file `flock -n` on `<file_path>.mm.lock`; on contention the
-   job is renamed back to `.json` (re-queued) and left for later.
-3. **Process:** daemon runs the tool commands above (`timeout 120` per tool).
-4. **Complete:** result written `.tmp` → `mv` into `completed/` or `failed/`.
-5. **Cleanup:** `.processing` file removed.
+1. **Claim:** daemon calls `MM_DB::claim_next_job()` via `wp eval` — atomically
+   selects the oldest pending row and marks it `processing` in one UPDATE.
+2. **Process:** daemon runs the tool commands above (`timeout 120` per tool).
+3. **Finish:** daemon calls `MM_DB::finish_job()` via `wp eval` — marks the row
+   `completed` or `failed` with details.
 
-If a daemon crashes, `*.json.processing` files remain and are recovered on the
-next startup (`*.json.processing` → `*.json`); leftover `*.mm_tmp` tool
-temporaries are deleted at startup.
-
-Startup drain (`drain_jobs_loop()`) processes pre-existing jobs FIFO (filename
-order) before entering the main loop. The main
-loop uses `inotifywait` (`close_write`, `moved_to`) on the queue directory.
+The daemon main loop polls the DB every 2 seconds (backing off to 5s/10s when
+idle). No file watching, no `inotifywait`, no result files.
 
 ### Cross-process gating
 
@@ -388,7 +349,7 @@ Each daemon atomically writes a status file (`.tmp` then `mv`):
 { "pid": 1234, "queue_depth": 0, "last_completed": "2026-11-16 12:00:05", "updated_at": "2026-11-16 12:00:05" }
 ```
 
-- `compress-status.json` / `meta-status.json` in `MM_JOB_ROOT`
+- `compress-status.json` / `meta-status.json` / `webp-status.json` in `MM_JOB_ROOT` (PID + queue depth, written by daemons)
 - PID files `compress-daemon.pid` / `meta-daemon.pid` in `MM_JOB_ROOT`
   (stale-PID detection at startup; removed on exit)
 
@@ -403,5 +364,5 @@ Each daemon atomically writes a status file (`.tmp` then `mv`):
 - The `size` field is the WordPress size slug, not dimensions.
 - Daemons are stateless — all state is in the filesystem.
 - PHP never touches image files — the daemons do all heavy lifting.
-- Both daemons require bash 5+, `jq`, and `inotifywait`; the meta daemon
+- Both daemons require bash 5+, `jq`, and `wp` (WP-CLI); the meta daemon
   additionally requires `/usr/bin/exiftool`.
