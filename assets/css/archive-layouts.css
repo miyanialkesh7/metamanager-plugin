@@ -152,21 +152,15 @@
 /* --- Shared card link (button) --- */
 .mm-archive-card__link {
 	display: inline-block;
-	padding: 10px 16px;
-	background: #7a0000;
-	color: #ffffff !important;
-	border-radius: 4px;
-	font-size: 14px;
-	font-weight: 600;
 	text-decoration: none;
 	margin-top: auto;
 	align-self: flex-start;
 }
 
+/* Visual styles (background, color, padding, radius, font) handled by
+   MM_Biz_Card_CSS inline output — admin Button Styles settings. */
 .mm-archive-card__link:hover {
-	opacity: .88;
 	text-decoration: none;
-	color: #ffffff !important;
 }
 
 /* --- Responsive: Tablet (2 columns) --- */
