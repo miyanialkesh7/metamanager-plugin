@@ -56,8 +56,13 @@
 	color: inherit;
 }
 
-.mm-archive-card--menu .mm-archive-card__excerpt,
 .mm-archive-card--menu .mm-archive-card__details {
+	margin: 0 0 12px;
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.mm-archive-card--menu .mm-archive-card__excerpt {
 	margin: 0 0 16px;
 	font-size: 15px;
 	line-height: 1.6;
@@ -95,8 +100,7 @@
 }
 
 .mm-archive-card__details {
-	padding: 10px 0;
-	margin-bottom: 8px;
+	/* Spacing handled by layout-specific rules below */
 }
 
 .mm-archive-card__detail-row {
@@ -143,7 +147,6 @@
 	font-size: 14px;
 	line-height: 1.55;
 	opacity: .85;
-	flex: 1;
 }
 
 /* --- Shared card link (button) --- */
